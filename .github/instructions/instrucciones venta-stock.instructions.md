@@ -1,0 +1,14 @@
+---
+applyTo: '**'
+---
+- usa c#
+- usa .NET 9
+- usa ASP.NET Core
+- usa MVC (Model-View-Controller)
+- usa Razor
+- Usa Models, Views, ViewModels y Controllers
+- usa inyección de dependencias
+- No uses Entity Framework
+- No uses identity framework
+- la base de datos la implementare en postgresql
+- usa buenas practicas de desarrollo

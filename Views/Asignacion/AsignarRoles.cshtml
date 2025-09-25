@@ -1,0 +1,19 @@
+@model mi_ferreteria.ViewModels.UsuarioRolViewModel
+@{
+    ViewData["Title"] = "Asignar Roles a Usuario";
+}
+<h2>Asignar Roles a @Model.UsuarioNombre</h2>
+<form asp-action="AsignarRoles" method="post">
+    <input type="hidden" asp-for="UsuarioId" />
+    <div class="form-group">
+        <label>Roles</label>
+        @foreach (var rol in Model.RolesDisponibles)
+        {
+            <div>
+                <input type="checkbox" name="RolesIds" value="@rol.Id" @(Model.RolesIds.Contains(rol.Id) ? "checked" : "") /> @rol.Nombre
+            </div>
+        }
+    </div>
+    <button type="submit" class="btn btn-primary">Guardar</button>
+</form>
+<a asp-action="Index" asp-controller="Usuario">Volver</a>

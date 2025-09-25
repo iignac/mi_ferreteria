@@ -1,0 +1,19 @@
+@model mi_ferreteria.ViewModels.RolPermisoViewModel
+@{
+    ViewData["Title"] = "Asignar Permisos a Rol";
+}
+<h2>Asignar Permisos a @Model.RolNombre</h2>
+<form asp-action="AsignarPermisos" method="post">
+    <input type="hidden" asp-for="RolId" />
+    <div class="form-group">
+        <label>Permisos</label>
+        @foreach (var permiso in Model.PermisosDisponibles)
+        {
+            <div>
+                <input type="checkbox" name="PermisosIds" value="@permiso.Id" @(Model.PermisosIds.Contains(permiso.Id) ? "checked" : "") /> @permiso.Nombre
+            </div>
+        }
+    </div>
+    <button type="submit" class="btn btn-primary">Guardar</button>
+</form>
+<a asp-action="Index" asp-controller="Usuario">Volver</a>

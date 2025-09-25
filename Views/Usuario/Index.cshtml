@@ -1,0 +1,38 @@
+@model IEnumerable<mi_ferreteria.Models.Usuario>
+@{
+    ViewData["Title"] = "Gestión de Usuarios";
+}
+<h2>Gestión de Usuarios</h2>
+<a asp-action="Create">Crear Usuario</a>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Id</th>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Activo</th>
+            <th>Rol</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var usuario in Model)
+        {
+            <tr>
+                <td>@usuario.Id</td>
+                <td>@usuario.Nombre</td>
+                <td>@usuario.Email</td>
+                <td>@usuario.Activo</td>
+                <td>
+                    @(usuario.Roles != null && usuario.Roles.Count > 0 
+                        ? string.Join(", ", usuario.Roles.Select(r => r.Nombre)) 
+                        : "Sin rol")
+                </td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@usuario.Id">Editar</a> |
+                    <a asp-action="Delete" asp-route-id="@usuario.Id">Eliminar</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
