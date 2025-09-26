@@ -15,12 +15,30 @@ public class HomeController : Controller
 
     public IActionResult Index()
     {
-        return View();
+        try
+        {
+            _logger.LogInformation("Cargando Home/Index");
+            return View();
+        }
+        catch (System.Exception ex)
+        {
+            _logger.LogError(ex, "Error en Home/Index");
+            return Problem("Ocurrió un error al cargar la página principal.");
+        }
     }
 
     public IActionResult Privacy()
     {
-        return View();
+        try
+        {
+            _logger.LogInformation("Cargando Home/Privacy");
+            return View();
+        }
+        catch (System.Exception ex)
+        {
+            _logger.LogError(ex, "Error en Home/Privacy");
+            return Problem("Ocurrió un error al cargar la página de privacidad.");
+        }
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

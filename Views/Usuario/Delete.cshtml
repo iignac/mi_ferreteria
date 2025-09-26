@@ -3,6 +3,7 @@
     ViewData["Title"] = "Eliminar Usuario";
 }
 <h2>Eliminar Usuario</h2>
+<div class="alert alert-warning">¿Estás seguro de que quieres eliminar este usuario? Esta acción no se puede deshacer.</div>
 <form asp-action="Delete" method="post">
     <input type="hidden" asp-for="Id" />
     <div class="form-group">
@@ -17,6 +18,24 @@
         <label>Activo</label>
         <input asp-for="Activo" type="checkbox" disabled />
     </div>
-    <button type="submit" class="btn btn-danger">Eliminar</button>
+    <div class="d-flex justify-content-center gap-2 mt-3">
+        <button type="submit" class="btn btn-danger px-4">Eliminar</button>
+        <a asp-action="Index" class="btn btn-outline-secondary px-4">Volver</a>
+    </div>
 </form>
-<a asp-action="Index">Volver</a>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.querySelector('form[method="post"]');
+            if (form) {
+                form.addEventListener('submit', function (e) {
+                    const nombre = document.querySelector('[name="Nombre"]')?.value || 'este usuario';
+                    if (!confirm(`¿Confirmas que deseas eliminar ${nombre}?`)) {
+                        e.preventDefault();
+                    }
+                });
+            }
+        });
+    </script>
+}
