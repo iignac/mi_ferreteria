@@ -13,8 +13,8 @@ namespace mi_ferreteria.Models
         public int StockMinimo { get; set; }
         public bool Activo { get; set; } = true;
         public long? UbicacionPreferidaId { get; set; }
+        public string? UbicacionCodigo { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
         public DateTimeOffset UpdatedAt { get; set; }
     }
 }
-

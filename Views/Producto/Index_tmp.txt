@@ -9,7 +9,7 @@
 }
 @if (ViewBag.LoadError == true)
 {
-    <div class="alert alert-danger">No pudimos cargar los productos. Por favor, intenta nuevamente m·s tarde.</div>
+    <div class="alert alert-danger">No pudimos cargar los productos. Por favor, intenta nuevamente m√°s tarde.</div>
 }
 
 <div class="text-center mb-4">
@@ -23,23 +23,23 @@
 else
 {
     <div class="table-responsive">
-        <table class="table table-striped table-hover table-bordered align-middle table-products">
+        <table class="table table-striped align-middle">
             <thead>
                 <tr>
                     <th>ID</th>
                     <th>SKU</th>
                     <th>Nombre</th>
                     <th>Precio</th>
-                    <th>UbicaciÛn</th>
+                    <th>Ubicaci√≥n</th>
                     <th>Stock</th>
                     <th>Activo</th>
-                    <th class="text-end">Acciones</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
             @foreach (var p in Model)
             {
-                <tr class="clickable-row" data-href="@Url.Action("Edit","Producto", new { id = p.Id })">
+                <tr>
                     <td>@p.Id</td>
                     <td>@p.Sku</td>
                     <td>@p.Nombre</td>
@@ -47,7 +47,7 @@ else
                     <td>@(string.IsNullOrWhiteSpace(p.UbicacionCodigo) ? (p.UbicacionPreferidaId?.ToString() ?? "-") : p.UbicacionCodigo)</td>
                     <td>@(stocks != null && stocks.ContainsKey(p.Id) ? stocks[p.Id] : 0)</td>
                     <td>
-                        @if (p.Activo) { <span class="badge bg-success">SÌ</span>; } else { <span class="badge bg-secondary">No</span>; }
+                        @if (p.Activo) { <span class="badge bg-success">S√≠</span>; } else { <span class="badge bg-secondary">No</span>; }
                     </td>
                     <td class="text-end">
                         <a asp-action="Edit" asp-route-id="@p.Id" class="btn btn-sm btn-outline-primary">Editar</a>
@@ -66,21 +66,12 @@ else
 document.addEventListener('DOMContentLoaded', function(){
   document.querySelectorAll('.btn-delete-prod').forEach(function(a){
     a.addEventListener('click', function(e){
-      if(!confirm('øSeguro que deseas eliminar este producto?')){
+      if(!confirm('¬øSeguro que deseas eliminar este producto?')){
         e.preventDefault();
       }
-    });
-  });
-
-  // Click en fila -> Editar (excepto botones/enlaces)
-  document.querySelectorAll('table.table-products tbody tr.clickable-row').forEach(function(tr){
-    tr.addEventListener('click', function(e){
-      var t = e.target;
-      if (t && t.closest && (t.closest('a') || t.closest('button'))) return;
-      var href = this.getAttribute('data-href');
-      if (href) window.location.href = href;
     });
   });
 });
 </script>
 }
+
