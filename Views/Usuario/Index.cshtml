@@ -2,37 +2,69 @@
 @{
     ViewData["Title"] = "Gestión de Usuarios";
 }
-<h2>Gestión de Usuarios</h2>
-<a asp-action="Create">Crear Usuario</a>
-<table class="table">
-    <thead>
-        <tr>
-            <th>Id</th>
-            <th>Nombre</th>
-            <th>Email</th>
-            <th>Activo</th>
-            <th>Rol</th>
-            <th>Acciones</th>
-        </tr>
-    </thead>
-    <tbody>
+
+<h2 class="mb-3">Gestión de Usuarios</h2>
+
+<div class="text-center mb-4">
+    <a asp-action="Create" class="btn btn-primary btn-lg">Crear usuario</a>
+ </div>
+
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-info">No hay usuarios registrados.</div>
+}
+else
+{
+    <div class="row g-4">
         @foreach (var usuario in Model)
         {
-            <tr>
-                <td>@usuario.Id</td>
-                <td>@usuario.Nombre</td>
-                <td>@usuario.Email</td>
-                <td>@usuario.Activo</td>
-                <td>
-                    @(usuario.Roles != null && usuario.Roles.Count > 0 
-                        ? string.Join(", ", usuario.Roles.Select(r => r.Nombre)) 
-                        : "Sin rol")
-                </td>
-                <td>
-                    <a asp-action="Edit" asp-route-id="@usuario.Id">Editar</a> |
-                    <a asp-action="Delete" asp-route-id="@usuario.Id">Eliminar</a>
-                </td>
-            </tr>
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                <div class="card user-card h-100 shadow-sm">
+                    <div class="card-body position-relative">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title mb-0">@usuario.Nombre</h5>
+                            @if (usuario.Activo)
+                            {
+                                <span class="badge bg-success">Activo</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactivo</span>
+                            }
+                        </div>
+                        <h6 class="card-subtitle text-muted mb-2">ID: @usuario.Id</h6>
+                        <p class="mb-1"><strong>Email:</strong> @usuario.Email</p>
+                        <p class="mb-0">
+                            <strong>Roles:</strong>
+                            @(usuario.Roles != null && usuario.Roles.Count > 0
+                                ? string.Join(", ", usuario.Roles.Select(r => r.Nombre))
+                                : "Sin rol")
+                        </p>
+                        <a class="stretched-link" asp-action="Edit" asp-route-id="@usuario.Id" aria-label="Editar @usuario.Nombre"></a>
+                    </div>
+                    <div class="card-footer p-0">
+                        <div class="d-flex">
+                            <a asp-action="Edit" asp-route-id="@usuario.Id" class="btn btn-outline-primary flex-fill py-3">Editar</a>
+                            <a asp-action="Delete" asp-route-id="@usuario.Id" class="btn btn-outline-danger flex-fill py-3 btn-delete-user">Eliminar</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         }
-    </tbody>
-</table>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.btn-delete-user').forEach(function(a) {
+                a.addEventListener('click', function (e) {
+                    const name = this.closest('.card')?.querySelector('.card-title')?.textContent?.trim() || 'este usuario';
+                    if (!confirm(`¿Seguro que deseas eliminar ${name}? Esta acción no se puede deshacer.`)) {
+                        e.preventDefault();
+                    }
+                });
+            });
+        });
+    </script>
+}

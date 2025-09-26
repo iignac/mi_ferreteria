@@ -21,6 +21,56 @@ body {
   margin-bottom: 60px;
 }
 
+.user-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-radius: 0.85rem;
+  overflow: hidden; /* asegura que el footer y el hover respeten el borde redondeado */
+}
+
+/* Botonera inferior redondeada para coincidir con la tarjeta */
+.user-card .card-footer .btn {
+  border-radius: 0; /* base plana para que se vea como una barra */
+}
+.user-card .card-footer .btn:first-child {
+  border-bottom-left-radius: 0.85rem;
+}
+.user-card .card-footer .btn:last-child {
+  border-bottom-right-radius: 0.85rem;
+}
+
+/* Roles como tarjetas seleccionables */
+.role-card {
+  display: block;
+  border: 1px solid var(--bs-border-color);
+  border-radius: .75rem;
+  padding: .75rem 1rem;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .15s ease;
+}
+.role-card:hover {
+  transform: translateY(-2px);
+}
+.role-check:focus + .role-card {
+  box-shadow: 0 0 0 .2rem rgba(13,110,253,.25);
+}
+.role-check:checked + .role-card {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 .2rem rgba(13,110,253,.15);
+  background: rgba(13,110,253,.03);
+}
+.role-card .name { font-weight: 600; }
+.role-card .desc { font-size: .875rem; }
+
+.user-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.12), 0 0.25rem 0.75rem rgba(0, 0, 0, 0.08);
+}
+
+.user-card:active {
+  transform: translateY(-2px) scale(0.997);
+}
+
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
   color: var(--bs-secondary-color);
   text-align: end;
