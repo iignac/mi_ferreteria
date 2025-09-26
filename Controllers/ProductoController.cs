@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using mi_ferreteria.Data;
 using mi_ferreteria.Models;
@@ -22,19 +22,30 @@ namespace mi_ferreteria.Controllers
             _logger = logger;
         }
 
-        public IActionResult Index()
+        public IActionResult Index(int page = 1)
         {
             try
             {
-                var productos = _repo.GetAll().ToList();
+                const int pageSize = 10;
+                if (page < 1) page = 1;
+                var total = _repo.CountAll();
+                var totalPages = (int)Math.Ceiling(total / (double)pageSize);
+                if (totalPages == 0) totalPages = 1;
+                if (page > totalPages) page = totalPages;
+                var productos = _repo.GetPage(page, pageSize).ToList();
                 var stocks = productos.ToDictionary(p => p.Id, p => _stockRepo.GetStock(p.Id));
                 ViewBag.Stocks = stocks;
+                ViewBag.Page = page;
+                ViewBag.PageSize = pageSize;
+                ViewBag.TotalCount = total;
+                ViewBag.TotalPages = totalPages;
                 return View(productos);
             }
             catch (System.Exception ex)
             {
                 _logger.LogError(ex, "Error al listar productos");
                 ViewBag.LoadError = true;
+                ViewBag.Page = 1; ViewBag.PageSize = 10; ViewBag.TotalCount = 0; ViewBag.TotalPages = 1;
                 return View(Enumerable.Empty<Producto>());
             }
         }
@@ -60,26 +71,30 @@ namespace mi_ferreteria.Controllers
             return list;
         }
 
-        public IActionResult Create()
+        public IActionResult Create(int? page = null)
         {
             var model = new ProductoFormViewModel { Activo = true };
             model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre }).ToList();
-            return View(model);
+                        ViewBag.ReturnPage = page ?? 1;
+            ViewBag.ReturnPage = page ?? 1;
+                    return View(model);
         }
 
         [HttpPost]
-        public IActionResult Create(ProductoFormViewModel model)
+        public IActionResult Create(ProductoFormViewModel model, int? page = null)
         {
             try
             {
                 if (!ModelState.IsValid)
                 {
                     model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre }).ToList();
+                    ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }
                 if (_repo.SkuExists(model.Sku))
                 {
                     ModelState.AddModelError("Sku", "El SKU ya existe.");
+                    ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }
                 var p = new Producto
@@ -108,10 +123,11 @@ namespace mi_ferreteria.Controllers
                 if (!ModelState.IsValid)
                 {
                     model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre }).ToList();
+                    ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }
                 _repo.ReplaceBarcodes(p.Id, barcodes);
-                return RedirectToAction("Index");
+                return RedirectToAction("Index", new { page = page ?? 1 });
             }
             catch (System.Exception ex)
             {
@@ -120,7 +136,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
-        public IActionResult Edit(long id)
+        public IActionResult Edit(long id, int? page = null)
         {
             try
             {
@@ -143,7 +159,8 @@ namespace mi_ferreteria.Controllers
                 // Cargar barcodes existentes
                 var bcs = _repo.GetBarcodes(p.Id);
                 model.Barcodes = bcs.Select(x => x.CodigoBarra).ToList();
-                return View(model);
+                ViewBag.ReturnPage = page ?? 1;
+                    return View(model);
             }
             catch (System.Exception ex)
             {
@@ -153,18 +170,20 @@ namespace mi_ferreteria.Controllers
         }
 
         [HttpPost]
-        public IActionResult Edit(ProductoFormViewModel model)
+        public IActionResult Edit(ProductoFormViewModel model, int? page = null)
         {
             try
             {
                 if (!ModelState.IsValid)
                 {
                     model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = (model.CategoriaId == c.Id) }).ToList();
+                    ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }
                 if (_repo.SkuExists(model.Sku, model.Id))
                 {
                     ModelState.AddModelError("Sku", "El SKU ya existe en otro producto.");
+                    ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }
                 var p = _repo.GetById(model.Id);
@@ -191,10 +210,11 @@ namespace mi_ferreteria.Controllers
                 if (!ModelState.IsValid)
                 {
                     model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = (model.CategoriaId == c.Id) }).ToList();
+                    ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }
                 _repo.ReplaceBarcodes(p.Id, barcodes);
-                return RedirectToAction("Index");
+                return RedirectToAction("Index", new { page = page ?? 1 });
             }
             catch (System.Exception ex)
             {
@@ -203,12 +223,13 @@ namespace mi_ferreteria.Controllers
             }
         }
 
-        public IActionResult Delete(long id)
+        public IActionResult Delete(long id, int? page = null)
         {
             try
             {
                 var p = _repo.GetById(id);
                 if (p == null) return NotFound();
+                ViewBag.ReturnPage = page ?? 1;
                 return View(p);
             }
             catch (System.Exception ex)
@@ -219,12 +240,12 @@ namespace mi_ferreteria.Controllers
         }
 
         [HttpPost, ActionName("Delete")]
-        public IActionResult DeleteConfirmed(long id)
+        public IActionResult DeleteConfirmed(long id, int? page = null)
         {
             try
             {
                 _repo.Delete(id);
-                return RedirectToAction("Index");
+                return RedirectToAction("Index", new { page = page ?? 1 });
             }
             catch (System.Exception ex)
             {
@@ -234,3 +255,9 @@ namespace mi_ferreteria.Controllers
         }
     }
 }
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-@model mi_ferreteria.Models.Producto
+﻿@model mi_ferreteria.Models.Producto
 @{
     ViewData["Title"] = "Eliminar Producto";
 }
@@ -6,7 +6,7 @@
 <h2>Eliminar Producto</h2>
 <div class="alert alert-warning">¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer.</div>
 
-<form asp-action="Delete" method="post">
+<form asp-action="Delete" method="post">`r`n    <input type="hidden" name="page" value="@(ViewBag.ReturnPage ?? 1)" />
     <input type="hidden" asp-for="Id" />
     <div class="mb-2">
         <label class="form-label">SKU</label>
@@ -22,7 +22,7 @@
     </div>
     <div class="d-flex justify-content-center gap-2 mt-3">
         <button type="submit" class="btn btn-danger px-4">Eliminar</button>
-        <a asp-action="Index" class="btn btn-outline-secondary px-4">Volver</a>
+        <a asp-action="Index" asp-route-page="@(ViewBag.ReturnPage ?? 1)" class="btn btn-outline-secondary px-4">Volver</a>
     </div>
 </form>
 
@@ -40,4 +40,6 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 </script>
 }
+
+
 

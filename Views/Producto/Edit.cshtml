@@ -4,7 +4,7 @@
 }
 <h2>Editar Producto</h2>
 <div class="text-danger">@Html.ValidationSummary()</div>
-<form asp-action="Edit" method="post">
+<form asp-action="Edit" method="post">`r`n    <input type="hidden" name="page" value="@(ViewBag.ReturnPage ?? 1)" />
     <input type="hidden" asp-for="Id" />
     <div class="row g-3">
         <div class="col-md-4">
@@ -60,7 +60,7 @@
     </div>
     <div class="d-flex justify-content-center gap-2 mt-4">
         <button type="submit" class="btn btn-primary px-5">Guardar</button>
-        <a asp-action="Index" class="btn btn-outline-secondary px-5 btn-cancel-leave">Volver</a>
+        <a asp-action="Index" asp-route-page="@(ViewBag.ReturnPage ?? 1)" class="btn btn-outline-secondary px-5 btn-cancel-leave">Volver</a>
     </div>
 </form>
 
@@ -108,3 +108,5 @@
 })();
 </script>
 }
+
+

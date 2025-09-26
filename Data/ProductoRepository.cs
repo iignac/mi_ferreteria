@@ -47,6 +47,57 @@ namespace mi_ferreteria.Data
             }
         }
 
+        public IEnumerable<Producto> GetPage(int page, int pageSize)
+        {
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
+            var list = new List<Producto>();
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureProductExtras(conn);
+                var sql = @"SELECT id, sku, nombre, descripcion, categoria_id,
+                                     precio_venta_actual, stock_minimo, activo,
+                                     ubicacion_preferida_id, ubicacion_codigo, created_at, updated_at
+                              FROM producto
+                              ORDER BY id DESC
+                              LIMIT @limit OFFSET @offset";
+                using var cmd = new NpgsqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@limit", pageSize);
+                cmd.Parameters.AddWithValue("@offset", (page - 1) * pageSize);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    list.Add(MapProducto(reader));
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al paginar productos");
+                throw;
+            }
+        }
+
+        public int CountAll()
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureProductExtras(conn);
+                using var cmd = new NpgsqlCommand("SELECT COUNT(1) FROM producto", conn);
+                var obj = cmd.ExecuteScalar();
+                return obj is long l ? (int)l : Convert.ToInt32(obj);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al contar productos");
+                throw;
+            }
+        }
+
         public Producto? GetById(long id)
         {
             try

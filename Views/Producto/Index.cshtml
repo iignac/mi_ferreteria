@@ -7,13 +7,17 @@
 @{
     var stocks = ViewBag.Stocks as System.Collections.Generic.IDictionary<long, long>;
 }
+@{
+    int page = ViewBag.Page is int ? (int)ViewBag.Page : 1;
+    int totalPages = ViewBag.TotalPages is int ? (int)ViewBag.TotalPages : 1;
+}
 @if (ViewBag.LoadError == true)
 {
     <div class="alert alert-danger">No pudimos cargar los productos. Por favor, intenta nuevamente m�s tarde.</div>
 }
 
 <div class="text-center mb-4">
-    <a asp-action="Create" class="btn btn-primary btn-lg btn-cta">Crear producto</a>
+    <a asp-action="Create" asp-route-page="@(page)" class="btn btn-primary btn-lg btn-cta">Crear producto</a>
  </div>
 
 @if (Model == null || !Model.Any())
@@ -39,7 +43,7 @@ else
             <tbody>
             @foreach (var p in Model)
             {
-                <tr class="clickable-row" data-href="@Url.Action("Edit","Producto", new { id = p.Id })">
+                <tr class="clickable-row" data-href="@Url.Action("Edit","Producto", new { id = p.Id, page = page })">
                     <td>@p.Id</td>
                     <td>@p.Sku</td>
                     <td>@p.Nombre</td>
@@ -50,15 +54,36 @@ else
                         @if (p.Activo) { <span class="badge bg-success">S�</span>; } else { <span class="badge bg-secondary">No</span>; }
                     </td>
                     <td class="text-end">
-                        <a asp-action="Edit" asp-route-id="@p.Id" class="btn btn-sm btn-outline-primary">Editar</a>
+                        <a asp-action="Edit" asp-route-id="@p.Id" asp-route-page="@(page)" class="btn btn-sm btn-outline-primary">Editar</a>
                         <a asp-controller="StockProducto" asp-action="Manage" asp-route-id="@p.Id" class="btn btn-sm btn-outline-secondary">Stock</a>
-                        <a asp-action="Delete" asp-route-id="@p.Id" class="btn btn-sm btn-outline-danger btn-delete-prod">Eliminar</a>
+                        <a asp-action="Delete" asp-route-id="@p.Id" asp-route-page="@(page)" class="btn btn-sm btn-outline-danger btn-delete-prod">Eliminar</a>
                     </td>
                 </tr>
             }
             </tbody>
         </table>
     </div>
+    @if (totalPages > 1)
+    {
+        var start = Math.Max(1, page - 2);
+        var end = Math.Min(totalPages, page + 2);
+        <nav aria-label="Paginación de productos" class="mt-3">
+            <ul class="pagination justify-content-center">
+                <li class="page-item @(page <= 1 ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(page - 1)">Anterior</a>
+                </li>
+                @for (var i = start; i <= end; i++)
+                {
+                    <li class="page-item @(i == page ? "active" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-page="@i">@i</a>
+                    </li>
+                }
+                <li class="page-item @(page >= totalPages ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(page + 1)">Siguiente</a>
+                </li>
+            </ul>
+        </nav>
+    }
 }
 
 @section Scripts {
@@ -84,5 +109,11 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 </script>
 }
+
+
+
+
+
+
 
 

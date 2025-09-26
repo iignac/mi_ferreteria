@@ -6,6 +6,8 @@ namespace mi_ferreteria.Data
     public interface IProductoRepository
     {
         IEnumerable<Producto> GetAll();
+        IEnumerable<Producto> GetPage(int page, int pageSize);
+        int CountAll();
         Producto? GetById(long id);
         void Add(Producto producto);
         void Update(Producto producto);
