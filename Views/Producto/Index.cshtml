@@ -15,7 +15,7 @@
 @* page y totalPages llegan desde el controlador para soportar la paginación *@
 @if (ViewBag.LoadError == true)
 {
-    <div class="alert alert-danger">No pudimos cargar los productos. Por favor, intenta nuevamente m�s tarde.</div>
+    <div class="alert alert-danger">No pudimos cargar los productos. Por favor, intenta nuevamente más tarde.</div>
 }
 
 <div class="text-center mb-4">
@@ -37,7 +37,7 @@ else
                     <th>SKU</th>
                     <th>Nombre</th>
                     <th>Precio</th>
-                    <th>Ubicaci�n</th>
+                    <th>Ubicación</th>
                     <th>Stock</th>
                     <th>Activo</th>
                     <th class="text-end">Acciones</th>
@@ -55,7 +55,7 @@ else
                     <td>@(string.IsNullOrWhiteSpace(p.UbicacionCodigo) ? "-" : p.UbicacionCodigo)</td>
                     <td>@(stocks != null && stocks.ContainsKey(p.Id) ? stocks[p.Id] : 0)</td>
                     <td>
-                        @if (p.Activo) { <span class="badge bg-success">S�</span>; } else { <span class="badge bg-secondary">No</span>; }
+                        @if (p.Activo) { <span class="badge bg-success">Sí</span>; } else { <span class="badge bg-secondary">No</span>; }
                     </td>
                     <td class="text-end">
                         <a asp-action="Edit" asp-route-id="@p.Id" asp-route-page="@(page)" class="btn btn-sm btn-outline-primary">Editar</a>
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function(){
   // Confirmación de eliminación desde el listado
   document.querySelectorAll('.btn-delete-prod').forEach(function(a){
     a.addEventListener('click', function(e){
-      if(!confirm('�Seguro que deseas eliminar este producto?')){
+    if(!confirm('¿Seguro que deseas eliminar este producto?')){
         e.preventDefault();
       }
     });
