@@ -73,4 +73,30 @@
             });
         })();
     </script>
+    <script>
+        (function(){
+            const form = document.querySelector('form[asp-action="Create"]') || document.querySelector('form');
+            if (!form) return;
+            const targets = form.querySelectorAll('input[type="password"][name="Password"], input[type="password"][name="ConfirmPassword"]');
+            targets.forEach(function(input){
+                // Wrap input inside Bootstrap input-group
+                const wrapper = document.createElement('div');
+                wrapper.className = 'input-group';
+                input.parentNode.insertBefore(wrapper, input);
+                wrapper.appendChild(input);
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-outline-secondary';
+                btn.textContent = 'Mostrar';
+                btn.setAttribute('data-generated','password-toggle');
+                btn.addEventListener('click', function(){
+                    const show = input.type === 'password';
+                    input.type = show ? 'text' : 'password';
+                    btn.textContent = show ? 'Ocultar' : 'Mostrar';
+                });
+                wrapper.appendChild(btn);
+            });
+        })();
+    </script>
 }
