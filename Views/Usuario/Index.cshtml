@@ -40,11 +40,11 @@ else
                                 ? string.Join(", ", usuario.Roles.Select(r => r.Nombre))
                                 : "Sin rol")
                         </p>
-                        <a class="stretched-link" asp-action="Edit" asp-route-id="@usuario.Id" aria-label="Editar @usuario.Nombre"></a>
+                        <a class="stretched-link" asp-action="Details" asp-route-id="@usuario.Id" aria-label="Ver @usuario.Nombre"></a>
                     </div>
                     <div class="card-footer p-0">
                         <div class="d-flex">
-                            <a asp-action="Edit" asp-route-id="@usuario.Id" class="btn btn-outline-primary flex-fill py-3">Editar</a>
+                            <a asp-action="Details" asp-route-id="@usuario.Id" class="btn btn-outline-info flex-fill py-3">Ver</a>
                             <a asp-action="Delete" asp-route-id="@usuario.Id" class="btn btn-outline-danger flex-fill py-3 btn-delete-user">Eliminar</a>
                         </div>
                     </div>

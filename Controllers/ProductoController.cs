@@ -239,6 +239,26 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        public IActionResult Details(long id, int? page = null)
+        {
+            try
+            {
+                var p = _repo.GetById(id);
+                if (p == null) return NotFound();
+                var barcodes = _repo.GetBarcodes(id);
+                var stock = _stockRepo.GetStock(id);
+                ViewBag.Barcodes = barcodes;
+                ViewBag.Stock = stock;
+                ViewBag.ReturnPage = page ?? 1;
+                return View(p);
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error al cargar detalles de producto {ProductoId}", id);
+                return Problem("Ocurrió un error al cargar los detalles del producto.");
+            }
+        }
+
         [HttpPost, ActionName("Delete")]
         public IActionResult DeleteConfirmed(long id, int? page = null)
         {

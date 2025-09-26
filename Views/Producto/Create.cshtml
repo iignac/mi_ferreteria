@@ -4,7 +4,8 @@
 }
 <h2>Crear Producto</h2>
 <div class="text-danger">@Html.ValidationSummary()</div>
-<form asp-action="Create" method="post">`r`n    @* Guardamos la página actual para volver luego de guardar *@`r`n    <input type="hidden" name="page" value="@(ViewBag.ReturnPage ?? 1)" />
+<form asp-action="Create" method="post">
+    <input type="hidden" name="page" value="@(ViewBag.ReturnPage ?? 1)" />
     <div class="row g-3">
         <div class="col-md-4">
             <label class="form-label">SKU</label>
@@ -69,7 +70,16 @@
   let isDirty=false; const form=document.querySelector('form');
   if(!form) return; form.addEventListener('input',()=>isDirty=true,{capture:true});
   form.addEventListener('change',()=>isDirty=true,{capture:true});
-  form.addEventListener('submit',()=>{isDirty=false});
+  form.addEventListener('submit',(e)=>{
+  const inputs = Array.from(document.querySelectorAll('#barcodeList .barcode-item input'));
+  const vals = inputs.map(i=>i.value.trim()).filter(v=>v.length>0);
+  const hasEmpty = inputs.some(i=>!i.value.trim());
+  const seen = new Set(); const dup = new Set();
+  vals.forEach(v=>{ const k=v.toLowerCase(); if(seen.has(k)) dup.add(k); else seen.add(k); });
+  if(hasEmpty){ e.preventDefault(); alert('No se permiten codigos de barra vacios.'); return; }
+  if(dup.size>0){ e.preventDefault(); alert('Hay codigos de barra repetidos.'); return; }
+  isDirty=false;
+});
   window.addEventListener('beforeunload',function(e){ if(!isDirty) return; e.preventDefault(); e.returnValue=''; });
   document.querySelectorAll('.btn-cancel-leave').forEach(a=>a.addEventListener('click',function(e){ if(isDirty && !confirm('Hay cambios sin guardar. Si vuelves, se perderán. ¿Deseas salir igualmente?')){ e.preventDefault(); }}));
   // Barcodes dynamic inputs
@@ -104,12 +114,15 @@
     items.forEach((inp, i)=>{ inp.name = `Barcodes[${i}]`; });
     if(items.length < max) msg.classList.add('d-none');
   };
-  btnAdd?.addEventListener('click', ()=> addInput());
+  btnAdd?.addEventListener('click', ()=> { const hasEmpty = Array.from(document.querySelectorAll('#barcodeList .barcode-item input')).some(i=>!i.value.trim()); if(hasEmpty){ alert('Complete el codigo vacio antes de agregar otro.'); return; } addInput(); });
   // Initialize with one empty input
   if(list && list.children.length === 0){ addInput(); }
 })();
 </script>
 }
+
+
+
 
 
 

@@ -44,10 +44,10 @@ else
                 </tr>
             </thead>
             <tbody>
-            @* Renderiza filas de productos. Cada fila es "clickeable" para ir a Edit *@
+            @* Renderiza filas de productos. Cada fila es "clickeable" para ir a Detalle *@
             @foreach (var p in Model)
             {
-                <tr class="clickable-row" data-href="@Url.Action("Edit","Producto", new { id = p.Id, page = page })">
+                <tr class="clickable-row" data-href="@Url.Action("Details","Producto", new { id = p.Id, page = page })">
                     <td>@p.Id</td>
                     <td>@p.Sku</td>
                     <td>@p.Nombre</td>
@@ -58,7 +58,7 @@ else
                         @if (p.Activo) { <span class="badge bg-success">Sí</span>; } else { <span class="badge bg-secondary">No</span>; }
                     </td>
                     <td class="text-end">
-                        <a asp-action="Edit" asp-route-id="@p.Id" asp-route-page="@(page)" class="btn btn-sm btn-outline-primary">Editar</a>
+                        <a asp-action="Details" asp-route-id="@p.Id" asp-route-page="@(page)" class="btn btn-sm btn-outline-info">Ver</a>
                         <a asp-controller="StockProducto" asp-action="Manage" asp-route-id="@p.Id" class="btn btn-sm btn-outline-secondary">Stock</a>
                         <a asp-action="Delete" asp-route-id="@p.Id" asp-route-page="@(page)" class="btn btn-sm btn-outline-danger btn-delete-prod">Eliminar</a>
                     </td>
@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   });
 
-  // Click en fila -> navega a Edit (excepto si haces click en botones/enlaces dentro de la fila)
+  // Click en fila -> navega a Detalle (excepto si haces click en botones/enlaces dentro de la fila)
   document.querySelectorAll('table.table-products tbody tr.clickable-row').forEach(function(tr){
     tr.addEventListener('click', function(e){
       var t = e.target;

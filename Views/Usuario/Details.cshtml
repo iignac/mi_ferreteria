@@ -1,0 +1,38 @@
+@model mi_ferreteria.Models.Usuario
+@{
+    ViewData["Title"] = "Detalle de Usuario";
+}
+<h2 class="mb-3">Detalle de Usuario</h2>
+
+<div class="card">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-3"><strong>ID:</strong> @Model.Id</div>
+      <div class="col-md-4"><strong>Nombre:</strong> @Model.Nombre</div>
+      <div class="col-md-5"><strong>Email:</strong> @Model.Email</div>
+      <div class="col-md-3"><strong>Estado:</strong> @(Model.Activo ? "Activo" : "Inactivo")</div>
+    </div>
+    <hr/>
+    <h5>Roles</h5>
+    @if ((Model.Roles ?? new List<mi_ferreteria.Models.Rol>()).Count == 0)
+    {
+        <div class="text-muted">Sin rol asignado.</div>
+    }
+    else
+    {
+        <ul class="list-group">
+            @foreach (var r in Model.Roles)
+            {
+                <li class="list-group-item">
+                    <div><strong>@r.Nombre</strong></div>
+                    <div class="text-muted">@r.Descripcion</div>
+                </li>
+            }
+        </ul>
+    }
+  </div>
+</div>
+
+<div class="d-flex justify-content-center gap-2 mt-4">
+    <a asp-action="Index" class="btn btn-outline-secondary">Volver</a>
+</div>

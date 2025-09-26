@@ -184,6 +184,21 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        public IActionResult Details(int id)
+        {
+            try
+            {
+                var usuario = _usuarioRepository.GetAll().FirstOrDefault(u => u.Id == id);
+                if (usuario == null) return NotFound();
+                return View(usuario);
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error al cargar detalles de usuario {UsuarioId}", id);
+                return Problem("Ocurrió un error al cargar los detalles del usuario.");
+            }
+        }
+
         [HttpPost, ActionName("Delete")]
         public IActionResult DeleteConfirmed(int id)
         {
