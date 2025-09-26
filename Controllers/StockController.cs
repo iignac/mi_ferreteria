@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-
+// holahola
 namespace mi_ferreteria.Controllers
 {
     public class StockController : Controller
