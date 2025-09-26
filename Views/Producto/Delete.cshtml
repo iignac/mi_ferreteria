@@ -6,7 +6,7 @@
 <h2>Eliminar Producto</h2>
 <div class="alert alert-warning">¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer.</div>
 
-<form asp-action="Delete" method="post">`r`n    <input type="hidden" name="page" value="@(ViewBag.ReturnPage ?? 1)" />
+<form asp-action="Delete" method="post">`r`n    @* Guardamos la página actual para volver a esa lista tras eliminar *@`r`n    <input type="hidden" name="page" value="@(ViewBag.ReturnPage ?? 1)" />
     <input type="hidden" asp-for="Id" />
     <div class="mb-2">
         <label class="form-label">SKU</label>
@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 </script>
 }
+
 
 
 

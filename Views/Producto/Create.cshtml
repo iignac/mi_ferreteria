@@ -4,7 +4,7 @@
 }
 <h2>Crear Producto</h2>
 <div class="text-danger">@Html.ValidationSummary()</div>
-<form asp-action="Create" method="post">`r`n    <input type="hidden" name="page" value="@(ViewBag.ReturnPage ?? 1)" />
+<form asp-action="Create" method="post">`r`n    @* Guardamos la página actual para volver luego de guardar *@`r`n    <input type="hidden" name="page" value="@(ViewBag.ReturnPage ?? 1)" />
     <div class="row g-3">
         <div class="col-md-4">
             <label class="form-label">SKU</label>
@@ -77,6 +77,7 @@
   const btnAdd = document.getElementById('btnAddBarcode');
   const msg = document.getElementById('barcodeMsg');
   const max = 5;
+  // Función: agrega una fila (input de código + botón eliminar) y reenumera cuando se borra
   const addInput = (val='')=>{
     const count = list.querySelectorAll('.barcode-item').length;
     if(count >= max){ msg.classList.remove('d-none'); return; }
@@ -97,6 +98,7 @@
     row.appendChild(input); row.appendChild(btn);
     list.appendChild(row);
   };
+  // Función: reenumerar nombres Barcodes[i] después de altas/bajas
   const renumber = ()=>{
     const items = list.querySelectorAll('.barcode-item input');
     items.forEach((inp, i)=>{ inp.name = `Barcodes[${i}]`; });
@@ -108,5 +110,6 @@
 })();
 </script>
 }
+
 
 

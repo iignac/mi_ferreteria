@@ -7,16 +7,19 @@
 @{
     var stocks = ViewBag.Stocks as System.Collections.Generic.IDictionary<long, long>;
 }
+@* stocks: diccionario (ProductoId -> Stock actual) calculado en el controlador *@
 @{
     int page = ViewBag.Page is int ? (int)ViewBag.Page : 1;
     int totalPages = ViewBag.TotalPages is int ? (int)ViewBag.TotalPages : 1;
 }
+@* page y totalPages llegan desde el controlador para soportar la paginación *@
 @if (ViewBag.LoadError == true)
 {
     <div class="alert alert-danger">No pudimos cargar los productos. Por favor, intenta nuevamente m�s tarde.</div>
 }
 
 <div class="text-center mb-4">
+    @* Enlace de alta: preserva la página actual para volver luego *@
     <a asp-action="Create" asp-route-page="@(page)" class="btn btn-primary btn-lg btn-cta">Crear producto</a>
  </div>
 
@@ -41,6 +44,7 @@ else
                 </tr>
             </thead>
             <tbody>
+            @* Renderiza filas de productos. Cada fila es "clickeable" para ir a Edit *@
             @foreach (var p in Model)
             {
                 <tr class="clickable-row" data-href="@Url.Action("Edit","Producto", new { id = p.Id, page = page })">
@@ -63,6 +67,7 @@ else
             </tbody>
         </table>
     </div>
+    @* Controles de paginación (Bootstrap): Anterior, números y Siguiente *@
     @if (totalPages > 1)
     {
         var start = Math.Max(1, page - 2);
@@ -89,6 +94,7 @@ else
 @section Scripts {
 <script>
 document.addEventListener('DOMContentLoaded', function(){
+  // Confirmación de eliminación desde el listado
   document.querySelectorAll('.btn-delete-prod').forEach(function(a){
     a.addEventListener('click', function(e){
       if(!confirm('�Seguro que deseas eliminar este producto?')){
@@ -97,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   });
 
-  // Click en fila -> Editar (excepto botones/enlaces)
+  // Click en fila -> navega a Edit (excepto si haces click en botones/enlaces dentro de la fila)
   document.querySelectorAll('table.table-products tbody tr.clickable-row').forEach(function(tr){
     tr.addEventListener('click', function(e){
       var t = e.target;
