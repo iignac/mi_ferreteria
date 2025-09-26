@@ -7,6 +7,9 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddTransient<mi_ferreteria.Data.IUsuarioRepository, mi_ferreteria.Data.UsuarioRepository>();
 builder.Services.AddTransient<mi_ferreteria.Data.IRolRepository, mi_ferreteria.Data.RolRepository>();
 builder.Services.AddTransient<mi_ferreteria.Data.IPermisoRepository, mi_ferreteria.Data.PermisoRepository>();
+builder.Services.AddTransient<mi_ferreteria.Data.IProductoRepository, mi_ferreteria.Data.ProductoRepository>();
+builder.Services.AddTransient<mi_ferreteria.Data.ICategoriaRepository, mi_ferreteria.Data.CategoriaRepository>();
+builder.Services.AddTransient<mi_ferreteria.Data.IStockRepository, mi_ferreteria.Data.StockRepository>();
 
 var app = builder.Build();
 

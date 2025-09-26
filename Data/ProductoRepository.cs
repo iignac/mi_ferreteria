@@ -1,0 +1,296 @@
+using System;
+using System.Collections.Generic;
+using System.Data;
+using Npgsql;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using mi_ferreteria.Models;
+using System.Linq;
+
+namespace mi_ferreteria.Data
+{
+    public class ProductoRepository : IProductoRepository
+    {
+        private readonly string _connectionString;
+        private readonly ILogger<ProductoRepository> _logger;
+
+        public ProductoRepository(IConfiguration configuration, ILogger<ProductoRepository> logger)
+        {
+            _connectionString = configuration.GetConnectionString("PostgresConnection");
+            _logger = logger;
+        }
+
+        public IEnumerable<Producto> GetAll()
+        {
+            var list = new List<Producto>();
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                using (var set = new NpgsqlCommand("SET search_path TO venta, public", conn)) { set.ExecuteNonQuery(); }
+                using var cmd = new NpgsqlCommand(@"SELECT id, sku, nombre, descripcion, categoria_id,
+                                                           precio_venta_actual, stock_minimo, activo,
+                                                           ubicacion_preferida_id, created_at, updated_at
+                                                    FROM producto
+                                                    ORDER BY id DESC", conn);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    list.Add(MapProducto(reader));
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al listar productos");
+                throw;
+            }
+        }
+
+        public Producto? GetById(long id)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                using (var set = new NpgsqlCommand("SET search_path TO venta, public", conn)) { set.ExecuteNonQuery(); }
+                using var cmd = new NpgsqlCommand(@"SELECT id, sku, nombre, descripcion, categoria_id,
+                                                           precio_venta_actual, stock_minimo, activo,
+                                                           ubicacion_preferida_id, created_at, updated_at
+                                                    FROM producto WHERE id=@id", conn);
+                cmd.Parameters.AddWithValue("@id", id);
+                using var reader = cmd.ExecuteReader();
+                if (reader.Read())
+                {
+                    return MapProducto(reader);
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener producto {ProductoId}", id);
+                throw;
+            }
+        }
+
+        public void Add(Producto p)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                using (var set = new NpgsqlCommand("SET search_path TO venta, public", conn)) { set.ExecuteNonQuery(); }
+                using var cmd = new NpgsqlCommand(@"INSERT INTO producto
+                    (sku, nombre, descripcion, categoria_id, precio_venta_actual, stock_minimo, activo, ubicacion_preferida_id)
+                    VALUES (@sku, @nombre, @descripcion, @categoria_id, @precio, @stockmin, @activo, @ubipref)
+                    RETURNING id, created_at, updated_at", conn);
+                cmd.Parameters.AddWithValue("@sku", p.Sku);
+                cmd.Parameters.AddWithValue("@nombre", p.Nombre);
+                cmd.Parameters.AddWithValue("@descripcion", (object?)p.Descripcion ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@categoria_id", (object?)p.CategoriaId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@precio", p.PrecioVentaActual);
+                cmd.Parameters.AddWithValue("@stockmin", p.StockMinimo);
+                cmd.Parameters.AddWithValue("@activo", p.Activo);
+                cmd.Parameters.AddWithValue("@ubipref", (object?)p.UbicacionPreferidaId ?? DBNull.Value);
+                using var reader = cmd.ExecuteReader();
+                if (reader.Read())
+                {
+                    p.Id = reader.GetInt64(0);
+                    p.CreatedAt = reader.GetFieldValue<DateTimeOffset>(1);
+                    p.UpdatedAt = reader.GetFieldValue<DateTimeOffset>(2);
+                }
+            }
+            catch (PostgresException pg) when (pg.SqlState == "23505")
+            {
+                _logger.LogWarning(pg, "Violación de unicidad al crear producto con SKU {Sku}", p.Sku);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear producto {@Producto}", p);
+                throw;
+            }
+        }
+
+        public void Update(Producto p)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                using (var set = new NpgsqlCommand("SET search_path TO venta, public", conn)) { set.ExecuteNonQuery(); }
+                using var cmd = new NpgsqlCommand(@"UPDATE producto SET
+                        sku=@sku, nombre=@nombre, descripcion=@descripcion, categoria_id=@categoria_id,
+                        precio_venta_actual=@precio, stock_minimo=@stockmin, activo=@activo, ubicacion_preferida_id=@ubipref
+                    WHERE id=@id", conn);
+                cmd.Parameters.AddWithValue("@id", p.Id);
+                cmd.Parameters.AddWithValue("@sku", p.Sku);
+                cmd.Parameters.AddWithValue("@nombre", p.Nombre);
+                cmd.Parameters.AddWithValue("@descripcion", (object?)p.Descripcion ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@categoria_id", (object?)p.CategoriaId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@precio", p.PrecioVentaActual);
+                cmd.Parameters.AddWithValue("@stockmin", p.StockMinimo);
+                cmd.Parameters.AddWithValue("@activo", p.Activo);
+                cmd.Parameters.AddWithValue("@ubipref", (object?)p.UbicacionPreferidaId ?? DBNull.Value);
+                cmd.ExecuteNonQuery();
+            }
+            catch (PostgresException pg) when (pg.SqlState == "23505")
+            {
+                _logger.LogWarning(pg, "Violación de unicidad al actualizar producto {ProductoId} con SKU {Sku}", p.Id, p.Sku);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al actualizar producto {@Producto}", p);
+                throw;
+            }
+        }
+
+        public void Delete(long id)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                using (var set = new NpgsqlCommand("SET search_path TO venta, public", conn)) { set.ExecuteNonQuery(); }
+                using var cmd = new NpgsqlCommand("DELETE FROM producto WHERE id=@id", conn);
+                cmd.Parameters.AddWithValue("@id", id);
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al eliminar producto {ProductoId}", id);
+                throw;
+            }
+        }
+
+        public bool SkuExists(string sku, long? excludeId = null)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                using (var set = new NpgsqlCommand("SET search_path TO venta, public", conn)) { set.ExecuteNonQuery(); }
+                var sql = "SELECT EXISTS(SELECT 1 FROM producto WHERE lower(sku)=lower(@sku)" + (excludeId.HasValue ? " AND id<>@id)" : ")");
+                using var cmd = new NpgsqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@sku", sku);
+                if (excludeId.HasValue)
+                {
+                    cmd.Parameters.AddWithValue("@id", excludeId.Value);
+                }
+                var result = cmd.ExecuteScalar();
+                return result is bool b && b;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error verificando existencia de SKU {Sku}", sku);
+                throw;
+            }
+        }
+
+        public IEnumerable<ProductoCodigoBarra> GetBarcodes(long productoId)
+        {
+            var list = new List<ProductoCodigoBarra>();
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                using (var set = new NpgsqlCommand("SET search_path TO venta, public", conn)) { set.ExecuteNonQuery(); }
+                using var cmd = new NpgsqlCommand(@"SELECT id, producto_id, codigo_barra, tipo
+                                                   FROM producto_codigo_barra WHERE producto_id=@id ORDER BY id", conn);
+                cmd.Parameters.AddWithValue("@id", productoId);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                {
+                    list.Add(new ProductoCodigoBarra
+                    {
+                        Id = r.GetInt64(0),
+                        ProductoId = r.GetInt64(1),
+                        CodigoBarra = r.GetString(2),
+                        Tipo = r.IsDBNull(3) ? null : r.GetString(3)
+                    });
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener códigos de barra del producto {ProductoId}", productoId);
+                throw;
+            }
+        }
+
+        public void ReplaceBarcodes(long productoId, IEnumerable<ProductoCodigoBarra> codigos)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                using (var set = new NpgsqlCommand("SET search_path TO venta, public", conn)) { set.ExecuteNonQuery(); }
+                using var tx = conn.BeginTransaction();
+                using (var del = new NpgsqlCommand("DELETE FROM producto_codigo_barra WHERE producto_id=@id", conn, tx))
+                {
+                    del.Parameters.AddWithValue("@id", productoId);
+                    del.ExecuteNonQuery();
+                }
+                foreach (var cb in codigos.Where(c => !string.IsNullOrWhiteSpace(c.CodigoBarra)))
+                {
+                    using var ins = new NpgsqlCommand("INSERT INTO producto_codigo_barra (producto_id, codigo_barra, tipo) VALUES (@pid, @code, @tipo)", conn, tx);
+                    ins.Parameters.AddWithValue("@pid", productoId);
+                    ins.Parameters.AddWithValue("@code", cb.CodigoBarra.Trim());
+                    ins.Parameters.AddWithValue("@tipo", (object?)cb.Tipo ?? DBNull.Value);
+                    ins.ExecuteNonQuery();
+                }
+                tx.Commit();
+            }
+            catch (PostgresException pg) when (pg.SqlState == "23505")
+            {
+                _logger.LogWarning(pg, "Código de barra duplicado al guardar producto {ProductoId}", productoId);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al guardar códigos de barra del producto {ProductoId}", productoId);
+                throw;
+            }
+        }
+
+        public bool BarcodeExists(string codigo, long? excludeProductId = null)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                using (var set = new NpgsqlCommand("SET search_path TO venta, public", conn)) { set.ExecuteNonQuery(); }
+                var sql = "SELECT EXISTS(SELECT 1 FROM producto_codigo_barra WHERE codigo_barra=@c" + (excludeProductId.HasValue ? " AND producto_id<>@id)" : ")");
+                using var cmd = new NpgsqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@c", codigo);
+                if (excludeProductId.HasValue) cmd.Parameters.AddWithValue("@id", excludeProductId.Value);
+                var res = cmd.ExecuteScalar();
+                return res is bool b && b;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error verificando código de barra {Codigo}", codigo);
+                throw;
+            }
+        }
+
+        private static Producto MapProducto(NpgsqlDataReader reader)
+        {
+            return new Producto
+            {
+                Id = reader.GetInt64(0),
+                Sku = reader.GetString(1),
+                Nombre = reader.GetString(2),
+                Descripcion = reader.IsDBNull(3) ? null : reader.GetString(3),
+                CategoriaId = reader.IsDBNull(4) ? (long?)null : reader.GetInt64(4),
+                PrecioVentaActual = reader.GetDecimal(5),
+                StockMinimo = reader.GetInt32(6),
+                Activo = reader.GetBoolean(7),
+                UbicacionPreferidaId = reader.IsDBNull(8) ? (long?)null : reader.GetInt64(8),
+                CreatedAt = reader.GetFieldValue<DateTimeOffset>(9),
+                UpdatedAt = reader.GetFieldValue<DateTimeOffset>(10)
+            };
+        }
+    }
+}

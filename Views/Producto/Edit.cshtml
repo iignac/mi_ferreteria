@@ -1,0 +1,114 @@
+@model mi_ferreteria.ViewModels.ProductoFormViewModel
+@{
+    ViewData["Title"] = "Editar Producto";
+}
+<h2>Editar Producto</h2>
+<div class="text-danger">@Html.ValidationSummary()</div>
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">SKU</label>
+            <input asp-for="Sku" class="form-control" />
+            <span asp-validation-for="Sku" class="text-danger"></span>
+        </div>
+        <div class="col-md-8">
+            <label class="form-label">Nombre</label>
+            <input asp-for="Nombre" class="form-control" />
+            <span asp-validation-for="Nombre" class="text-danger"></span>
+        </div>
+        <div class="col-12">
+            <label class="form-label">Descripción</label>
+            <textarea asp-for="Descripcion" class="form-control" rows="3"></textarea>
+            <span asp-validation-for="Descripcion" class="text-danger"></span>
+        </div>
+        <div class="col-12">
+            <label class="form-label d-flex align-items-center justify-content-between">
+                <span>Códigos de barra</span>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddBarcode">+ Agregar</button>
+            </label>
+            <div id="barcodeList" class="vstack gap-2"></div>
+            <div id="barcodeMsg" class="form-text text-danger d-none">No se pueden agregar más códigos (máximo 5).</div>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Categoría</label>
+            <select asp-for="CategoriaId" asp-items="Model.Categorias" class="form-select">
+                <option value="">-- Seleccione --</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Precio</label>
+            <input asp-for="PrecioVentaActual" class="form-control" type="number" step="0.01" min="0" />
+            <span asp-validation-for="PrecioVentaActual" class="text-danger"></span>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Stock mínimo</label>
+            <input asp-for="StockMinimo" class="form-control" type="number" min="0" />
+            <span asp-validation-for="StockMinimo" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Ubicación preferida (Id)</label>
+            <input asp-for="UbicacionPreferidaId" class="form-control" type="number" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Código ubicación (ej: A1)</label>
+            <input asp-for="UbicacionCodigo" class="form-control" />
+            <span asp-validation-for="UbicacionCodigo" class="text-danger"></span>
+        </div>
+        <div class="col-md-6 d-flex align-items-center">
+            <div class="form-check form-switch">
+                <input class="form-check-input" asp-for="Activo" type="checkbox" role="switch" id="prodActivoEdit" />
+                <label class="form-check-label" for="prodActivoEdit">Activo</label>
+            </div>
+        </div>
+    </div>
+    <div class="d-flex justify-content-center gap-2 mt-4">
+        <button type="submit" class="btn btn-primary px-5">Guardar</button>
+        <a asp-action="Index" class="btn btn-outline-secondary px-5 btn-cancel-leave">Volver</a>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+(function(){
+  let isDirty=false; const form=document.querySelector('form');
+  if(!form) return; form.addEventListener('input',()=>isDirty=true,{capture:true});
+  form.addEventListener('change',()=>isDirty=true,{capture:true});
+  form.addEventListener('submit',()=>{isDirty=false});
+  window.addEventListener('beforeunload',function(e){ if(!isDirty) return; e.preventDefault(); e.returnValue=''; });
+  document.querySelectorAll('.btn-cancel-leave').forEach(a=>a.addEventListener('click',function(e){ if(isDirty && !confirm('Hay cambios sin guardar. Si vuelves, se perderán. ¿Deseas salir igualmente?')){ e.preventDefault(); }}));
+  // Barcodes dynamic inputs (prepopulate)
+  const list = document.getElementById('barcodeList');
+  const btnAdd = document.getElementById('btnAddBarcode');
+  const msg = document.getElementById('barcodeMsg');
+  const max = 5;
+  const existing = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Barcodes ?? new List<string>()));
+  const addInput = (val='')=>{
+    const count = list.querySelectorAll('.barcode-item').length;
+    if(count >= max){ msg.classList.remove('d-none'); return; }
+    msg.classList.add('d-none');
+    const idx = count;
+    const row = document.createElement('div');
+    row.className = 'barcode-item input-group';
+    const input = document.createElement('input');
+    input.name = `Barcodes[${idx}]`;
+    input.className = 'form-control';
+    input.placeholder = 'Código de barra';
+    input.value = val || '';
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'btn btn-outline-danger'; btn.textContent = '−';
+    btn.addEventListener('click', ()=>{ row.remove(); renumber(); });
+    row.appendChild(input); row.appendChild(btn);
+    list.appendChild(row);
+  };
+  const renumber = ()=>{
+    const items = list.querySelectorAll('.barcode-item input');
+    items.forEach((inp, i)=>{ inp.name = `Barcodes[${i}]`; });
+    if(items.length < max) msg.classList.add('d-none');
+  };
+  btnAdd?.addEventListener('click', ()=> addInput());
+  if(existing && existing.length){ existing.slice(0, max).forEach(v=> addInput(v)); }
+  else { addInput(); }
+})();
+</script>
+}

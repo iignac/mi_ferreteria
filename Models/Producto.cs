@@ -1,0 +1,20 @@
+using System;
+
+namespace mi_ferreteria.Models
+{
+    public class Producto
+    {
+        public long Id { get; set; }
+        public string Sku { get; set; }
+        public string Nombre { get; set; }
+        public string? Descripcion { get; set; }
+        public long? CategoriaId { get; set; }
+        public decimal PrecioVentaActual { get; set; }
+        public int StockMinimo { get; set; }
+        public bool Activo { get; set; } = true;
+        public long? UbicacionPreferidaId { get; set; }
+        public DateTimeOffset CreatedAt { get; set; }
+        public DateTimeOffset UpdatedAt { get; set; }
+    }
+}
+
