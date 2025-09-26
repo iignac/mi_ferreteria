@@ -1,0 +1,74 @@
+@model IEnumerable<mi_ferreteria.Models.Producto>
+@{
+    ViewData["Title"] = "Productos";
+}
+
+<h2 class="mb-3">Productos</h2>
+@{
+    var stocks = ViewBag.Stocks as System.Collections.Generic.IDictionary<long, long>;
+}
+@if (ViewBag.LoadError == true)
+{
+    <div class="alert alert-danger">No pudimos cargar los productos. Por favor, intenta nuevamente más tarde.</div>
+}
+
+<div class="text-end mb-3">
+    <a asp-action="Create" class="btn btn-primary">Crear producto</a>
+ </div>
+
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-info">No hay productos cargados.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>SKU</th>
+                    <th>Nombre</th>
+                    <th>Precio</th>
+                    <th>Stock</th>
+                    <th>Activo</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var p in Model)
+            {
+                <tr>
+                    <td>@p.Id</td>
+                    <td>@p.Sku</td>
+                    <td>@p.Nombre</td>
+                    <td>$ @p.PrecioVentaActual</td>
+                    <td>@(stocks != null && stocks.ContainsKey(p.Id) ? stocks[p.Id] : 0)</td>
+                    <td>
+                        @if (p.Activo) { <span class="badge bg-success">Sí</span>; } else { <span class="badge bg-secondary">No</span>; }
+                    </td>
+                    <td class="text-end">
+                        <a asp-action="Edit" asp-route-id="@p.Id" class="btn btn-sm btn-outline-primary">Editar</a>
+                        <a asp-controller="StockProducto" asp-action="Manage" asp-route-id="@p.Id" class="btn btn-sm btn-outline-secondary">Stock</a>
+                        <a asp-action="Delete" asp-route-id="@p.Id" class="btn btn-sm btn-outline-danger btn-delete-prod">Eliminar</a>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  document.querySelectorAll('.btn-delete-prod').forEach(function(a){
+    a.addEventListener('click', function(e){
+      if(!confirm('¿Seguro que deseas eliminar este producto?')){
+        e.preventDefault();
+      }
+    });
+  });
+});
+</script>
+}
