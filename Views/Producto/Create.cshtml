@@ -1,4 +1,4 @@
-@model mi_ferreteria.ViewModels.ProductoFormViewModel
+﻿@model mi_ferreteria.ViewModels.ProductoFormViewModel
 @{
     ViewData["Title"] = "Crear Producto";
 }
@@ -45,11 +45,7 @@
             <input asp-for="StockMinimo" class="form-control" type="number" min="0" />
             <span asp-validation-for="StockMinimo" class="text-danger"></span>
         </div>
-        <div class="col-md-3">
-            <label class="form-label">Ubicación preferida (Id)</label>
-            <input asp-for="UbicacionPreferidaId" class="form-control" type="number" />
-        </div>
-        <div class="col-md-3">
+        <div class="col-md-6">
             <label class="form-label">Código ubicación (ej: A1)</label>
             <input asp-for="UbicacionCodigo" class="form-control" />
             <span asp-validation-for="UbicacionCodigo" class="text-danger"></span>

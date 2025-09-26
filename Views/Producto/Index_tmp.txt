@@ -1,4 +1,4 @@
-@model IEnumerable<mi_ferreteria.Models.Producto>
+﻿@model IEnumerable<mi_ferreteria.Models.Producto>
 @{
     ViewData["Title"] = "Productos";
 }
@@ -44,7 +44,7 @@ else
                     <td>@p.Sku</td>
                     <td>@p.Nombre</td>
                     <td>$ @p.PrecioVentaActual</td>
-                    <td>@(string.IsNullOrWhiteSpace(p.UbicacionCodigo) ? (p.UbicacionPreferidaId?.ToString() ?? "-") : p.UbicacionCodigo)</td>
+                    <td>@((string.IsNullOrWhiteSpace(p.UbicacionCodigo) ? "-" : p.UbicacionCodigo))</td>
                     <td>@(stocks != null && stocks.ContainsKey(p.Id) ? stocks[p.Id] : 0)</td>
                     <td>
                         @if (p.Activo) { <span class="badge bg-success">Sí</span>; } else { <span class="badge bg-secondary">No</span>; }
@@ -74,4 +74,6 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 </script>
 }
+
+
 

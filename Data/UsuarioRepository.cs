@@ -28,7 +28,7 @@ namespace mi_ferreteria.Data
             {
                 using var conn = new NpgsqlConnection(_connectionString);
                 conn.Open();
-                using var cmd = new NpgsqlCommand("SELECT id, nombre, email, activo FROM usuario", conn);
+                using var cmd = new NpgsqlCommand("SELECT id, nombre, email, activo FROM usuario ORDER BY activo DESC, nombre ASC", conn);
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {

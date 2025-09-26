@@ -1,4 +1,4 @@
-@model IEnumerable<mi_ferreteria.Models.Producto>
+ï»¿@model IEnumerable<mi_ferreteria.Models.Producto>
 @{
     ViewData["Title"] = "Productos";
 }
@@ -9,7 +9,7 @@
 }
 @if (ViewBag.LoadError == true)
 {
-    <div class="alert alert-danger">No pudimos cargar los productos. Por favor, intenta nuevamente más tarde.</div>
+    <div class="alert alert-danger">No pudimos cargar los productos. Por favor, intenta nuevamente mï¿½s tarde.</div>
 }
 
 <div class="text-center mb-4">
@@ -30,7 +30,7 @@ else
                     <th>SKU</th>
                     <th>Nombre</th>
                     <th>Precio</th>
-                    <th>Ubicación</th>
+                    <th>Ubicaciï¿½n</th>
                     <th>Stock</th>
                     <th>Activo</th>
                     <th class="text-end">Acciones</th>
@@ -44,10 +44,10 @@ else
                     <td>@p.Sku</td>
                     <td>@p.Nombre</td>
                     <td>$ @p.PrecioVentaActual</td>
-                    <td>@(string.IsNullOrWhiteSpace(p.UbicacionCodigo) ? (p.UbicacionPreferidaId?.ToString() ?? "-") : p.UbicacionCodigo)</td>
+                    <td>@(string.IsNullOrWhiteSpace(p.UbicacionCodigo) ? "-" : p.UbicacionCodigo)</td>
                     <td>@(stocks != null && stocks.ContainsKey(p.Id) ? stocks[p.Id] : 0)</td>
                     <td>
-                        @if (p.Activo) { <span class="badge bg-success">Sí</span>; } else { <span class="badge bg-secondary">No</span>; }
+                        @if (p.Activo) { <span class="badge bg-success">Sï¿½</span>; } else { <span class="badge bg-secondary">No</span>; }
                     </td>
                     <td class="text-end">
                         <a asp-action="Edit" asp-route-id="@p.Id" class="btn btn-sm btn-outline-primary">Editar</a>
@@ -66,7 +66,7 @@ else
 document.addEventListener('DOMContentLoaded', function(){
   document.querySelectorAll('.btn-delete-prod').forEach(function(a){
     a.addEventListener('click', function(e){
-      if(!confirm('¿Seguro que deseas eliminar este producto?')){
+      if(!confirm('ï¿½Seguro que deseas eliminar este producto?')){
         e.preventDefault();
       }
     });
@@ -84,3 +84,5 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 </script>
 }
+
+
