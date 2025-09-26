@@ -9,7 +9,7 @@ html {
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+  box-shadow: 0 0 0 0.1rem rgb(255, 255, 255), 0 0 0 0.25rem #258cfb;
 }
 
 html {
@@ -62,6 +62,42 @@ body {
 .role-card .name { font-weight: 600; }
 .role-card .desc { font-size: .875rem; }
 
+/* Tabla de productos estilizada */
+.table-products {
+  border-radius: .75rem;
+  overflow: hidden;
+  box-shadow: 0 .35rem 1rem rgba(0,0,0,.08);
+}
+.table-products thead th {
+  background: linear-gradient(135deg, #3484f3, #053b8d);
+  color: #fff;
+  border-color: rgba(255,255,255,.2) !important;
+}
+.table-products tbody tr {
+  transition: background-color .15s ease;
+}
+.table-products tbody tr:hover {
+  background-color: rgba(13,110,253,.06);
+}
+.table-products tbody tr.clickable-row { cursor: pointer; }
+
+/* Borde negro en letras de encabezados de tablas */
+.table thead th,
+.table-products thead th {
+  /* Stroke para navegadores WebKit */
+  -webkit-text-stroke: 0.1px #000;
+  /* Sombra en 8 direcciones para simular borde en otros navegadores */
+  text-shadow:
+    -0.6px -0.2px 0 #000,
+    0    -0.2px 0 #000,
+    0.2px -0.2px 0 #000,
+    0.2px  0     0 #000,
+    0.2px  0.2px 0 #000,
+   -0.2px  0.2px 0 #000,
+   -0.2px  0     0 #000,
+    0      0.2px 0 #000;
+}
+
 .user-card:hover {
   transform: translateY(-6px);
   box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.12), 0 0.25rem 0.75rem rgba(0, 0, 0, 0.08);
@@ -69,6 +105,23 @@ body {
 
 .user-card:active {
   transform: translateY(-2px) scale(0.997);
+}
+
+/* Botón destacado con sombra y transición */
+.btn-cta {
+  box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+  transition: transform .15s ease, box-shadow .2s ease, filter .2s ease;
+  border-radius: .6rem;
+}
+.btn-cta:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 .75rem 1.5rem rgba(0,0,0,.2);
+  filter: brightness(1.03);
+}
+.btn-cta:active {
+  transform: translateY(-1px);
+  box-shadow: 0 .35rem .85rem rgba(0,0,0,.18);
+  filter: brightness(0.98);
 }
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
@@ -79,3 +132,4 @@ body {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
 }
+

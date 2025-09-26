@@ -91,7 +91,8 @@ namespace mi_ferreteria.Controllers
                     PrecioVentaActual = model.PrecioVentaActual,
                     StockMinimo = model.StockMinimo,
                     Activo = model.Activo,
-                    UbicacionPreferidaId = model.UbicacionPreferidaId
+                    UbicacionPreferidaId = model.UbicacionPreferidaId,
+                    UbicacionCodigo = model.UbicacionCodigo
                 };
                 _repo.Add(p);
                 // Parsear códigos de barra desde la lista
@@ -135,7 +136,8 @@ namespace mi_ferreteria.Controllers
                     PrecioVentaActual = p.PrecioVentaActual,
                     StockMinimo = p.StockMinimo,
                     Activo = p.Activo,
-                    UbicacionPreferidaId = p.UbicacionPreferidaId
+                    UbicacionPreferidaId = p.UbicacionPreferidaId,
+                    UbicacionCodigo = p.UbicacionCodigo
                 };
                 model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = (model.CategoriaId == c.Id) }).ToList();
                 // Cargar barcodes existentes
@@ -175,6 +177,7 @@ namespace mi_ferreteria.Controllers
                 p.StockMinimo = model.StockMinimo;
                 p.Activo = model.Activo;
                 p.UbicacionPreferidaId = model.UbicacionPreferidaId;
+                p.UbicacionCodigo = model.UbicacionCodigo;
                 _repo.Update(p);
                 // Validar y reemplazar códigos de barra
                 var barcodes = ParseBarcodes(model.Barcodes);

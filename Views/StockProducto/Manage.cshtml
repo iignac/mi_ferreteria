@@ -36,3 +36,74 @@
     </div>
 </form>
 
+<hr class="my-4" />
+<div class="row g-4">
+    <div class="col-12 col-lg-6">
+        <h5>Historial de ingresos</h5>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered align-middle">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Cantidad</th>
+                        <th>Motivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var ingresos = ViewBag.Ingresos as IEnumerable<mi_ferreteria.Models.StockMovimiento>;
+                    }
+                    @if (ingresos == null || !ingresos.Any())
+                    {
+                        <tr><td colspan="3" class="text-center text-muted">Sin movimientos</td></tr>
+                    }
+                    else
+                    {
+                        foreach (var m in ingresos)
+                        {
+                            <tr>
+                                <td>@m.Fecha.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td class="text-success">+@m.Cantidad</td>
+                                <td>@(string.IsNullOrWhiteSpace(m.Motivo) ? "-" : m.Motivo)</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="col-12 col-lg-6">
+        <h5>Historial de egresos</h5>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered align-middle">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Cantidad</th>
+                        <th>Motivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var egresos = ViewBag.Egresos as IEnumerable<mi_ferreteria.Models.StockMovimiento>;
+                    }
+                    @if (egresos == null || !egresos.Any())
+                    {
+                        <tr><td colspan="3" class="text-center text-muted">Sin movimientos</td></tr>
+                    }
+                    else
+                    {
+                        foreach (var m in egresos)
+                        {
+                            <tr>
+                                <td>@m.Fecha.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td class="text-danger">-@m.Cantidad</td>
+                                <td>@(string.IsNullOrWhiteSpace(m.Motivo) ? "-" : m.Motivo)</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

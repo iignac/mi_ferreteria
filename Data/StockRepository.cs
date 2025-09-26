@@ -112,6 +112,40 @@ namespace mi_ferreteria.Data
                 throw;
             }
         }
+
+        public System.Collections.Generic.IEnumerable<mi_ferreteria.Models.StockMovimiento> GetMovimientos(long productoId, string? tipo = null, int top = 100)
+        {
+            var list = new System.Collections.Generic.List<mi_ferreteria.Models.StockMovimiento>();
+            try
+            {
+                using var conn = new NpgsqlConnection(_cs);
+                conn.Open();
+                EnsureSchema(conn);
+                var sql = "SELECT id, fecha, producto_id, tipo, cantidad, motivo FROM producto_stock_mov WHERE producto_id=@id" + (string.IsNullOrWhiteSpace(tipo) ? "" : " AND tipo=@tipo") + " ORDER BY fecha DESC, id DESC LIMIT @top";
+                using var cmd = new NpgsqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@id", productoId);
+                if (!string.IsNullOrWhiteSpace(tipo)) cmd.Parameters.AddWithValue("@tipo", tipo);
+                cmd.Parameters.AddWithValue("@top", top);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                {
+                    list.Add(new mi_ferreteria.Models.StockMovimiento
+                    {
+                        Id = r.GetInt64(0),
+                        Fecha = r.GetFieldValue<DateTimeOffset>(1),
+                        ProductoId = r.GetInt64(2),
+                        Tipo = r.GetString(3),
+                        Cantidad = r.GetInt64(4),
+                        Motivo = r.IsDBNull(5) ? null : r.GetString(5)
+                    });
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener movimientos de stock {ProductoId}", productoId);
+                throw;
+            }
+        }
     }
 }
-

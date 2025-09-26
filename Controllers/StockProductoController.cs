@@ -24,6 +24,8 @@ namespace mi_ferreteria.Controllers
             if (p == null) return NotFound();
             ViewBag.Producto = p;
             ViewBag.Stock = _stockRepo.GetStock(id);
+            ViewBag.Ingresos = _stockRepo.GetMovimientos(id, "INGRESO", 100);
+            ViewBag.Egresos = _stockRepo.GetMovimientos(id, "EGRESO", 100);
             return View();
         }
 
@@ -51,4 +53,3 @@ namespace mi_ferreteria.Controllers
         }
     }
 }
-
