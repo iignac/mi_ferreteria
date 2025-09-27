@@ -59,6 +59,7 @@ else
                     </td>
                     <td class="text-end">
                         <a asp-action="Details" asp-route-id="@p.Id" asp-route-page="@(page)" class="btn btn-sm btn-outline-info">Ver</a>
+                        <a asp-action="Edit" asp-route-id="@p.Id" asp-route-page="@(page)" class="btn btn-sm btn-outline-primary">Editar</a>
                         <a asp-controller="StockProducto" asp-action="Manage" asp-route-id="@p.Id" class="btn btn-sm btn-outline-secondary">Stock</a>
                         <a asp-action="Delete" asp-route-id="@p.Id" asp-route-page="@(page)" class="btn btn-sm btn-outline-danger btn-delete-prod">Eliminar</a>
                     </td>
