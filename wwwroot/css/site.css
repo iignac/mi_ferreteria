@@ -153,6 +153,30 @@ body {
   text-align: start;
 }
 
+/* ========== Categorías (selección visual) ========== */
+.cat-box {
+  border: 1px solid var(--bs-border-color);
+  border-radius: .75rem;
+  padding: .6rem .75rem;
+  background: #fff;
+  min-height: 52px;
+}
+.cat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .95rem; /* un poco más grande */
+  padding: .35rem .6rem;
+  border-radius: 999px;
+}
+.cat-chip .btn-close {
+  width: .7rem;
+  height: .7rem;
+  opacity: .9;
+  color: var(--bs-primary); /* icono más visible (usa currentColor) */
+}
+.cat-chip .btn-close:hover { opacity: 1; }
+
 /* ===== Header / Navbar overrides (global, no scoped CSS) ===== */
 .app-navbar {
   background: linear-gradient(135deg, #3484f3, #053b8d);

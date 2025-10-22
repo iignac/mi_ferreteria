@@ -164,7 +164,9 @@ namespace mi_ferreteria.Data
                                  OR p.descripcion ILIKE @q
                                  OR p.ubicacion_codigo ILIKE @q
                                  OR EXISTS (SELECT 1 FROM producto_codigo_barra b WHERE b.producto_id = p.id AND b.codigo_barra ILIKE @q)
-                                 OR EXISTS (SELECT 1 FROM categoria c WHERE c.id = p.categoria_id AND c.nombre ILIKE @q))";
+                                 OR EXISTS (SELECT 1 FROM categoria c WHERE c.id = p.categoria_id AND c.nombre ILIKE @q)
+                                 OR EXISTS (SELECT 1 FROM producto_categoria pc JOIN categoria c2 ON c2.id=pc.categoria_id WHERE pc.producto_id=p.id AND c2.nombre ILIKE @q)
+                              )";
                 using var cmd = new NpgsqlCommand(sql, conn);
                 cmd.Parameters.AddWithValue("@q", $"%{query}%");
                 var obj = cmd.ExecuteScalar();
@@ -196,7 +198,9 @@ namespace mi_ferreteria.Data
                                   OR p.descripcion ILIKE @q
                                   OR p.ubicacion_codigo ILIKE @q
                                   OR EXISTS (SELECT 1 FROM producto_codigo_barra b WHERE b.producto_id = p.id AND b.codigo_barra ILIKE @q)
-                                  OR EXISTS (SELECT 1 FROM categoria c WHERE c.id = p.categoria_id AND c.nombre ILIKE @q))
+                                  OR EXISTS (SELECT 1 FROM categoria c WHERE c.id = p.categoria_id AND c.nombre ILIKE @q)
+                                  OR EXISTS (SELECT 1 FROM producto_categoria pc JOIN categoria c2 ON c2.id=pc.categoria_id WHERE pc.producto_id=p.id AND c2.nombre ILIKE @q)
+                               )
                               ORDER BY p.id DESC
                               LIMIT @limit OFFSET @offset";
                 using var cmd = new NpgsqlCommand(sql, conn);
@@ -238,6 +242,9 @@ namespace mi_ferreteria.Data
                                   OR p.descripcion ILIKE @q
                                   OR p.ubicacion_codigo ILIKE @q
                                   OR EXISTS (SELECT 1 FROM producto_codigo_barra b WHERE b.producto_id = p.id AND b.codigo_barra ILIKE @q)
+                                  OR EXISTS (SELECT 1 FROM categoria c WHERE c.id = p.categoria_id AND c.nombre ILIKE @q)
+                                  OR EXISTS (SELECT 1 FROM producto_categoria pc JOIN categoria c2 ON c2.id=pc.categoria_id WHERE pc.producto_id=p.id AND c2.nombre ILIKE @q)
+                              
                                   OR EXISTS (SELECT 1 FROM categoria c WHERE c.id = p.categoria_id AND c.nombre ILIKE @q))
                               ORDER BY {orderBy}
                               LIMIT @limit OFFSET @offset";
@@ -513,6 +520,60 @@ namespace mi_ferreteria.Data
             using (var set = new NpgsqlCommand("SET search_path TO venta, public", conn)) { set.ExecuteNonQuery(); }
             using var alt = new NpgsqlCommand("ALTER TABLE IF EXISTS producto ADD COLUMN IF NOT EXISTS ubicacion_codigo TEXT", conn);
             alt.ExecuteNonQuery();
+            using var join = new NpgsqlCommand(@"CREATE TABLE IF NOT EXISTS producto_categoria (
+                    producto_id BIGINT NOT NULL REFERENCES producto(id) ON DELETE CASCADE,
+                    categoria_id BIGINT NOT NULL REFERENCES categoria(id),
+                    PRIMARY KEY (producto_id, categoria_id)
+                );", conn);
+            join.ExecuteNonQuery();
+        }
+
+        public System.Collections.Generic.IEnumerable<long> GetCategorias(long productoId)
+        {
+            var list = new System.Collections.Generic.List<long>();
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureProductExtras(conn);
+                using var cmd = new NpgsqlCommand("SELECT categoria_id FROM producto_categoria WHERE producto_id=@id ORDER BY categoria_id", conn);
+                cmd.Parameters.AddWithValue("@id", productoId);
+                using var r = cmd.ExecuteReader();
+                while (r.Read()) list.Add(r.GetInt64(0));
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener categorias del producto {ProductoId}", productoId);
+                throw;
+            }
+        }
+
+        public void ReplaceCategorias(long productoId, System.Collections.Generic.IEnumerable<long> categoriaIds)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureProductExtras(conn);
+                using var tx = conn.BeginTransaction();
+                using (var del = new NpgsqlCommand("DELETE FROM producto_categoria WHERE producto_id=@id", conn, tx))
+                { del.Parameters.AddWithValue("@id", productoId); del.ExecuteNonQuery(); }
+                foreach (var cid in categoriaIds.Distinct().Take(3))
+                {
+                    using var ins = new NpgsqlCommand("INSERT INTO producto_categoria (producto_id, categoria_id) VALUES (@pid,@cid)", conn, tx);
+                    ins.Parameters.AddWithValue("@pid", productoId);
+                    ins.Parameters.AddWithValue("@cid", cid);
+                    ins.ExecuteNonQuery();
+                }
+                tx.Commit();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al reemplazar categorias del producto {ProductoId}", productoId);
+                throw;
+            }
         }
     }
 }
+

@@ -21,5 +21,8 @@ namespace mi_ferreteria.Data
         IEnumerable<mi_ferreteria.Models.ProductoCodigoBarra> GetBarcodes(long productoId);
         void ReplaceBarcodes(long productoId, IEnumerable<mi_ferreteria.Models.ProductoCodigoBarra> codigos);
         bool BarcodeExists(string codigo, long? excludeProductId = null);
+        // Categorías múltiples por producto (hasta 3)
+        System.Collections.Generic.IEnumerable<long> GetCategorias(long productoId);
+        void ReplaceCategorias(long productoId, System.Collections.Generic.IEnumerable<long> categoriaIds);
     }
 }

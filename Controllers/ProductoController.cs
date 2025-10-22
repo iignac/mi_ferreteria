@@ -125,7 +125,7 @@ namespace mi_ferreteria.Controllers
                     Sku = model.Sku,
                     Nombre = model.Nombre,
                     Descripcion = model.Descripcion,
-                    CategoriaId = model.CategoriaId,
+                    CategoriaId = (model.CategoriaIds != null && model.CategoriaIds.Count > 0) ? model.CategoriaIds.First() : (long?)null,
                     PrecioVentaActual = model.PrecioVentaActual,
                     StockMinimo = model.StockMinimo,
                     Activo = model.Activo,
@@ -133,6 +133,9 @@ namespace mi_ferreteria.Controllers
                     UbicacionCodigo = model.UbicacionCodigo
                 };
                 _repo.Add(p);
+                // Guardar hasta 3 categorías seleccionadas
+                var catIdsCreate = (model.CategoriaIds ?? new System.Collections.Generic.List<long>()).Distinct().Take(3);
+                _repo.ReplaceCategorias(p.Id, catIdsCreate);
                 // Parsear códigos de barra desde la lista
                 var barcodes = ParseBarcodes(model.Barcodes);
                 // Validar unicidad global
@@ -171,14 +174,14 @@ namespace mi_ferreteria.Controllers
                     Sku = p.Sku,
                     Nombre = p.Nombre,
                     Descripcion = p.Descripcion,
-                    CategoriaId = p.CategoriaId,
+                    CategoriaIds = _repo.GetCategorias(p.Id).ToList(),
                     PrecioVentaActual = p.PrecioVentaActual,
                     StockMinimo = p.StockMinimo,
                     Activo = p.Activo,
                     UbicacionPreferidaId = p.UbicacionPreferidaId,
                     UbicacionCodigo = p.UbicacionCodigo
                 };
-                model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = (model.CategoriaId == c.Id) }).ToList();
+                model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = (model.CategoriaIds.Contains(c.Id)) }).ToList();
                 // Cargar barcodes existentes
                 var bcs = _repo.GetBarcodes(p.Id);
                 model.Barcodes = bcs.Select(x => x.CodigoBarra).ToList();
@@ -199,7 +202,7 @@ namespace mi_ferreteria.Controllers
             {
                 if (!ModelState.IsValid)
                 {
-                    model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = (model.CategoriaId == c.Id) }).ToList();
+                    model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = (model.CategoriaIds.Contains(c.Id)) }).ToList();
                     ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }
@@ -214,13 +217,16 @@ namespace mi_ferreteria.Controllers
                 p.Sku = model.Sku;
                 p.Nombre = model.Nombre;
                 p.Descripcion = model.Descripcion;
-                p.CategoriaId = model.CategoriaId;
+                p.CategoriaId = (model.CategoriaIds != null && model.CategoriaIds.Count > 0) ? model.CategoriaIds.First() : (long?)null;
                 p.PrecioVentaActual = model.PrecioVentaActual;
                 p.StockMinimo = model.StockMinimo;
                 p.Activo = model.Activo;
                 p.UbicacionPreferidaId = model.UbicacionPreferidaId;
                 p.UbicacionCodigo = model.UbicacionCodigo;
                 _repo.Update(p);
+                // Guardar hasta 3 categorías seleccionadas
+                var catIdsEdit = (model.CategoriaIds ?? new System.Collections.Generic.List<long>()).Distinct().Take(3);
+                _repo.ReplaceCategorias(p.Id, catIdsEdit);
                 // Validar y reemplazar códigos de barra
                 var barcodes = ParseBarcodes(model.Barcodes);
                 foreach (var bc in barcodes)
@@ -232,7 +238,7 @@ namespace mi_ferreteria.Controllers
                 }
                 if (!ModelState.IsValid)
                 {
-                    model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = (model.CategoriaId == c.Id) }).ToList();
+                    model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = (model.CategoriaIds.Contains(c.Id)) }).ToList();
                     ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }

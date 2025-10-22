@@ -38,6 +38,7 @@
         return col switch {
             "id" => sort == "id_asc" ? "id_desc" : "id_asc",
             "nombre" => sort == "nombre_asc" ? "nombre_desc" : "nombre_asc",
+            "precio" => sort == "precio_asc" ? "precio_desc" : "precio_asc",
             "stock" => sort == "stock_asc" ? "stock_desc" : "stock_asc",
             _ => "id_asc"
         };
@@ -45,6 +46,7 @@
     string Arrow(string col) {
         if (col == "id" && sort.StartsWith("id_")) return sort.EndsWith("asc") ? "&uarr;" : "&darr;";
         if (col == "nombre" && sort.StartsWith("nombre_")) return sort.EndsWith("asc") ? "&uarr;" : "&darr;";
+        if (col == "precio" && sort.StartsWith("precio_")) return sort.EndsWith("asc") ? "&uarr;" : "&darr;";
         if (col == "stock" && sort.StartsWith("stock_")) return sort.EndsWith("asc") ? "&uarr;" : "&darr;";
         // Mostrar flecha neutral cuando no es la columna activa
         return "&#8597;"; // ↕
@@ -83,7 +85,7 @@ else
                     <th><a class="text-decoration-none" asp-action="Index" asp-route-q="@q" asp-route-sort='@NextSort("id")' asp-route-page="1">ID @Html.Raw(Arrow("id"))</a></th>
                     <th>SKU</th>
                     <th><a class="text-decoration-none" asp-action="Index" asp-route-q="@q" asp-route-sort='@NextSort("nombre")' asp-route-page="1">Nombre @Html.Raw(Arrow("nombre"))</a></th>
-                    <th>Precio</th>
+                    <th><a class="text-decoration-none" asp-action="Index" asp-route-q="@q" asp-route-sort='@NextSort("precio")' asp-route-page="1">Precio @Html.Raw(Arrow("precio"))</a></th>
                     <th>Ubicación</th>
                     <th><a class="text-decoration-none" asp-action="Index" asp-route-q="@q" asp-route-sort='@NextSort("stock")' asp-route-page="1">Stock @Html.Raw(Arrow("stock"))</a></th>
                     <th>Activo</th>

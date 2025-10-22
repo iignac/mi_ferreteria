@@ -18,7 +18,8 @@ namespace mi_ferreteria.ViewModels
         [StringLength(1000, ErrorMessage = "La descripción es demasiado larga")]
         public string? Descripcion { get; set; }
 
-        public long? CategoriaId { get; set; }
+        // Permite hasta 3 categorías seleccionadas
+        public List<long> CategoriaIds { get; set; } = new();
         public List<SelectListItem> Categorias { get; set; } = new();
 
         [Required(ErrorMessage = "El precio es obligatorio")]
