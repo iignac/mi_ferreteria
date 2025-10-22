@@ -22,30 +22,53 @@ namespace mi_ferreteria.Controllers
             _logger = logger;
         }
 
-        public IActionResult Index(int page = 1)
+        public IActionResult Index(string? q = null, string? sort = null, int page = 1)
         {
             try
             {
                 const int pageSize = 10;
                 if (page < 1) page = 1;
-                var total = _repo.CountAll();
-                var totalPages = (int)Math.Ceiling(total / (double)pageSize);
-                if (totalPages == 0) totalPages = 1;
-                if (page > totalPages) page = totalPages;
-                var productos = _repo.GetPage(page, pageSize).ToList();
+                // validar sort
+                var validSorts = new System.Collections.Generic.HashSet<string>(new[] {
+                    "id_desc","id_asc","nombre_asc","nombre_desc","precio_asc","precio_desc","stock_asc","stock_desc"
+                }, System.StringComparer.OrdinalIgnoreCase);
+                sort = string.IsNullOrWhiteSpace(sort) ? "id_asc" : sort.Trim().ToLowerInvariant();
+                if (!validSorts.Contains(sort)) sort = "id_desc";
+                int total;
+                int totalPages;
+                IEnumerable<Producto> productos;
+
+                if (!string.IsNullOrWhiteSpace(q))
+                {
+                    total = _repo.CountSearch(q);
+                    totalPages = (int)Math.Ceiling(total / (double)pageSize);
+                    if (totalPages == 0) totalPages = 1;
+                    if (page > totalPages) page = totalPages;
+                    productos = _repo.SearchPageSorted(q, page, pageSize, sort).ToList();
+                }
+                else
+                {
+                    total = _repo.CountAll();
+                    totalPages = (int)Math.Ceiling(total / (double)pageSize);
+                    if (totalPages == 0) totalPages = 1;
+                    if (page > totalPages) page = totalPages;
+                    productos = _repo.GetPageSorted(page, pageSize, sort).ToList();
+                }
                 var stocks = productos.ToDictionary(p => p.Id, p => _stockRepo.GetStock(p.Id));
                 ViewBag.Stocks = stocks;
                 ViewBag.Page = page;
                 ViewBag.PageSize = pageSize;
                 ViewBag.TotalCount = total;
                 ViewBag.TotalPages = totalPages;
+                ViewBag.Query = q;
+                ViewBag.Sort = sort;
                 return View(productos);
             }
             catch (System.Exception ex)
             {
                 _logger.LogError(ex, "Error al listar productos");
                 ViewBag.LoadError = true;
-                ViewBag.Page = 1; ViewBag.PageSize = 10; ViewBag.TotalCount = 0; ViewBag.TotalPages = 1;
+                ViewBag.Page = 1; ViewBag.PageSize = 10; ViewBag.TotalCount = 0; ViewBag.TotalPages = 1; ViewBag.Query = q;
                 return View(Enumerable.Empty<Producto>());
             }
         }

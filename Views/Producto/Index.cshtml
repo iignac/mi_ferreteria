@@ -5,6 +5,53 @@
 
 <h2 class="mb-3">Productos</h2>
 @{
+    string q = ViewBag.Query as string ?? string.Empty;
+    string sort = ViewBag.Sort as string ?? "id_asc";
+    string SortLabel(string s) {
+        return s switch {
+            "id_desc" => "ID (recientes)",
+            "id_asc" => "ID (antiguos)",
+            "nombre_asc" => "Nombre (A-Z)",
+            "nombre_desc" => "Nombre (Z-A)",
+            "precio_asc" => "Precio (menor?mayor)",
+            "precio_desc" => "Precio (mayor?menor)",
+            "stock_asc" => "Stock (menor?mayor)",
+            "stock_desc" => "Stock (mayor?menor)",
+            _ => "ID (recientes)"
+        };
+    }
+}
+<form method="get" asp-action="Index" class="mb-3">
+    <div class="input-group">
+        <input type="search" name="q" value="@q" class="form-control" placeholder="Buscar por cualquier dato (SKU, nombre, descripción, categoría, ubicación, código de barra)" aria-label="Buscar productos" />
+        <input type="hidden" name="page" value="1" />
+        <input type="hidden" name="sort" value="@sort" />
+        <button class="btn btn-primary" type="submit">Buscar</button>
+        @if (!string.IsNullOrWhiteSpace(q))
+        {
+            <a class="btn btn-outline-secondary" asp-action="Index">Limpiar</a>
+        }
+    </div>
+</form>
+@{
+    string NextSort(string col) {
+        return col switch {
+            "id" => sort == "id_asc" ? "id_desc" : "id_asc",
+            "nombre" => sort == "nombre_asc" ? "nombre_desc" : "nombre_asc",
+            "stock" => sort == "stock_asc" ? "stock_desc" : "stock_asc",
+            _ => "id_asc"
+        };
+    }
+    string Arrow(string col) {
+        if (col == "id" && sort.StartsWith("id_")) return sort.EndsWith("asc") ? "&uarr;" : "&darr;";
+        if (col == "nombre" && sort.StartsWith("nombre_")) return sort.EndsWith("asc") ? "&uarr;" : "&darr;";
+        if (col == "stock" && sort.StartsWith("stock_")) return sort.EndsWith("asc") ? "&uarr;" : "&darr;";
+        // Mostrar flecha neutral cuando no es la columna activa
+        return "&#8597;"; // ↕
+    }
+}
+@* dropdown removed *@
+@{
     var stocks = ViewBag.Stocks as System.Collections.Generic.IDictionary<long, long>;
 }
 @* stocks: diccionario (ProductoId -> Stock actual) calculado en el controlador *@
@@ -33,12 +80,12 @@ else
         <table class="table table-striped table-hover table-bordered align-middle table-products">
             <thead>
                 <tr>
-                    <th>ID</th>
+                    <th><a class="text-decoration-none" asp-action="Index" asp-route-q="@q" asp-route-sort='@NextSort("id")' asp-route-page="1">ID @Html.Raw(Arrow("id"))</a></th>
                     <th>SKU</th>
-                    <th>Nombre</th>
+                    <th><a class="text-decoration-none" asp-action="Index" asp-route-q="@q" asp-route-sort='@NextSort("nombre")' asp-route-page="1">Nombre @Html.Raw(Arrow("nombre"))</a></th>
                     <th>Precio</th>
                     <th>Ubicación</th>
-                    <th>Stock</th>
+                    <th><a class="text-decoration-none" asp-action="Index" asp-route-q="@q" asp-route-sort='@NextSort("stock")' asp-route-page="1">Stock @Html.Raw(Arrow("stock"))</a></th>
                     <th>Activo</th>
                     <th class="text-end">Acciones</th>
                 </tr>
@@ -47,7 +94,7 @@ else
             @* Renderiza filas de productos. Cada fila es "clickeable" para ir a Detalle *@
             @foreach (var p in Model)
             {
-                <tr class="clickable-row" data-href="@Url.Action("Details","Producto", new { id = p.Id, page = page })">
+                <tr class="clickable-row" data-href="@Url.Action("Details","Producto", new { id = p.Id, page = page, q = q, sort = sort })">
                     <td>@p.Id</td>
                     <td>@p.Sku</td>
                     <td>@p.Nombre</td>
@@ -58,10 +105,10 @@ else
                         @if (p.Activo) { <span class="badge bg-success">Sí</span>; } else { <span class="badge bg-secondary">No</span>; }
                     </td>
                     <td class="text-end">
-                        <a asp-action="Details" asp-route-id="@p.Id" asp-route-page="@(page)" class="btn btn-sm btn-outline-info">Ver</a>
-                        <a asp-action="Edit" asp-route-id="@p.Id" asp-route-page="@(page)" class="btn btn-sm btn-outline-primary">Editar</a>
+                        <a asp-action="Details" asp-route-id="@p.Id" asp-route-page="@(page)" asp-route-q="@q"  asp-route-sort="@sort" class="btn btn-sm btn-outline-info">Ver</a>
+                        <a asp-action="Edit" asp-route-id="@p.Id" asp-route-page="@(page)" asp-route-q="@q"  asp-route-sort="@sort" class="btn btn-sm btn-outline-primary">Editar</a>
                         <a asp-controller="StockProducto" asp-action="Manage" asp-route-id="@p.Id" class="btn btn-sm btn-outline-secondary">Stock</a>
-                        <a asp-action="Delete" asp-route-id="@p.Id" asp-route-page="@(page)" class="btn btn-sm btn-outline-danger btn-delete-prod">Eliminar</a>
+                        <a asp-action="Delete" asp-route-id="@p.Id" asp-route-page="@(page)" asp-route-q="@q"  asp-route-sort="@sort" class="btn btn-sm btn-outline-danger btn-delete-prod">Eliminar</a>
                     </td>
                 </tr>
             }
@@ -76,16 +123,16 @@ else
         <nav aria-label="Paginación de productos" class="mt-3">
             <ul class="pagination justify-content-center">
                 <li class="page-item @(page <= 1 ? "disabled" : "")">
-                    <a class="page-link" asp-action="Index" asp-route-page="@(page - 1)">Anterior</a>
+                        <a class="page-link" asp-action="Index" asp-route-page="@(page - 1)" asp-route-q="@q" asp-route-sort="@sort">Anterior</a>
                 </li>
                 @for (var i = start; i <= end; i++)
                 {
                     <li class="page-item @(i == page ? "active" : "")">
-                        <a class="page-link" asp-action="Index" asp-route-page="@i">@i</a>
+                        <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-q="@q" asp-route-sort="@sort">@i</a>
                     </li>
                 }
                 <li class="page-item @(page >= totalPages ? "disabled" : "")">
-                    <a class="page-link" asp-action="Index" asp-route-page="@(page + 1)">Siguiente</a>
+                    <a class="page-link" asp-action="Index" asp-route-page="@(page + 1)" asp-route-q="@q" asp-route-sort="@sort">Siguiente</a>
                 </li>
             </ul>
         </nav>
@@ -113,12 +160,55 @@ document.addEventListener('DOMContentLoaded', function(){
       if (href) window.location.href = href;
     });
   });
+
+  // Inicializa dropdowns (Bootstrap 5 o 4 fallback)
+  try {
+    if (window.bootstrap && bootstrap.Dropdown) {
+      document.querySelectorAll('.dropdown-toggle').forEach(function(el){ new bootstrap.Dropdown(el); });
+    } else if (window.jQuery && typeof jQuery.fn.dropdown === 'function') {
+      jQuery('.dropdown-toggle').dropdown();
+    }
+  } catch(e) { /* noop */ }
+
+  // Busqueda con debounce para evitar multiples requests mientras se escribe
+  const qInput = document.querySelector('form[method="get"] input[name="q"]');
+  const form = qInput && qInput.closest('form');
+  if (qInput && form) {
+    let timer;
+    qInput.addEventListener('input', function(){
+      clearTimeout(timer);
+      // Reinicia a pagina 1 cada vez que cambia el query
+      const pageField = form.querySelector('input[name="page"]');
+      if (pageField) pageField.value = '1';
+      timer = setTimeout(() => { form.requestSubmit(); }, 300);
+    });
+  }
 });
 </script>
 }
+<!--
 
 
 
+
+
+
+
+
+  // Búsqueda con debounce para evitar múltiples requests mientras se escribe
+  const qInput = document.querySelector('form[method="get"] input[name="q"]');
+  const form = qInput && qInput.closest('form');
+  if (qInput && form) {
+    let timer;
+    qInput.addEventListener('input', function(){
+      clearTimeout(timer);
+      // Reinicia a página 1 cada vez que cambia el query
+      const pageField = form.querySelector('input[name="page"]');
+      if (pageField) pageField.value = '1';
+      timer = setTimeout(() => { form.requestSubmit(); }, 300);
+    });
+  }
+-->
 
 
 

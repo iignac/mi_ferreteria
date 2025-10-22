@@ -38,6 +38,18 @@ body {
   border-bottom-right-radius: 0.85rem;
 }
 
+/* Botonera inferior: botones de igual tamaño, sin separación, ocupan todo el ancho */
+.user-card .card-footer .d-flex {
+  display: flex;
+  gap: 0; /* sin separación entre botones */
+  width: 100%;
+}
+.user-card .card-footer .btn {
+  flex: 1 1 0 !important; /* anula flex-fill (auto) de Bootstrap para igualar tamaños */
+  min-width: 0; /* permite que el contenido se ajuste sin romper el layout */
+  text-align: center;
+}
+
 /* Roles como tarjetas seleccionables */
 .role-card {
   display: block;
@@ -72,6 +84,14 @@ body {
   background: linear-gradient(135deg, #3484f3, #053b8d);
   color: #fff;
   border-color: rgba(255,255,255,.2) !important;
+}
+.table-products thead th a {
+  color: #fff !important; /* asegura encabezado y flecha en blanco */
+}
+.table-products thead th a:hover,
+.table-products thead th a:focus {
+  color: #fff !important;
+  text-decoration: underline; /* indica interactividad, mantiene contraste */
 }
 .table-products tbody tr {
   transition: background-color .15s ease;

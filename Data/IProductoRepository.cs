@@ -7,7 +7,12 @@ namespace mi_ferreteria.Data
     {
         IEnumerable<Producto> GetAll();
         IEnumerable<Producto> GetPage(int page, int pageSize);
+        IEnumerable<Producto> GetPageSorted(int page, int pageSize, string sort);
         int CountAll();
+        // Búsqueda paginada por cualquier campo relevante
+        int CountSearch(string query);
+        IEnumerable<Producto> SearchPage(string query, int page, int pageSize);
+        IEnumerable<Producto> SearchPageSorted(string query, int page, int pageSize, string sort);
         Producto? GetById(long id);
         void Add(Producto producto);
         void Update(Producto producto);

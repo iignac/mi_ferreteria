@@ -80,6 +80,58 @@ namespace mi_ferreteria.Data
             }
         }
 
+        private static string BuildOrderBy(string sort)
+        {
+            // Map sort keys to SQL expressions. Only allow known values to avoid injection.
+            return sort switch
+            {
+                "id_asc" => "p.id ASC",
+                "id_desc" => "p.id DESC",
+                "nombre_asc" => "p.nombre ASC, p.id DESC",
+                "nombre_desc" => "p.nombre DESC, p.id DESC",
+                "precio_asc" => "p.precio_venta_actual ASC, p.id DESC",
+                "precio_desc" => "p.precio_venta_actual DESC, p.id DESC",
+                "stock_asc" => "COALESCE(s.cantidad,0) ASC, p.id DESC",
+                "stock_desc" => "COALESCE(s.cantidad,0) DESC, p.id DESC",
+                _ => "p.id DESC",
+            };
+        }
+
+        public IEnumerable<Producto> GetPageSorted(int page, int pageSize, string sort)
+        {
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
+            var list = new List<Producto>();
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureProductExtras(conn);
+                var orderBy = BuildOrderBy(sort);
+                var sql = $@"SELECT p.id, p.sku, p.nombre, p.descripcion, p.categoria_id,
+                                     p.precio_venta_actual, p.stock_minimo, p.activo,
+                                     p.ubicacion_preferida_id, p.ubicacion_codigo, p.created_at, p.updated_at
+                              FROM producto p
+                              LEFT JOIN producto_stock s ON s.producto_id = p.id
+                              ORDER BY {orderBy}
+                              LIMIT @limit OFFSET @offset";
+                using var cmd = new NpgsqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@limit", pageSize);
+                cmd.Parameters.AddWithValue("@offset", (page - 1) * pageSize);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    list.Add(MapProducto(reader));
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al paginar productos con orden");
+                throw;
+            }
+        }
+
         public int CountAll()
         {
             try
@@ -94,6 +146,115 @@ namespace mi_ferreteria.Data
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al contar productos");
+                throw;
+            }
+        }
+
+        public int CountSearch(string query)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                using (var set = new NpgsqlCommand("SET search_path TO venta, public", conn)) { set.ExecuteNonQuery(); }
+                var sql = @"SELECT COUNT(1)
+                             FROM producto p
+                             WHERE (p.sku ILIKE @q
+                                 OR p.nombre ILIKE @q
+                                 OR p.descripcion ILIKE @q
+                                 OR p.ubicacion_codigo ILIKE @q
+                                 OR EXISTS (SELECT 1 FROM producto_codigo_barra b WHERE b.producto_id = p.id AND b.codigo_barra ILIKE @q)
+                                 OR EXISTS (SELECT 1 FROM categoria c WHERE c.id = p.categoria_id AND c.nombre ILIKE @q))";
+                using var cmd = new NpgsqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@q", $"%{query}%");
+                var obj = cmd.ExecuteScalar();
+                return obj is long l ? (int)l : Convert.ToInt32(obj);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al contar resultados de búsqueda de productos");
+                throw;
+            }
+        }
+
+        public IEnumerable<Producto> SearchPage(string query, int page, int pageSize)
+        {
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
+            var list = new List<Producto>();
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                using (var set = new NpgsqlCommand("SET search_path TO venta, public", conn)) { set.ExecuteNonQuery(); }
+                var sql = @"SELECT p.id, p.sku, p.nombre, p.descripcion, p.categoria_id,
+                                     p.precio_venta_actual, p.stock_minimo, p.activo,
+                                     p.ubicacion_preferida_id, p.ubicacion_codigo, p.created_at, p.updated_at
+                              FROM producto p
+                              WHERE (p.sku ILIKE @q
+                                  OR p.nombre ILIKE @q
+                                  OR p.descripcion ILIKE @q
+                                  OR p.ubicacion_codigo ILIKE @q
+                                  OR EXISTS (SELECT 1 FROM producto_codigo_barra b WHERE b.producto_id = p.id AND b.codigo_barra ILIKE @q)
+                                  OR EXISTS (SELECT 1 FROM categoria c WHERE c.id = p.categoria_id AND c.nombre ILIKE @q))
+                              ORDER BY p.id DESC
+                              LIMIT @limit OFFSET @offset";
+                using var cmd = new NpgsqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@q", $"%{query}%");
+                cmd.Parameters.AddWithValue("@limit", pageSize);
+                cmd.Parameters.AddWithValue("@offset", (page - 1) * pageSize);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    list.Add(MapProducto(reader));
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al buscar productos paginados");
+                throw;
+            }
+        }
+
+        public IEnumerable<Producto> SearchPageSorted(string query, int page, int pageSize, string sort)
+        {
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
+            var list = new List<Producto>();
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureProductExtras(conn);
+                var orderBy = BuildOrderBy(sort);
+                var sql = $@"SELECT p.id, p.sku, p.nombre, p.descripcion, p.categoria_id,
+                                     p.precio_venta_actual, p.stock_minimo, p.activo,
+                                     p.ubicacion_preferida_id, p.ubicacion_codigo, p.created_at, p.updated_at
+                              FROM producto p
+                              LEFT JOIN producto_stock s ON s.producto_id = p.id
+                              WHERE (p.sku ILIKE @q
+                                  OR p.nombre ILIKE @q
+                                  OR p.descripcion ILIKE @q
+                                  OR p.ubicacion_codigo ILIKE @q
+                                  OR EXISTS (SELECT 1 FROM producto_codigo_barra b WHERE b.producto_id = p.id AND b.codigo_barra ILIKE @q)
+                                  OR EXISTS (SELECT 1 FROM categoria c WHERE c.id = p.categoria_id AND c.nombre ILIKE @q))
+                              ORDER BY {orderBy}
+                              LIMIT @limit OFFSET @offset";
+                using var cmd = new NpgsqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@q", $"%{query}%");
+                cmd.Parameters.AddWithValue("@limit", pageSize);
+                cmd.Parameters.AddWithValue("@offset", (page - 1) * pageSize);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    list.Add(MapProducto(reader));
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al buscar productos con orden");
                 throw;
             }
         }
