@@ -276,8 +276,17 @@ namespace mi_ferreteria.Controllers
                 if (p == null) return NotFound();
                 var barcodes = _repo.GetBarcodes(id);
                 var stock = _stockRepo.GetStock(id);
+                var catIds = _repo.GetCategorias(id).ToList();
+                if (!catIds.Any() && p.CategoriaId.HasValue) catIds.Add(p.CategoriaId.Value);
+                var catNames = new System.Collections.Generic.List<string>();
+                foreach (var cid in catIds)
+                {
+                    var c = _catRepo.GetById(cid);
+                    if (c != null && !string.IsNullOrWhiteSpace(c.Nombre)) catNames.Add(c.Nombre);
+                }
                 ViewBag.Barcodes = barcodes;
                 ViewBag.Stock = stock;
+                ViewBag.CategoriasNombres = catNames;
                 ViewBag.ReturnPage = page ?? 1;
                 return View(p);
             }

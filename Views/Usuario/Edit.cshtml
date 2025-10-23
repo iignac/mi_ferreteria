@@ -30,9 +30,12 @@
         </div>
         <small class="text-muted">Dejar vacío para mantener la contraseña actual.</small>
     </div>
-    <div class="form-check form-switch mb-4">
-        <input class="form-check-input" asp-for="Activo" type="checkbox" role="switch" id="usuarioActivoEdit" />
-        <label class="form-check-label" for="usuarioActivoEdit">Activo</label>
+    <div class="mb-4">
+        <label class="form-label d-block">Estado de usuario</label>
+        <div class="form-check form-switch">
+            <input class="form-check-input" asp-for="Activo" type="checkbox" role="switch" id="usuarioActivoEdit" />
+            <label class="form-check-label" for="usuarioActivoEdit">Activo</label>
+        </div>
     </div>
     <div class="mb-4">
         <label class="form-label">Seleccione rol</label>

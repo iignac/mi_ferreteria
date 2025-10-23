@@ -1,5 +1,77 @@
+@using mi_ferreteria.Models
 @{
-    ViewData["Title"] = "Gestión de Stock";
+    ViewData["Title"] = "Gesti�n de Stock";
+    var ingresos = ViewBag.UltimosIngresos as IEnumerable<StockMovimiento> ?? Enumerable.Empty<StockMovimiento>();
+    var egresos = ViewBag.UltimosEgresos as IEnumerable<StockMovimiento> ?? Enumerable.Empty<StockMovimiento>();
+    var prodNames = ViewBag.ProductNames as System.Collections.Generic.IDictionary<long,string> ?? new System.Collections.Generic.Dictionary<long,string>();
 }
-<h2>Gestión de Stock</h2>
-<p>Aquí irá la gestión de stock.</p>
+<h2 class="mb-3">Gesti�n de Stock</h2>
+
+<div class="row g-4">
+  <div class="col-12 col-lg-6">
+    <div class="card h-100">
+      <div class="card-header bg-success text-white">�ltimos Ingresos</div>
+      <div class="card-body p-0">
+        @if (!ingresos.Any())
+        {
+            <div class="p-3 text-muted">Sin movimientos recientes.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+              <table class="table table-sm mb-0 align-middle">
+                <thead>
+                  <tr><th>Fecha</th><th>Producto</th><th class="text-end">Cantidad</th><th>Motivo</th></tr>
+                </thead>
+                <tbody>
+                @foreach (var m in ingresos)
+                {
+                    <tr>
+                      <td>@m.Fecha.LocalDateTime</td>
+                      <td><a asp-controller="Producto" asp-action="Details" asp-route-id="@m.ProductoId">@(prodNames.ContainsKey(m.ProductoId) ? prodNames[m.ProductoId] : ("#" + m.ProductoId))</a></td>
+                      <td class="text-end text-success fw-semibold">+@m.Cantidad</td>
+                      <td class="text-muted">@m.Motivo</td>
+                    </tr>
+                }
+                </tbody>
+              </table>
+            </div>
+        }
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-6">
+    <div class="card h-100">
+      <div class="card-header bg-danger text-white">�ltimos Egresos</div>
+      <div class="card-body p-0">
+        @if (!egresos.Any())
+        {
+            <div class="p-3 text-muted">Sin movimientos recientes.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+              <table class="table table-sm mb-0 align-middle">
+                <thead>
+                  <tr><th>Fecha</th><th>Producto</th><th class="text-end">Cantidad</th><th>Motivo</th></tr>
+                </thead>
+                <tbody>
+                @foreach (var m in egresos)
+                {
+                    <tr>
+                      <td>@m.Fecha.LocalDateTime</td>
+                      <td><a asp-controller="Producto" asp-action="Details" asp-route-id="@m.ProductoId">@(prodNames.ContainsKey(m.ProductoId) ? prodNames[m.ProductoId] : ("#" + m.ProductoId))</a></td>
+                      <td class="text-end text-danger fw-semibold">-@m.Cantidad</td>
+                      <td class="text-muted">@m.Motivo</td>
+                    </tr>
+                }
+                </tbody>
+              </table>
+            </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>
+
+
