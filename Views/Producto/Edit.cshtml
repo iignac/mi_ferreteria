@@ -4,7 +4,7 @@
 }
 <h2>Editar Producto</h2>
 <div class="text-danger">@Html.ValidationSummary()</div>
-<form asp-action="Edit" method="post">`r`n    <input type="hidden" asp-for="OriginalHash" />
+<form asp-action="Edit" method="post">    <input type="hidden" asp-for="OriginalHash" />
     <input type="hidden" name="page" value="@(ViewBag.ReturnPage ?? 1)" />
     <input type="hidden" asp-for="Id" />
     <div class="row g-3">

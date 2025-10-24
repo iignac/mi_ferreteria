@@ -157,15 +157,16 @@ namespace mi_ferreteria.Data
                 using var conn = new NpgsqlConnection(_connectionString);
                 conn.Open();
                 using (var set = new NpgsqlCommand("SET search_path TO venta, public", conn)) { set.ExecuteNonQuery(); }
+                using (var ext = new NpgsqlCommand("CREATE EXTENSION IF NOT EXISTS unaccent", conn)) { ext.ExecuteNonQuery(); }
                 var sql = @"SELECT COUNT(1)
                              FROM producto p
-                             WHERE (p.sku ILIKE @q
-                                 OR p.nombre ILIKE @q
-                                 OR p.descripcion ILIKE @q
-                                 OR p.ubicacion_codigo ILIKE @q
-                                 OR EXISTS (SELECT 1 FROM producto_codigo_barra b WHERE b.producto_id = p.id AND b.codigo_barra ILIKE @q)
-                                 OR EXISTS (SELECT 1 FROM categoria c WHERE c.id = p.categoria_id AND c.nombre ILIKE @q)
-                                 OR EXISTS (SELECT 1 FROM producto_categoria pc JOIN categoria c2 ON c2.id=pc.categoria_id WHERE pc.producto_id=p.id AND c2.nombre ILIKE @q)
+                             WHERE (unaccent(lower(p.sku)) LIKE unaccent(lower(@q))
+                                 OR unaccent(lower(p.nombre)) LIKE unaccent(lower(@q))
+                                 OR unaccent(lower(p.descripcion)) LIKE unaccent(lower(@q))
+                                 OR unaccent(lower(p.ubicacion_codigo)) LIKE unaccent(lower(@q))
+                                 OR EXISTS (SELECT 1 FROM producto_codigo_barra b WHERE b.producto_id = p.id AND unaccent(lower(b.codigo_barra)) LIKE unaccent(lower(@q)))
+                                 OR EXISTS (SELECT 1 FROM categoria c WHERE c.id = p.categoria_id AND unaccent(lower(c.nombre)) LIKE unaccent(lower(@q)))
+                                 OR EXISTS (SELECT 1 FROM producto_categoria pc JOIN categoria c2 ON c2.id=pc.categoria_id WHERE pc.producto_id=p.id AND unaccent(lower(c2.nombre)) LIKE unaccent(lower(@q)))
                               )";
                 using var cmd = new NpgsqlCommand(sql, conn);
                 cmd.Parameters.AddWithValue("@q", $"%{query}%");
@@ -193,13 +194,13 @@ namespace mi_ferreteria.Data
                                      p.precio_venta_actual, p.stock_minimo, p.activo,
                                      p.ubicacion_preferida_id, p.ubicacion_codigo, p.created_at, p.updated_at
                               FROM producto p
-                              WHERE (p.sku ILIKE @q
-                                  OR p.nombre ILIKE @q
-                                  OR p.descripcion ILIKE @q
-                                  OR p.ubicacion_codigo ILIKE @q
-                                  OR EXISTS (SELECT 1 FROM producto_codigo_barra b WHERE b.producto_id = p.id AND b.codigo_barra ILIKE @q)
-                                  OR EXISTS (SELECT 1 FROM categoria c WHERE c.id = p.categoria_id AND c.nombre ILIKE @q)
-                                  OR EXISTS (SELECT 1 FROM producto_categoria pc JOIN categoria c2 ON c2.id=pc.categoria_id WHERE pc.producto_id=p.id AND c2.nombre ILIKE @q)
+                              WHERE (unaccent(lower(p.sku)) LIKE unaccent(lower(@q))
+                                  OR unaccent(lower(p.nombre)) LIKE unaccent(lower(@q))
+                                  OR unaccent(lower(p.descripcion)) LIKE unaccent(lower(@q))
+                                  OR unaccent(lower(p.ubicacion_codigo)) LIKE unaccent(lower(@q))
+                                  OR EXISTS (SELECT 1 FROM producto_codigo_barra b WHERE b.producto_id = p.id AND unaccent(lower(b.codigo_barra)) LIKE unaccent(lower(@q)))
+                                  OR EXISTS (SELECT 1 FROM categoria c WHERE c.id = p.categoria_id AND unaccent(lower(c.nombre)) LIKE unaccent(lower(@q)))
+                                  OR EXISTS (SELECT 1 FROM producto_categoria pc JOIN categoria c2 ON c2.id=pc.categoria_id WHERE pc.producto_id=p.id AND unaccent(lower(c2.nombre)) LIKE unaccent(lower(@q)))
                                )
                               ORDER BY p.id DESC
                               LIMIT @limit OFFSET @offset";
@@ -237,15 +238,15 @@ namespace mi_ferreteria.Data
                                      p.ubicacion_preferida_id, p.ubicacion_codigo, p.created_at, p.updated_at
                               FROM producto p
                               LEFT JOIN producto_stock s ON s.producto_id = p.id
-                              WHERE (p.sku ILIKE @q
-                                  OR p.nombre ILIKE @q
-                                  OR p.descripcion ILIKE @q
-                                  OR p.ubicacion_codigo ILIKE @q
-                                  OR EXISTS (SELECT 1 FROM producto_codigo_barra b WHERE b.producto_id = p.id AND b.codigo_barra ILIKE @q)
-                                  OR EXISTS (SELECT 1 FROM categoria c WHERE c.id = p.categoria_id AND c.nombre ILIKE @q)
-                                  OR EXISTS (SELECT 1 FROM producto_categoria pc JOIN categoria c2 ON c2.id=pc.categoria_id WHERE pc.producto_id=p.id AND c2.nombre ILIKE @q)
+                              WHERE (unaccent(lower(p.sku)) LIKE unaccent(lower(@q))
+                                  OR unaccent(lower(p.nombre)) LIKE unaccent(lower(@q))
+                                  OR unaccent(lower(p.descripcion)) LIKE unaccent(lower(@q))
+                                  OR unaccent(lower(p.ubicacion_codigo)) LIKE unaccent(lower(@q))
+                                  OR EXISTS (SELECT 1 FROM producto_codigo_barra b WHERE b.producto_id = p.id AND unaccent(lower(b.codigo_barra)) LIKE unaccent(lower(@q)))
+                                  OR EXISTS (SELECT 1 FROM categoria c WHERE c.id = p.categoria_id AND unaccent(lower(c.nombre)) LIKE unaccent(lower(@q)))
+                                  OR EXISTS (SELECT 1 FROM producto_categoria pc JOIN categoria c2 ON c2.id=pc.categoria_id WHERE pc.producto_id=p.id AND unaccent(lower(c2.nombre)) LIKE unaccent(lower(@q)))
                               
-                                  OR EXISTS (SELECT 1 FROM categoria c WHERE c.id = p.categoria_id AND c.nombre ILIKE @q))
+                                  OR EXISTS (SELECT 1 FROM categoria c WHERE c.id = p.categoria_id AND unaccent(lower(c.nombre)) LIKE unaccent(lower(@q))))
                               ORDER BY {orderBy}
                               LIMIT @limit OFFSET @offset";
                 using var cmd = new NpgsqlCommand(sql, conn);
@@ -518,6 +519,7 @@ namespace mi_ferreteria.Data
         private void EnsureProductExtras(NpgsqlConnection conn)
         {
             using (var set = new NpgsqlCommand("SET search_path TO venta, public", conn)) { set.ExecuteNonQuery(); }
+            using (var ext = new NpgsqlCommand("CREATE EXTENSION IF NOT EXISTS unaccent", conn)) { ext.ExecuteNonQuery(); }
             using var alt = new NpgsqlCommand("ALTER TABLE IF EXISTS producto ADD COLUMN IF NOT EXISTS ubicacion_codigo TEXT", conn);
             alt.ExecuteNonQuery();
             using var join = new NpgsqlCommand(@"CREATE TABLE IF NOT EXISTS producto_categoria (
@@ -576,4 +578,3 @@ namespace mi_ferreteria.Data
         }
     }
 }
-

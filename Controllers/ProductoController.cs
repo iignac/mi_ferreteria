@@ -122,7 +122,8 @@ namespace mi_ferreteria.Controllers
                 }
                 if (_repo.SkuExists(model.Sku))
                 {
-                    ModelState.AddModelError("Sku", "El SKU ya existe en otro producto.");\r\n                    Response.StatusCode = 409;
+                    ModelState.AddModelError("Sku", "El SKU ya existe en otro producto.");
+                    Response.StatusCode = 409;
                     ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }
@@ -236,7 +237,8 @@ namespace mi_ferreteria.Controllers
                 }
                 if (_repo.SkuExists(model.Sku, model.Id))
                 {
-                    ModelState.AddModelError("Sku", "El SKU ya existe en otro producto.");\r\n                    Response.StatusCode = 409;
+                    ModelState.AddModelError("Sku", "El SKU ya existe en otro producto.");
+                    Response.StatusCode = 409;
                     ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }
