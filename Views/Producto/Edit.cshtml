@@ -4,7 +4,7 @@
 }
 <h2>Editar Producto</h2>
 <div class="text-danger">@Html.ValidationSummary()</div>
-<form asp-action="Edit" method="post">
+<form asp-action="Edit" method="post">`r`n    <input type="hidden" asp-for="OriginalHash" />
     <input type="hidden" name="page" value="@(ViewBag.ReturnPage ?? 1)" />
     <input type="hidden" asp-for="Id" />
     <div class="row g-3">
@@ -19,26 +19,26 @@
             <span asp-validation-for="Nombre" class="text-danger"></span>
         </div>
         <div class="col-12">
-            <label class="form-label">Descripci髇</label>
+            <label class="form-label">Descripci贸n</label>
             <textarea asp-for="Descripcion" class="form-control" rows="3"></textarea>
             <span asp-validation-for="Descripcion" class="text-danger"></span>
         </div>
         <div class="col-12">
             <label class="form-label d-flex align-items-center justify-content-between">
-                <span>C骴igos de barra</span>
+                <span>C贸digos de barra</span>
                 <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddBarcode">+ Agregar</button>
             </label>
             <div id="barcodeList" class="vstack gap-2"></div>
-            <div id="barcodeMsg" class="form-text text-danger d-none">No se pueden agregar m醩 c骴igos (m醲imo 5).</div>
+            <div id="barcodeMsg" class="form-text text-danger d-none">No se pueden agregar m谩s c贸digos (m谩ximo 5).</div>
         </div>
         <div class="col-12">
-            <label class="form-label">Categor韆s</label>
+            <label class="form-label">Categor铆as</label>
             <div class="d-flex gap-2 mb-2 align-items-center">
                 <div class="dropdown">
-                    <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Categor韆s</button>
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Categor铆as</button>
                     <ul class="dropdown-menu p-2" style="max-height: 260px; overflow:auto; min-width: 280px;">
                         <li class="px-1 mb-2">
-                            <input type="text" class="form-control form-control-sm" placeholder="Filtrar categor韆s..." id="catFilterEdit">
+                            <input type="text" class="form-control form-control-sm" placeholder="Filtrar categor铆as..." id="catFilterEdit">
                         </li>
                         @foreach (var c in Model.Categorias)
                         {
@@ -46,7 +46,7 @@
                         }
                     </ul>
                 </div>
-                <small class="text-muted">Hasta 3 categor韆s.</small>
+                <small class="text-muted">Hasta 3 categor铆as.</small>
             </div>
             <div id="catSelectedEdit" class="d-flex flex-wrap gap-2 cat-box"></div>
             <div id="catInputsEdit"></div>
@@ -57,12 +57,12 @@
             <span asp-validation-for="PrecioVentaActual" class="text-danger"></span>
         </div>
         <div class="col-md-4">
-            <label class="form-label">Stock m韓imo</label>
+            <label class="form-label">Stock m铆nimo</label>
             <input asp-for="StockMinimo" class="form-control" type="number" min="0" />
             <span asp-validation-for="StockMinimo" class="text-danger"></span>
         </div>
         <div class="col-md-6">
-            <label class="form-label">C骴igo ubicaci髇 (ej: A1)</label>
+            <label class="form-label">C贸digo ubicaci贸n (ej: A1)</label>
             <input asp-for="UbicacionCodigo" class="form-control" />
             <span asp-validation-for="UbicacionCodigo" class="text-danger"></span>
         </div>
@@ -97,14 +97,14 @@
   isDirty=false;
 });
   window.addEventListener('beforeunload',function(e){ if(!isDirty) return; e.preventDefault(); e.returnValue=''; });
-  document.querySelectorAll('.btn-cancel-leave').forEach(a=>a.addEventListener('click',function(e){ if(isDirty && !confirm('Hay cambios sin guardar. Si vuelves, se perder醤. 緿eseas salir igualmente?')){ e.preventDefault(); }}));
+  document.querySelectorAll('.btn-cancel-leave').forEach(a=>a.addEventListener('click',function(e){ if(isDirty && !confirm('Hay cambios sin guardar. Si vuelves, se perder谩n. 驴Deseas salir igualmente?')){ e.preventDefault(); }}));
   // Barcodes dynamic inputs (prepopulate)
   const list = document.getElementById('barcodeList');
   const btnAdd = document.getElementById('btnAddBarcode');
   const msg = document.getElementById('barcodeMsg');
   const max = 5;
   const existing = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Barcodes ?? new List<string>()));
-  // Funci髇: agrega una fila (input de c骴igo + bot髇 eliminar) y reenumera cuando se borra
+  // Funci贸n: agrega una fila (input de c贸digo + bot贸n eliminar) y reenumera cuando se borra
   const addInput = (val='')=>{
     const count = list.querySelectorAll('.barcode-item').length;
     if(count >= max){ msg.classList.remove('d-none'); return; }
@@ -115,7 +115,7 @@
     const input = document.createElement('input');
     input.name = `Barcodes[${idx}]`;
     input.className = 'form-control';
-    input.placeholder = 'C骴igo de barra';
+    input.placeholder = 'C贸digo de barra';
     input.value = val || '';
     const btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'btn btn-outline-danger'; btn.textContent = '-';
@@ -123,7 +123,7 @@
     row.appendChild(input); row.appendChild(btn);
     list.appendChild(row);
   };
-  // Funci髇: reenumerar nombres Barcodes[i] despu閟 de altas/bajas
+  // Funci贸n: reenumerar nombres Barcodes[i] despu茅s de altas/bajas
   const renumber = ()=>{
     const items = list.querySelectorAll('.barcode-item input');
     items.forEach((inp, i)=>{ inp.name = `Barcodes[${i}]`; });
@@ -133,7 +133,7 @@
   if(existing && existing.length){ existing.slice(0, max).forEach(v=> addInput(v)); }
   else { addInput(); }
 
-  // Selecci髇 de categor韆s v韆 bot髇 (hasta 3)
+  // Selecci贸n de categor铆as v铆a bot贸n (hasta 3)
   (function(){
     const container = document.getElementById('catSelectedEdit');
     const inputs = document.getElementById('catInputsEdit');
@@ -169,7 +169,7 @@
         const id = this.dataset.id;
         if (!id) return;
         if (ids.map(String).includes(String(id))) return; // ya seleccionado
-        if (ids.length >= 3) { alert('Solo puedes seleccionar hasta 3 categor韆s.'); return; }
+        if (ids.length >= 3) { alert('Solo puedes seleccionar hasta 3 categor铆as.'); return; }
         ids.push(id);
         renumber();
         renderChips();

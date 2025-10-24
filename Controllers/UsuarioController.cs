@@ -58,8 +58,21 @@ namespace mi_ferreteria.Controllers
             try
             {
                 model.RolesDisponibles = _rolRepository.GetAll();
+                // Normalización y trim de campos
+                model.Nombre = model.Nombre?.Trim();
+                model.Email = model.Email?.Trim();
                 if (ModelState.IsValid)
                 {
+                    if (string.IsNullOrWhiteSpace(model.Nombre))
+                    {
+                        ModelState.AddModelError("Nombre", "El nombre es obligatorio.");
+                        return View(model);
+                    }
+                    if (string.IsNullOrWhiteSpace(model.Email))
+                    {
+                        ModelState.AddModelError("Email", "El email es obligatorio.");
+                        return View(model);
+                    }
                     // Verificación de email único
                     if (_usuarioRepository.EmailExists(model.Email))
                     {
@@ -84,6 +97,7 @@ namespace mi_ferreteria.Controllers
                         Roles = _rolRepository.GetAll().Where(r => model.RolesIds.Contains(r.Id)).ToList()
                     };
                     _usuarioRepository.Add(usuario, model.Password);
+                    TempData["Success"] = "Usuario creado correctamente.";
                     return RedirectToAction("Index");
                 }
                 return View(model);
@@ -109,7 +123,8 @@ namespace mi_ferreteria.Controllers
                     Email = usuario.Email,
                     Activo = usuario.Activo,
                     RolesIds = rolesIds,
-                    RolesDisponibles = _rolRepository.GetAll()
+                    RolesDisponibles = _rolRepository.GetAll(),
+                    OriginalHash = mi_ferreteria.Security.ConcurrencyToken.ComputeUsuarioHash(usuario)
                 };
                 return View(model);
             }
@@ -126,8 +141,31 @@ namespace mi_ferreteria.Controllers
             try
             {
                 model.RolesDisponibles = _rolRepository.GetAll();
+                // Normalización y trim de campos
+                model.Nombre = model.Nombre?.Trim();
+                model.Email = model.Email?.Trim();
                 if (ModelState.IsValid)
                 {
+                    if (string.IsNullOrWhiteSpace(model.Nombre))
+                    {
+                        ModelState.AddModelError("Nombre", "El nombre es obligatorio.");
+                        return View(model);
+                    }
+                    if (string.IsNullOrWhiteSpace(model.Email))
+                    {
+                        ModelState.AddModelError("Email", "El email es obligatorio.");
+                        return View(model);
+                    }
+                    // Concurrencia optimista
+                    var dbUsuario = _usuarioRepository.GetAll().FirstOrDefault(u => u.Id == model.Id);
+                    if (dbUsuario == null) return NotFound();
+                    var currentHash = mi_ferreteria.Security.ConcurrencyToken.ComputeUsuarioHash(dbUsuario);
+                    if (!string.IsNullOrEmpty(model.OriginalHash) && !string.Equals(model.OriginalHash, currentHash, System.StringComparison.Ordinal))
+                    {
+                        Response.StatusCode = 409;
+                        ModelState.AddModelError(string.Empty, "El usuario fue modificado por otro proceso. Recarga la pA!gina.");
+                        return View(model);
+                    }
                     // Verificación de email único (excluyendo el propio)
                     if (_usuarioRepository.EmailExists(model.Email, model.Id))
                     {
@@ -158,6 +196,7 @@ namespace mi_ferreteria.Controllers
                         newPwd = model.Password;
                     }
                     _usuarioRepository.Update(usuario, newPwd);
+                    TempData["Success"] = "Usuario actualizado correctamente.";
                     return RedirectToAction("Index");
                 }
                 return View(model);
@@ -204,7 +243,10 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
+                var usuario = _usuarioRepository.GetAll().FirstOrDefault(u => u.Id == id);
+                var nombre = usuario?.Nombre ?? ("#" + id);
                 _usuarioRepository.Delete(id);
+                TempData["Success"] = $"Usuario '{nombre}' eliminado correctamente.";
                 return RedirectToAction("Index");
             }
             catch (System.Exception ex)
@@ -212,6 +254,21 @@ namespace mi_ferreteria.Controllers
                 _logger.LogError(ex, "Error al eliminar usuario {UsuarioId}", id);
                 return Problem("Ocurrió un error al eliminar el usuario.");
             }
+        }
+
+        private static bool IsStrongPassword(string pwd)
+        {
+            if (pwd == null) return false;
+            if (pwd.Length < 8) return false;
+            bool hasUpper = false, hasLower = false, hasDigit = false;
+            foreach (var ch in pwd)
+            {
+                if (char.IsUpper(ch)) hasUpper = true;
+                else if (char.IsLower(ch)) hasLower = true;
+                else if (char.IsDigit(ch)) hasDigit = true;
+                if (hasUpper && hasLower && hasDigit) return true;
+            }
+            return false;
         }
     }
 }

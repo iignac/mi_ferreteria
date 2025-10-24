@@ -6,6 +6,7 @@
 <div class="text-danger">@Html.ValidationSummary()</div>
 <form asp-action="Edit" method="post">
     <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="OriginalHash" />
     <div class="mb-3">
         <label class="form-label">Nombre</label>
         <input asp-for="Nombre" class="form-control" />

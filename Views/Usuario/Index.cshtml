@@ -9,6 +9,8 @@
     <a asp-action="Create" class="btn btn-primary btn-lg btn-cta">Crear usuario</a>
  </div>
 
+@* Alertas globales ahora se muestran en _Layout *@
+
 @if (Model == null || !Model.Any())
 {
     <div class="alert alert-info">No hay usuarios registrados.</div>

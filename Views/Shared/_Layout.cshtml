@@ -44,6 +44,14 @@
         </nav>
     </header>
     <div class="container">
+        @* Alertas globales (éxito/error) con cierre *@
+        @if (TempData["Success"] is string ok && !string.IsNullOrWhiteSpace(ok))
+        {
+            <div class="alert alert-success alert-dismissible fade show mt-2" role="alert">
+                @ok
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+            </div>
+        }
         <main role="main" class="pb-3">
             @RenderBody()
         </main>

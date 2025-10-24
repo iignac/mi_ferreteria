@@ -19,4 +19,37 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     } catch (e) { /* ignore malformed URLs */ }
   });
+
+  // Tooltip accesible para filas clickeables y enlaces a productos
+  try {
+    document.querySelectorAll('tr.clickable-row').forEach(function(tr){
+      if (!tr.getAttribute('title')) tr.setAttribute('title','Acceder al producto');
+    });
+    document.querySelectorAll('a[href*="/Producto/Details"]').forEach(function(a){
+      if (!a.getAttribute('title')) a.setAttribute('title','Acceder al producto');
+    });
+  } catch(e) { /* noop */ }
+
+  // Barra de búsqueda en Stock: anclada bajo el header y estilo similar a productos
+  try {
+    var path = location.pathname.toLowerCase();
+    if (path.startsWith('/stock')) {
+      var main = document.querySelector('.container > main');
+      if (main) {
+        var bar = document.createElement('div');
+        bar.className = 'stock-search-bar position-sticky top-0';
+        bar.innerHTML = "<form method='get' action='/Stock/Buscar' class='mb-2'><div class='input-group'><input type='search' name='q' class='form-control' placeholder='Buscar producto para ver movimientos (nombre, SKU, etc.)' aria-label='Buscar movimientos por producto' autocomplete='off' /><button class='btn btn-primary' type='submit'>Buscar</button></div></form>";
+        main.insertBefore(bar, main.firstChild);
+        // Mensaje (si viene ?smsg=...)
+        var params = new URLSearchParams(location.search);
+        var smsg = params.get('smsg');
+        if (smsg) {
+          var alert = document.createElement('div');
+          alert.className = 'alert alert-warning mt-2';
+          alert.textContent = smsg;
+          bar.appendChild(alert);
+        }
+      }
+    }
+  } catch(e) { /* noop */ }
 });

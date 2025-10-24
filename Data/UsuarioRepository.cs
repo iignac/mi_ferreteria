@@ -89,8 +89,9 @@ namespace mi_ferreteria.Data
             {
                 using var conn = new NpgsqlConnection(_connectionString);
                 conn.Open();
+                using var tx = conn.BeginTransaction();
                 var hp = PasswordHasher.HashPassword(plainPassword);
-                using var cmd = new NpgsqlCommand("INSERT INTO usuario (nombre, email, activo, password_hash, password_salt) VALUES (@nombre, @email, @activo, @ph, @ps) RETURNING id", conn);
+                using var cmd = new NpgsqlCommand("INSERT INTO usuario (nombre, email, activo, password_hash, password_salt) VALUES (@nombre, @email, @activo, @ph, @ps) RETURNING id", conn, tx);
                 cmd.Parameters.AddWithValue("@nombre", usuario.Nombre);
                 cmd.Parameters.AddWithValue("@email", usuario.Email);
                 cmd.Parameters.AddWithValue("@activo", usuario.Activo);
@@ -107,12 +108,13 @@ namespace mi_ferreteria.Data
                 {
                     foreach (var rol in usuario.Roles)
                     {
-                        using var cmdUr = new NpgsqlCommand("INSERT INTO usuario_rol (usuario_id, rol_id) VALUES (@uid, @rid)", conn);
+                        using var cmdUr = new NpgsqlCommand("INSERT INTO usuario_rol (usuario_id, rol_id) VALUES (@uid, @rid)", conn, tx);
                         cmdUr.Parameters.AddWithValue("@uid", usuario.Id);
                         cmdUr.Parameters.AddWithValue("@rid", rol.Id);
                         cmdUr.ExecuteNonQuery();
                     }
                 }
+                tx.Commit();
             }
             catch (Exception ex)
             {
@@ -127,7 +129,8 @@ namespace mi_ferreteria.Data
             {
                 using var conn = new NpgsqlConnection(_connectionString);
                 conn.Open();
-                using var cmd = new NpgsqlCommand("UPDATE usuario SET nombre=@nombre, email=@email, activo=@activo WHERE id=@id", conn);
+                using var tx = conn.BeginTransaction();
+                using var cmd = new NpgsqlCommand("UPDATE usuario SET nombre=@nombre, email=@email, activo=@activo WHERE id=@id", conn, tx);
                 cmd.Parameters.AddWithValue("@id", usuario.Id);
                 cmd.Parameters.AddWithValue("@nombre", usuario.Nombre);
                 cmd.Parameters.AddWithValue("@email", usuario.Email);
@@ -137,7 +140,7 @@ namespace mi_ferreteria.Data
                 if (!string.IsNullOrWhiteSpace(newPlainPassword))
                 {
                     var hp = PasswordHasher.HashPassword(newPlainPassword);
-                    using var up = new NpgsqlCommand("UPDATE usuario SET password_hash=@ph, password_salt=@ps WHERE id=@id", conn);
+                    using var up = new NpgsqlCommand("UPDATE usuario SET password_hash=@ph, password_salt=@ps WHERE id=@id", conn, tx);
                     up.Parameters.AddWithValue("@ph", hp.Hash);
                     up.Parameters.AddWithValue("@ps", hp.Salt);
                     up.Parameters.AddWithValue("@id", usuario.Id);
@@ -145,7 +148,7 @@ namespace mi_ferreteria.Data
                 }
 
                 // Reemplaza asignaciones de roles
-                using (var del = new NpgsqlCommand("DELETE FROM usuario_rol WHERE usuario_id=@uid", conn))
+                using (var del = new NpgsqlCommand("DELETE FROM usuario_rol WHERE usuario_id=@uid", conn, tx))
                 {
                     del.Parameters.AddWithValue("@uid", usuario.Id);
                     del.ExecuteNonQuery();
@@ -154,12 +157,13 @@ namespace mi_ferreteria.Data
                 {
                     foreach (var rol in usuario.Roles)
                     {
-                        using var ins = new NpgsqlCommand("INSERT INTO usuario_rol (usuario_id, rol_id) VALUES (@uid, @rid)", conn);
+                        using var ins = new NpgsqlCommand("INSERT INTO usuario_rol (usuario_id, rol_id) VALUES (@uid, @rid)", conn, tx);
                         ins.Parameters.AddWithValue("@uid", usuario.Id);
                         ins.Parameters.AddWithValue("@rid", rol.Id);
                         ins.ExecuteNonQuery();
                     }
                 }
+                tx.Commit();
             }
             catch (Exception ex)
             {
@@ -174,17 +178,19 @@ namespace mi_ferreteria.Data
             {
                 using var conn = new NpgsqlConnection(_connectionString);
                 conn.Open();
+                using var tx = conn.BeginTransaction();
                 // Borra asignaciones de roles primero por FK
-                using (var delUr = new NpgsqlCommand("DELETE FROM usuario_rol WHERE usuario_id=@id", conn))
+                using (var delUr = new NpgsqlCommand("DELETE FROM usuario_rol WHERE usuario_id=@id", conn, tx))
                 {
                     delUr.Parameters.AddWithValue("@id", id);
                     delUr.ExecuteNonQuery();
                 }
-                using (var cmd = new NpgsqlCommand("DELETE FROM usuario WHERE id=@id", conn))
+                using (var cmd = new NpgsqlCommand("DELETE FROM usuario WHERE id=@id", conn, tx))
                 {
                     cmd.Parameters.AddWithValue("@id", id);
                     cmd.ExecuteNonQuery();
                 }
+                tx.Commit();
             }
             catch (Exception ex)
             {

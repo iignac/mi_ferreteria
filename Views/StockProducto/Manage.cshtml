@@ -37,7 +37,7 @@
 </form>
 
 <hr class="my-4" />
-<div class="row g-4">
+<div class="row g-4 stock-manage">
     <div class="col-12 col-lg-6">
         <h5>Historial de ingresos</h5>
         <div class="table-responsive">
@@ -45,7 +45,7 @@
                 <thead>
                     <tr>
                         <th>Fecha</th>
-                        <th>Cantidad</th>
+                        <th class="text-center">Cantidad</th>
                         <th>Motivo</th>
                     </tr>
                 </thead>
@@ -63,7 +63,7 @@
                         {
                             <tr>
                                 <td>@m.Fecha.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</td>
-                                <td class="text-success">+@m.Cantidad</td>
+                                <td class="text-success text-center">+@m.Cantidad</td>
                                 <td>@(string.IsNullOrWhiteSpace(m.Motivo) ? "-" : m.Motivo)</td>
                             </tr>
                         }
@@ -79,7 +79,7 @@
                 <thead>
                     <tr>
                         <th>Fecha</th>
-                        <th>Cantidad</th>
+                        <th class="text-center">Cantidad</th>
                         <th>Motivo</th>
                     </tr>
                 </thead>
@@ -97,7 +97,7 @@
                         {
                             <tr>
                                 <td>@m.Fecha.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</td>
-                                <td class="text-danger">-@m.Cantidad</td>
+                                <td class="text-danger text-center">-@m.Cantidad</td>
                                 <td>@(string.IsNullOrWhiteSpace(m.Motivo) ? "-" : m.Motivo)</td>
                             </tr>
                         }

@@ -8,11 +8,11 @@ namespace mi_ferreteria.ViewModels
         public long Id { get; set; }
 
         [Required(ErrorMessage = "El SKU es obligatorio")]
-        [StringLength(100, ErrorMessage = "El SKU debe tener hasta 100 caracteres")]
+        [StringLength(32, ErrorMessage = "El SKU debe tener hasta 32 caracteres")]
         public string Sku { get; set; }
 
         [Required(ErrorMessage = "El nombre es obligatorio")]
-        [StringLength(200, ErrorMessage = "El nombre debe tener hasta 200 caracteres")]
+        [StringLength(150, ErrorMessage = "El nombre debe tener hasta 150 caracteres")]
         public string Nombre { get; set; }
 
         [StringLength(1000, ErrorMessage = "La descripción es demasiado larga")]
@@ -32,10 +32,15 @@ namespace mi_ferreteria.ViewModels
         public bool Activo { get; set; } = true;
 
         public long? UbicacionPreferidaId { get; set; }
-        [RegularExpression("^[A-Za-z][0-9]+$", ErrorMessage = "La ubicación debe tener formato letra+número, ej: A1")]
+        [RegularExpression("^[A-Za-z][0-9]{1,2}$", ErrorMessage = "La ubicación debe tener formato letra+número, ej: A1")]
         public string? UbicacionCodigo { get; set; }
 
         // Códigos de barra: colección de inputs dinámicos en la vista
         public List<string> Barcodes { get; set; } = new();
+        public string? OriginalHash { get; set; }
     }
 }
+
+
+
+

@@ -91,6 +91,18 @@ namespace mi_ferreteria.Data
                 using var conn = new NpgsqlConnection(_cs);
                 conn.Open();
                 EnsureSchema(conn);
+                // Validar que el stock no quede negativo
+                long actual = 0;
+                using (var get = new NpgsqlCommand("SELECT cantidad FROM producto_stock WHERE producto_id=@id", conn))
+                {
+                    get.Parameters.AddWithValue("@id", productoId);
+                    var obj = get.ExecuteScalar();
+                    if (obj != null && obj != DBNull.Value) actual = Convert.ToInt64(obj);
+                }
+                if (cantidad > actual)
+                {
+                    throw new InvalidOperationException($"No se puede egresar {cantidad}. Stock actual: {actual}.");
+                }
                 using (var up = new NpgsqlCommand(@"INSERT INTO producto_stock (producto_id, cantidad) VALUES (@id, @neg)
                         ON CONFLICT (producto_id) DO UPDATE SET cantidad = producto_stock.cantidad + EXCLUDED.cantidad", conn))
                 {

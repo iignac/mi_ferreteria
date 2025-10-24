@@ -43,6 +43,32 @@ namespace mi_ferreteria.Controllers
                 return Problem("Ocurrió un error al cargar la vista de stock.");
             }
         }
+
+        [HttpGet]
+        public IActionResult Buscar(string? q)
+        {
+            if (string.IsNullOrWhiteSpace(q))
+                return RedirectToAction(nameof(Index));
+            try
+            {
+                // Buscar productos parecidos por nombre/sku/etc. y elegir el primero
+                var matches = _prodRepo.SearchPageSorted(q, 1, 20, "nombre_asc").ToList();
+                if (matches == null || matches.Count == 0)
+                {
+                    // Volver al índice con mensaje para mostrar vía JS
+                    var enc = System.Net.WebUtility.UrlEncode($"No se encontraron productos para '{q}'.");
+                    return Redirect(Url.Action("Index", "Stock") + "?smsg=" + enc);
+                }
+                var prod = matches.First();
+                return RedirectToAction("Manage", "StockProducto", new { id = prod.Id });
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error en búsqueda de stock por producto: {Query}", q);
+                var enc = System.Net.WebUtility.UrlEncode("Ocurrió un error al buscar el producto.");
+                return Redirect(Url.Action("Index", "Stock") + "?smsg=" + enc);
+            }
+        }
     }
 }
 

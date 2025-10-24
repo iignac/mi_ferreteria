@@ -1,4 +1,4 @@
-ï»¿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using mi_ferreteria.Data;
 using mi_ferreteria.Models;
@@ -73,7 +73,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
-        // Utilidad: parsear lista de input de cÃ³digos de barra (solo cÃ³digo; tipo opcional si se desea ampliar)
+        // Utilidad: parsear lista de input de códigos de barra (solo código; tipo opcional si se desea ampliar)
         private static System.Collections.Generic.List<mi_ferreteria.Models.ProductoCodigoBarra> ParseBarcodes(System.Collections.Generic.IEnumerable<string>? codes)
         {
             var list = new System.Collections.Generic.List<mi_ferreteria.Models.ProductoCodigoBarra>();
@@ -108,6 +108,12 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
+                // Normalización básica
+                model.Sku = model.Sku?.Trim();
+                model.Nombre = model.Nombre?.Trim();
+                model.UbicacionCodigo = model.UbicacionCodigo?.Trim().ToUpperInvariant();
+                if (string.IsNullOrWhiteSpace(model.Sku)) ModelState.AddModelError("Sku", "El SKU es obligatorio.");
+                if (string.IsNullOrWhiteSpace(model.Nombre)) ModelState.AddModelError("Nombre", "El nombre es obligatorio.");
                 if (!ModelState.IsValid)
                 {
                     model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre }).ToList();
@@ -116,7 +122,16 @@ namespace mi_ferreteria.Controllers
                 }
                 if (_repo.SkuExists(model.Sku))
                 {
-                    ModelState.AddModelError("Sku", "El SKU ya existe.");
+                    ModelState.AddModelError("Sku", "El SKU ya existe en otro producto.");\r\n                    Response.StatusCode = 409;
+                    ViewBag.ReturnPage = page ?? 1;
+                    return View(model);
+                }
+                // Validar categorías existentes
+                var categoriasValidas = _catRepo.GetAll().Select(c => c.Id).ToHashSet();
+                if (model.CategoriaIds != null && model.CategoriaIds.Any(id2 => !categoriasValidas.Contains(id2)))
+                {
+                    ModelState.AddModelError("CategoriaIds", "Alguna categoría seleccionada no existe.");
+                    model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre }).ToList();
                     ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }
@@ -133,17 +148,17 @@ namespace mi_ferreteria.Controllers
                     UbicacionCodigo = model.UbicacionCodigo
                 };
                 _repo.Add(p);
-                // Guardar hasta 3 categorÃ­as seleccionadas
+                // Guardar hasta 3 categorías seleccionadas
                 var catIdsCreate = (model.CategoriaIds ?? new System.Collections.Generic.List<long>()).Distinct().Take(3);
                 _repo.ReplaceCategorias(p.Id, catIdsCreate);
-                // Parsear cÃ³digos de barra desde la lista
+                // Parsear códigos de barra desde la lista
                 var barcodes = ParseBarcodes(model.Barcodes);
                 // Validar unicidad global
                 foreach (var bc in barcodes)
                 {
                     if (_repo.BarcodeExists(bc.CodigoBarra))
                     {
-                        ModelState.AddModelError("CodigosBarra", $"El cÃ³digo de barra {bc.CodigoBarra} ya existe");
+                        ModelState.AddModelError("CodigosBarra", $"El código de barra {bc.CodigoBarra} ya existe");
                     }
                 }
                 if (!ModelState.IsValid)
@@ -153,12 +168,13 @@ namespace mi_ferreteria.Controllers
                     return View(model);
                 }
                 _repo.ReplaceBarcodes(p.Id, barcodes);
+                TempData["Success"] = $"Producto '{p.Nombre}' creado correctamente.";
                 return RedirectToAction("Index", new { page = page ?? 1 });
             }
             catch (System.Exception ex)
             {
                 _logger.LogError(ex, "Error al crear producto");
-                return Problem("OcurriÃ³ un error al crear el producto.");
+                return Problem("Ocurrió un error al crear el producto.");
             }
         }
 
@@ -179,7 +195,8 @@ namespace mi_ferreteria.Controllers
                     StockMinimo = p.StockMinimo,
                     Activo = p.Activo,
                     UbicacionPreferidaId = p.UbicacionPreferidaId,
-                    UbicacionCodigo = p.UbicacionCodigo
+                    UbicacionCodigo = p.UbicacionCodigo,
+                    OriginalHash = mi_ferreteria.Security.ConcurrencyToken.ComputeProductoHash(p, _repo.GetCategorias(p.Id))
                 };
                 model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = (model.CategoriaIds.Contains(c.Id)) }).ToList();
                 // Cargar barcodes existentes
@@ -190,8 +207,8 @@ namespace mi_ferreteria.Controllers
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Error cargando ediciÃ³n de producto {ProductoId}", id);
-                return Problem("OcurriÃ³ un error al cargar la ediciÃ³n del producto.");
+                _logger.LogError(ex, "Error cargando edición de producto {ProductoId}", id);
+                return Problem("Ocurrió un error al cargar la edición del producto.");
             }
         }
 
@@ -200,6 +217,17 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
+                model.Sku = model.Sku?.Trim();
+                model.Nombre = model.Nombre?.Trim();
+                model.UbicacionCodigo = model.UbicacionCodigo?.Trim().ToUpperInvariant();
+                if (!ModelState.IsValid)
+                {
+                    model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = (model.CategoriaIds.Contains(c.Id)) }).ToList();
+                    ViewBag.ReturnPage = page ?? 1;
+                    return View(model);
+                }
+                if (string.IsNullOrWhiteSpace(model.Sku)) { ModelState.AddModelError("Sku", "El SKU es obligatorio."); }
+                if (string.IsNullOrWhiteSpace(model.Nombre)) { ModelState.AddModelError("Nombre", "El nombre es obligatorio."); }
                 if (!ModelState.IsValid)
                 {
                     model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = (model.CategoriaIds.Contains(c.Id)) }).ToList();
@@ -208,7 +236,28 @@ namespace mi_ferreteria.Controllers
                 }
                 if (_repo.SkuExists(model.Sku, model.Id))
                 {
-                    ModelState.AddModelError("Sku", "El SKU ya existe en otro producto.");
+                    ModelState.AddModelError("Sku", "El SKU ya existe en otro producto.");\r\n                    Response.StatusCode = 409;
+                    ViewBag.ReturnPage = page ?? 1;
+                    return View(model);
+                }
+                // Concurrencia optimista
+                var actual = _repo.GetById(model.Id);
+                if (actual == null) return NotFound();
+                var hashActual = mi_ferreteria.Security.ConcurrencyToken.ComputeProductoHash(actual, _repo.GetCategorias(actual.Id));
+                if (!string.IsNullOrEmpty(model.OriginalHash) && !string.Equals(model.OriginalHash, hashActual, System.StringComparison.Ordinal))
+                {
+                    Response.StatusCode = 409;
+                    ModelState.AddModelError(string.Empty, "El producto fue modificado por otro proceso. Recarga la pA!gina.");
+                    model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = (model.CategoriaIds.Contains(c.Id)) }).ToList();
+                    ViewBag.ReturnPage = page ?? 1;
+                    return View(model);
+                }
+                // Validar categorías existentes
+                var categoriasValidas = _catRepo.GetAll().Select(c => c.Id).ToHashSet();
+                if (model.CategoriaIds != null && model.CategoriaIds.Any(id2 => !categoriasValidas.Contains(id2)))
+                {
+                    ModelState.AddModelError("CategoriaIds", "Alguna categoría seleccionada no existe.");
+                    model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = (model.CategoriaIds.Contains(c.Id)) }).ToList();
                     ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }
@@ -224,16 +273,16 @@ namespace mi_ferreteria.Controllers
                 p.UbicacionPreferidaId = model.UbicacionPreferidaId;
                 p.UbicacionCodigo = model.UbicacionCodigo;
                 _repo.Update(p);
-                // Guardar hasta 3 categorÃ­as seleccionadas
+                // Guardar hasta 3 categorías seleccionadas
                 var catIdsEdit = (model.CategoriaIds ?? new System.Collections.Generic.List<long>()).Distinct().Take(3);
                 _repo.ReplaceCategorias(p.Id, catIdsEdit);
-                // Validar y reemplazar cÃ³digos de barra
+                // Validar y reemplazar códigos de barra
                 var barcodes = ParseBarcodes(model.Barcodes);
                 foreach (var bc in barcodes)
                 {
                     if (_repo.BarcodeExists(bc.CodigoBarra, model.Id))
                     {
-                        ModelState.AddModelError("CodigosBarra", $"El cÃ³digo de barra {bc.CodigoBarra} ya existe en otro producto");
+                        ModelState.AddModelError("CodigosBarra", $"El código de barra {bc.CodigoBarra} ya existe en otro producto");
                     }
                 }
                 if (!ModelState.IsValid)
@@ -243,12 +292,13 @@ namespace mi_ferreteria.Controllers
                     return View(model);
                 }
                 _repo.ReplaceBarcodes(p.Id, barcodes);
+                TempData["Success"] = $"Producto '{p.Nombre}' actualizado correctamente.";
                 return RedirectToAction("Index", new { page = page ?? 1 });
             }
             catch (System.Exception ex)
             {
                 _logger.LogError(ex, "Error al actualizar producto {ProductoId}", model.Id);
-                return Problem("OcurriÃ³ un error al actualizar el producto.");
+                return Problem("Ocurrió un error al actualizar el producto.");
             }
         }
 
@@ -263,8 +313,8 @@ namespace mi_ferreteria.Controllers
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Error cargando eliminaciÃ³n de producto {ProductoId}", id);
-                return Problem("OcurriÃ³ un error al cargar la eliminaciÃ³n del producto.");
+                _logger.LogError(ex, "Error cargando eliminación de producto {ProductoId}", id);
+                return Problem("Ocurrió un error al cargar la eliminación del producto.");
             }
         }
 
@@ -293,7 +343,7 @@ namespace mi_ferreteria.Controllers
             catch (System.Exception ex)
             {
                 _logger.LogError(ex, "Error al cargar detalles de producto {ProductoId}", id);
-                return Problem("OcurriÃ³ un error al cargar los detalles del producto.");
+                return Problem("Ocurrió un error al cargar los detalles del producto.");
             }
         }
 
@@ -302,17 +352,21 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
+                var prod = _repo.GetById(id);
+                var nombre = prod?.Nombre ?? ("#" + id);
                 _repo.Delete(id);
+                TempData["Success"] = $"Producto '{nombre}' eliminado correctamente.";
                 return RedirectToAction("Index", new { page = page ?? 1 });
             }
             catch (System.Exception ex)
             {
                 _logger.LogError(ex, "Error al eliminar producto {ProductoId}", id);
-                return Problem("OcurriÃ³ un error al eliminar el producto.");
+                return Problem("Ocurrió un error al eliminar el producto.");
             }
         }
     }
 }
+
 
 
 

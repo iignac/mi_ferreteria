@@ -79,11 +79,17 @@ body {
   border-radius: .75rem;
   overflow: hidden;
   box-shadow: 0 .35rem 1rem rgba(0,0,0,.08);
+  width: 100%;
+  table-layout: auto; /* evita recortes de contenido (botones) */
 }
 .table-products thead th {
   background: linear-gradient(135deg, #3484f3, #053b8d);
   color: #fff;
   border-color: rgba(255,255,255,.2) !important;
+  font-weight: 600;
+  letter-spacing: .2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 .table-products thead th a {
   color: #fff !important; /* asegura encabezado y flecha en blanco */
@@ -100,6 +106,84 @@ body {
   background-color: rgba(13,110,253,.06);
 }
 .table-products tbody tr.clickable-row { cursor: pointer; }
+
+/* Tablas de gestión de stock: bordes redondeados, tipografía del header y centrado de Cantidad */
+.table-stock {
+  border-radius: .75rem;
+  overflow: hidden;
+  box-shadow: 0 .35rem 1rem rgba(0,0,0,.08);
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  table-layout: auto;
+}
+.table-stock thead th {
+  background: none !important;
+  background-color: transparent !important;
+  color: var(--bs-emphasis-color);
+  border-color: var(--bs-border-color) !important;
+  font-weight: 600;
+  letter-spacing: .2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-align: center;
+}
+.table-stock th,
+.table-stock td { border-radius: 0 !important; }
+
+/* Líneas divisorias verticales entre columnas (stock) */
+.table-stock > :not(caption) > * > th:not(:last-child),
+.table-stock > :not(caption) > * > td:not(:last-child) {
+  border-right: 1px solid var(--bs-border-color);
+}
+.table-stock tbody tr { transition: background-color .15s ease; }
+.table-stock tbody tr:hover { background-color: rgba(13,110,253,.06); }
+
+/* Alineación específica para la columna Cantidad en tablas de stock
+   (se maneja principalmente desde el marcado con .text-center en ese TD/TH). */
+.table-stock th.text-center,
+.table-stock td.text-center { text-align: center !important; }
+
+/* Ajustes para tablas actuales en vista Stock/Index sin tocar el marcado */
+.card .table { border-radius: .75rem; overflow: hidden; box-shadow: 0 .35rem 1rem rgba(0,0,0,.08); border-collapse: separate; border-spacing: 0; width:100%; table-layout: auto; }
+.card .table thead th { background: none !important; background-color: transparent !important; color: var(--bs-emphasis-color); border-color: var(--bs-border-color) !important; font-weight:600; letter-spacing:.2px; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-align:center; }
+.card .table th,
+.card .table td { border-radius: 0 !important; }
+
+/* Líneas divisorias verticales entre columnas en tablas dentro de cards (Stock/Index) */
+.card .table > :not(caption) > * > th:not(:last-child),
+.card .table > :not(caption) > * > td:not(:last-child) {
+  border-right: 1px solid var(--bs-border-color);
+}
+.card .table tbody tr:hover { background-color: rgba(13,110,253,.06); }
+.card .table td.text-success.fw-semibold,
+.card .table td.text-danger.fw-semibold { text-align: center !important; }
+
+/* Vista StockProducto/Manage: estilos y centrado de columna Cantidad */
+.stock-manage .table { border-radius: .75rem; overflow: hidden; box-shadow: 0 .35rem 1rem rgba(0,0,0,.08); border-collapse: separate; border-spacing: 0; width:100%; table-layout: auto; }
+
+/* Acción: asegura accesibilidad a botones de acciones */
+/* Columna Acciones: header a la izquierda, celdas centradas y ancho ajustado al contenido */
+.table-products thead th:last-child,
+.table-products thead th.text-end:last-child { text-align: left !important; }
+.table-products tbody td:last-child,
+.table-products tbody td.text-end:last-child {
+  text-align: center !important;
+  white-space: nowrap;
+  width: 1%; /* shrink-to-fit contenido (botones) */
+}
+.table-products tbody td:last-child .btn { margin: 0 .35rem .35rem .35rem; }
+.stock-manage .table thead th { background: none !important; background-color: transparent !important; color: var(--bs-emphasis-color); border-color: var(--bs-border-color) !important; font-weight:600; letter-spacing:.2px; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-align:center; }
+.stock-manage .table th,
+.stock-manage .table td { border-radius: 0 !important; }
+
+/* Evita duplicar borde si no se usa .table-bordered */
+.stock-manage .table:not(.table-bordered) > :not(caption) > * > th:not(:last-child),
+.stock-manage .table:not(.table-bordered) > :not(caption) > * > td:not(:last-child) {
+  border-right: 1px solid var(--bs-border-color);
+}
+.stock-manage thead th:nth-child(2),
+.stock-manage tbody td:nth-child(2) { text-align: center; }
 
 /* Borde negro en letras de encabezados de tablas */
 .table thead th,
@@ -218,4 +302,12 @@ body {
 .app-navbar .nav-link:focus-visible {
   outline: 3px solid rgba(255,255,255,.5);
   outline-offset: 2px;
+}
+
+/* Barra de búsqueda en Stock: anclada bajo el header */
+.stock-search-bar {
+  background: #fff;
+  border-bottom: 1px solid var(--bs-border-color);
+  padding: .5rem .25rem;
+  z-index: 1010;
 }
