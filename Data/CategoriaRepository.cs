@@ -166,6 +166,57 @@ namespace mi_ferreteria.Data
                 throw;
             }
         }
+
+        public int CountAll()
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_cs);
+                conn.Open();
+                using (var set = new NpgsqlCommand("SET search_path TO venta, public", conn)) { set.ExecuteNonQuery(); }
+                using var cmd = new NpgsqlCommand("SELECT COUNT(1) FROM categoria", conn);
+                var res = cmd.ExecuteScalar();
+                return res is long l ? (int)l : Convert.ToInt32(res);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error contando categorías");
+                throw;
+            }
+        }
+
+        public IEnumerable<Categoria> GetPage(int page, int pageSize)
+        {
+            var list = new List<Categoria>();
+            try
+            {
+                if (page < 1) page = 1;
+                int offset = (page - 1) * pageSize;
+                using var conn = new NpgsqlConnection(_cs);
+                conn.Open();
+                using (var set = new NpgsqlCommand("SET search_path TO venta, public", conn)) { set.ExecuteNonQuery(); }
+                using var cmd = new NpgsqlCommand("SELECT id, nombre, id_padre, descripcion FROM categoria ORDER BY nombre LIMIT @limit OFFSET @offset", conn);
+                cmd.Parameters.AddWithValue("@limit", pageSize);
+                cmd.Parameters.AddWithValue("@offset", offset);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                {
+                    list.Add(new Categoria
+                    {
+                        Id = r.GetInt64(0),
+                        Nombre = r.GetString(1),
+                        IdPadre = r.IsDBNull(2) ? (long?)null : r.GetInt64(2),
+                        Descripcion = r.IsDBNull(3) ? null : r.GetString(3)
+                    });
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al listar página de categorías");
+                throw;
+            }
+        }
     }
 }
 

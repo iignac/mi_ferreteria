@@ -11,6 +11,9 @@ namespace mi_ferreteria.Data
         void Update(Categoria categoria);
         void Delete(long id);
         bool NombreExists(string nombre, long? excludeId = null);
+        // Paginación
+        int CountAll();
+        IEnumerable<Categoria> GetPage(int page, int pageSize);
     }
 }
 

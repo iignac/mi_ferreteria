@@ -17,11 +17,21 @@ namespace mi_ferreteria.Controllers
             _logger = logger;
         }
 
-        public IActionResult Index()
+        public IActionResult Index(int page = 1)
         {
             try
             {
-                var list = _repo.GetAll();
+                const int pageSize = 10;
+                if (page < 1) page = 1;
+                var total = _repo.CountAll();
+                var totalPages = (int)System.Math.Ceiling(total / (double)pageSize);
+                if (totalPages == 0) totalPages = 1;
+                if (page > totalPages) page = totalPages;
+                var list = _repo.GetPage(page, pageSize).ToList();
+                ViewBag.Page = page;
+                ViewBag.PageSize = pageSize;
+                ViewBag.TotalCount = total;
+                ViewBag.TotalPages = totalPages;
                 return View(list);
             }
             catch (System.Exception ex)

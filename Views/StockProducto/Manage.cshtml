@@ -71,6 +71,31 @@
                 </tbody>
             </table>
         </div>
+        @{
+            int ingresosPage = ViewBag.IngresosPage is int ? (int)ViewBag.IngresosPage : 1;
+            int ingresosTotalPages = ViewBag.IngresosTotalPages is int ? (int)ViewBag.IngresosTotalPages : 1;
+        }
+        @if (ingresosTotalPages > 1)
+        {
+            var start = System.Math.Max(1, ingresosPage - 2);
+            var end = System.Math.Min(ingresosTotalPages, ingresosPage + 2);
+            <nav aria-label="Paginación ingresos" class="mt-2">
+                <ul class="pagination pagination-sm justify-content-center">
+                    <li class="page-item @(ingresosPage <= 1 ? "disabled" : "")">
+                        <a class="page-link" asp-action="Manage" asp-route-id="@p.Id" asp-route-ingresosPage="@(ingresosPage - 1)" asp-route-egresosPage="@ViewBag.EgresosPage">Anterior</a>
+                    </li>
+                    @for (var i = start; i <= end; i++)
+                    {
+                        <li class="page-item @(i == ingresosPage ? "active" : "")">
+                            <a class="page-link" asp-action="Manage" asp-route-id="@p.Id" asp-route-ingresosPage="@i" asp-route-egresosPage="@ViewBag.EgresosPage">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(ingresosPage >= ingresosTotalPages ? "disabled" : "")">
+                        <a class="page-link" asp-action="Manage" asp-route-id="@p.Id" asp-route-ingresosPage="@(ingresosPage + 1)" asp-route-egresosPage="@ViewBag.EgresosPage">Siguiente</a>
+                    </li>
+                </ul>
+            </nav>
+        }
     </div>
     <div class="col-12 col-lg-6">
         <h5>Historial de egresos</h5>
@@ -105,5 +130,30 @@
                 </tbody>
             </table>
         </div>
+        @{
+            int egresosPage = ViewBag.EgresosPage is int ? (int)ViewBag.EgresosPage : 1;
+            int egresosTotalPages = ViewBag.EgresosTotalPages is int ? (int)ViewBag.EgresosTotalPages : 1;
+        }
+        @if (egresosTotalPages > 1)
+        {
+            var start = System.Math.Max(1, egresosPage - 2);
+            var end = System.Math.Min(egresosTotalPages, egresosPage + 2);
+            <nav aria-label="Paginación egresos" class="mt-2">
+                <ul class="pagination pagination-sm justify-content-center">
+                    <li class="page-item @(egresosPage <= 1 ? "disabled" : "")">
+                        <a class="page-link" asp-action="Manage" asp-route-id="@p.Id" asp-route-ingresosPage="@ViewBag.IngresosPage" asp-route-egresosPage="@(egresosPage - 1)">Anterior</a>
+                    </li>
+                    @for (var i = start; i <= end; i++)
+                    {
+                        <li class="page-item @(i == egresosPage ? "active" : "")">
+                            <a class="page-link" asp-action="Manage" asp-route-id="@p.Id" asp-route-ingresosPage="@ViewBag.IngresosPage" asp-route-egresosPage="@i">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(egresosPage >= egresosTotalPages ? "disabled" : "")">
+                        <a class="page-link" asp-action="Manage" asp-route-id="@p.Id" asp-route-ingresosPage="@ViewBag.IngresosPage" asp-route-egresosPage="@(egresosPage + 1)">Siguiente</a>
+                    </li>
+                </ul>
+            </nav>
+        }
     </div>
 </div>
