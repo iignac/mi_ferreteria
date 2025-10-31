@@ -311,3 +311,10 @@ body {
   padding: .5rem .25rem;
   z-index: 1010;
 }
+
+.badge {
+  font-weight: 600;
+  font-size: .875rem;
+  border-radius: .6rem;
+  padding: .4rem .75rem;
+}

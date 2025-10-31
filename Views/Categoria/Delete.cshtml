@@ -1,9 +1,9 @@
 @model mi_ferreteria.Models.Categoria
 @{
-    ViewData["Title"] = "Eliminar Categoría";
+    ViewData["Title"] = "Desactivar CategorA-a";
 }
-<h2>Eliminar Categoría</h2>
-<div class="alert alert-warning">¿Seguro que deseas eliminar esta categoría? Esta acción no se puede deshacer.</div>
+<h2>Desactivar CategorA-a</h2>
+<div class="alert alert-warning">A�Seguro que deseas desactivar esta categorA-a? PodrA?s activarla nuevamente mA?s adelante.</div>
 <form asp-action="Delete" method="post">
     <input type="hidden" name="id" value="@Model.Id" />
     <div class="mb-2">
@@ -11,7 +11,7 @@
         <input class="form-control" value="@Model.Nombre" readonly />
     </div>
     <div class="d-flex justify-content-center gap-2 mt-3">
-        <button type="submit" class="btn btn-danger px-4">Eliminar</button>
+        <button type="submit" class="btn btn-danger px-4">Desactivar</button>
         <a asp-action="Index" class="btn btn-outline-secondary px-4">Volver</a>
     </div>
 </form>

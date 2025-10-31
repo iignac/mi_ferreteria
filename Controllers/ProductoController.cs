@@ -21,7 +21,7 @@ namespace mi_ferreteria.Controllers
             _stockRepo = stockRepo;
             _logger = logger;
         }
-
+        
         public IActionResult Index(string? q = null, string? sort = null, int page = 1)
         {
             try
@@ -366,12 +366,6 @@ namespace mi_ferreteria.Controllers
                 return Problem("Ocurrió un error al eliminar el producto.");
             }
         }
+
     }
 }
-
-
-
-
-
-
-

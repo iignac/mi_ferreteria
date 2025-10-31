@@ -2,7 +2,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Agrega los servicios al contenedor.
 builder.Services.AddControllersWithViews();
-builder.Services.AddMemoryCache();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddTransient<mi_ferreteria.Data.IUsuarioRepository, mi_ferreteria.Data.UsuarioRepository>();
@@ -44,3 +43,4 @@ app.MapControllerRoute(
 
 
 app.Run();
+
