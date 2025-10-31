@@ -55,7 +55,7 @@ namespace mi_ferreteria.Data
             }
         }
 
-        public void Ingresar(long productoId, long cantidad, string? motivo = null)
+        public void Ingresar(long productoId, long cantidad, string motivo)
         {
             try
             {
@@ -73,7 +73,7 @@ namespace mi_ferreteria.Data
                 {
                     mov.Parameters.AddWithValue("@id", productoId);
                     mov.Parameters.AddWithValue("@cant", cantidad);
-                    mov.Parameters.AddWithValue("@mot", (object?)motivo ?? DBNull.Value);
+                    mov.Parameters.AddWithValue("@mot", motivo);
                     mov.ExecuteNonQuery();
                 }
             }
@@ -84,7 +84,7 @@ namespace mi_ferreteria.Data
             }
         }
 
-        public void Egresar(long productoId, long cantidad, string? motivo = null)
+        public void Egresar(long productoId, long cantidad, string motivo)
         {
             try
             {
@@ -114,7 +114,7 @@ namespace mi_ferreteria.Data
                 {
                     mov.Parameters.AddWithValue("@id", productoId);
                     mov.Parameters.AddWithValue("@cant", cantidad);
-                    mov.Parameters.AddWithValue("@mot", (object?)motivo ?? DBNull.Value);
+                    mov.Parameters.AddWithValue("@mot", motivo);
                     mov.ExecuteNonQuery();
                 }
             }
@@ -249,6 +249,63 @@ namespace mi_ferreteria.Data
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener página de movimientos de stock {ProductoId}", productoId);
+                throw;
+            }
+        }
+
+        public int CountMovimientosGlobal(string? tipo = null)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_cs);
+                conn.Open();
+                EnsureSchema(conn);
+                var sql = "SELECT COUNT(1) FROM producto_stock_mov" + (string.IsNullOrWhiteSpace(tipo) ? "" : " WHERE tipo=@tipo");
+                using var cmd = new NpgsqlCommand(sql, conn);
+                if (!string.IsNullOrWhiteSpace(tipo)) cmd.Parameters.AddWithValue("@tipo", tipo);
+                var res = cmd.ExecuteScalar();
+                return res is long l ? (int)l : Convert.ToInt32(res);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error contando movimientos globales de stock (tipo={Tipo})", tipo);
+                throw;
+            }
+        }
+
+        public System.Collections.Generic.IEnumerable<mi_ferreteria.Models.StockMovimiento> GetMovimientosGlobalPage(string? tipo, int page, int pageSize)
+        {
+            var list = new System.Collections.Generic.List<mi_ferreteria.Models.StockMovimiento>();
+            try
+            {
+                if (page < 1) page = 1;
+                int offset = (page - 1) * pageSize;
+                using var conn = new NpgsqlConnection(_cs);
+                conn.Open();
+                EnsureSchema(conn);
+                var sql = "SELECT id, fecha, producto_id, tipo, cantidad, motivo FROM producto_stock_mov" + (string.IsNullOrWhiteSpace(tipo) ? "" : " WHERE tipo=@tipo") + " ORDER BY fecha DESC, id DESC LIMIT @limit OFFSET @offset";
+                using var cmd = new NpgsqlCommand(sql, conn);
+                if (!string.IsNullOrWhiteSpace(tipo)) cmd.Parameters.AddWithValue("@tipo", tipo);
+                cmd.Parameters.AddWithValue("@limit", pageSize);
+                cmd.Parameters.AddWithValue("@offset", offset);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                {
+                    list.Add(new mi_ferreteria.Models.StockMovimiento
+                    {
+                        Id = r.GetInt64(0),
+                        Fecha = r.GetFieldValue<DateTimeOffset>(1),
+                        ProductoId = r.GetInt64(2),
+                        Tipo = r.GetString(3),
+                        Cantidad = r.GetInt64(4),
+                        Motivo = r.IsDBNull(5) ? null : r.GetString(5)
+                    });
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo pagina de movimientos globales de stock (tipo={Tipo})", tipo);
                 throw;
             }
         }

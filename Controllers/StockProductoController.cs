@@ -56,8 +56,13 @@ namespace mi_ferreteria.Controllers
                     TempData["StockError"] = "La cantidad debe ser mayor a 0.";
                     return RedirectToAction("Manage", new { id });
                 }
-                if (tipo == "INGRESO") _stockRepo.Ingresar(id, cantidad, motivo);
-                else if (tipo == "EGRESO") _stockRepo.Egresar(id, cantidad, motivo);
+                if (string.IsNullOrWhiteSpace(motivo))
+                {
+                    TempData["StockError"] = "El motivo es obligatorio.";
+                    return RedirectToAction("Manage", new { id });
+                }
+                if (tipo == "INGRESO") _stockRepo.Ingresar(id, cantidad, motivo!);
+                else if (tipo == "EGRESO") _stockRepo.Egresar(id, cantidad, motivo!);
                 else TempData["StockError"] = "Tipo inválido";
                 return RedirectToAction("Manage", new { id });
             }

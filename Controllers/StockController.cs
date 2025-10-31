@@ -17,13 +17,26 @@ namespace mi_ferreteria.Controllers
             _prodRepo = prodRepo;
         }
 
-        public IActionResult Index()
+        public IActionResult Index(int pIn = 1, int pEg = 1)
         {
             try
             {
                 _logger.LogInformation("Cargando vista de Stock");
-                var ultIngresos = _stockRepo.GetUltimosMovimientos("INGRESO", 10);
-                var ultEgresos = _stockRepo.GetUltimosMovimientos("EGRESO", 10);
+                const int pageSize = 5;
+                // Ingresos
+                var totalIn = _stockRepo.CountMovimientosGlobal("INGRESO");
+                var totalPagesIn = (int)System.Math.Ceiling(totalIn / (double)pageSize);
+                if (totalPagesIn == 0) totalPagesIn = 1;
+                if (pIn < 1) pIn = 1;
+                if (pIn > totalPagesIn) pIn = totalPagesIn;
+                var ultIngresos = _stockRepo.GetMovimientosGlobalPage("INGRESO", pIn, pageSize).ToList();
+                // Egresos
+                var totalEg = _stockRepo.CountMovimientosGlobal("EGRESO");
+                var totalPagesEg = (int)System.Math.Ceiling(totalEg / (double)pageSize);
+                if (totalPagesEg == 0) totalPagesEg = 1;
+                if (pEg < 1) pEg = 1;
+                if (pEg > totalPagesEg) pEg = totalPagesEg;
+                var ultEgresos = _stockRepo.GetMovimientosGlobalPage("EGRESO", pEg, pageSize).ToList();
                 // Construir diccionario de nombres de productos
                 var ids = ultIngresos.Select(x => x.ProductoId).Concat(ultEgresos.Select(x => x.ProductoId)).Distinct().ToList();
                 var names = new System.Collections.Generic.Dictionary<long, string>();
@@ -35,6 +48,15 @@ namespace mi_ferreteria.Controllers
                 ViewBag.UltimosIngresos = ultIngresos;
                 ViewBag.UltimosEgresos = ultEgresos;
                 ViewBag.ProductNames = names;
+                // Paging info for each table
+                ViewBag.IngresosPage = pIn;
+                ViewBag.IngresosPageSize = pageSize;
+                ViewBag.IngresosTotalCount = totalIn;
+                ViewBag.IngresosTotalPages = totalPagesIn;
+                ViewBag.EgresosPage = pEg;
+                ViewBag.EgresosPageSize = pageSize;
+                ViewBag.EgresosTotalCount = totalEg;
+                ViewBag.EgresosTotalPages = totalPagesEg;
                 return View();
             }
             catch (System.Exception ex)

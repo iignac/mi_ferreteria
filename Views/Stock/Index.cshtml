@@ -1,16 +1,22 @@
-@using mi_ferreteria.Models
+ï»¿@using mi_ferreteria.Models
 @{
-    ViewData["Title"] = "Gestión de Stock";
+    ViewData["Title"] = "Gestion de Stock";
     var ingresos = ViewBag.UltimosIngresos as IEnumerable<StockMovimiento> ?? Enumerable.Empty<StockMovimiento>();
     var egresos = ViewBag.UltimosEgresos as IEnumerable<StockMovimiento> ?? Enumerable.Empty<StockMovimiento>();
     var prodNames = ViewBag.ProductNames as System.Collections.Generic.IDictionary<long,string> ?? new System.Collections.Generic.Dictionary<long,string>();
+    int inPage = ViewBag.IngresosPage is int ip ? ip : 1;
+    int inTotal = ViewBag.IngresosTotalCount is int it ? it : ingresos.Count();
+    int inPages = ViewBag.IngresosTotalPages is int ipg ? ipg : 1;
+    int egPage = ViewBag.EgresosPage is int ep ? ep : 1;
+    int egTotal = ViewBag.EgresosTotalCount is int et ? et : egresos.Count();
+    int egPages = ViewBag.EgresosTotalPages is int epg ? epg : 1;
 }
-<h2 class="mb-3">Gestión de Stock</h2>
+<h2 class="mb-3">Gestion de Stock</h2>
 
 <div class="row g-4">
   <div class="col-12 col-lg-6">
     <div class="card h-100">
-      <div class="card-header bg-success text-white">Últimos Ingresos</div>
+      <div class="card-header bg-success text-white">Ultimos Ingresos</div>
       <div class="card-body p-0">
         @if (!ingresos.Any())
         {
@@ -36,13 +42,29 @@
                 </tbody>
               </table>
             </div>
+            <nav aria-label="Paginacion ingresos" class="p-2">
+              <ul class="pagination pagination-sm justify-content-center mb-0">
+                <li class="page-item @(inPage <= 1 ? "disabled" : "")">
+                  <a class="page-link" asp-action="Index" asp-route-pIn="@(inPage-1)" asp-route-pEg="@egPage">Anterior</a>
+                </li>
+                @for (var i = 1; i <= inPages; i++)
+                {
+                    <li class="page-item @(i == inPage ? "active" : "")">
+                      <a class="page-link" asp-action="Index" asp-route-pIn="@i" asp-route-pEg="@egPage">@i</a>
+                    </li>
+                }
+                <li class="page-item @(inPage >= inPages ? "disabled" : "")">
+                  <a class="page-link" asp-action="Index" asp-route-pIn="@(inPage+1)" asp-route-pEg="@egPage">Siguiente</a>
+                </li>
+              </ul>
+            </nav>
         }
       </div>
     </div>
   </div>
   <div class="col-12 col-lg-6">
     <div class="card h-100">
-      <div class="card-header bg-danger text-white">Últimos Egresos</div>
+      <div class="card-header bg-danger text-white">Ultimos Egresos</div>
       <div class="card-body p-0">
         @if (!egresos.Any())
         {
@@ -68,10 +90,24 @@
                 </tbody>
               </table>
             </div>
+            <nav aria-label="Paginacion egresos" class="p-2">
+              <ul class="pagination pagination-sm justify-content-center mb-0">
+                <li class="page-item @(egPage <= 1 ? "disabled" : "")">
+                  <a class="page-link" asp-action="Index" asp-route-pIn="@inPage" asp-route-pEg="@(egPage-1)">Anterior</a>
+                </li>
+                @for (var i = 1; i <= egPages; i++)
+                {
+                    <li class="page-item @(i == egPage ? "active" : "")">
+                      <a class="page-link" asp-action="Index" asp-route-pIn="@inPage" asp-route-pEg="@i">@i</a>
+                    </li>
+                }
+                <li class="page-item @(egPage >= egPages ? "disabled" : "")">
+                  <a class="page-link" asp-action="Index" asp-route-pIn="@inPage" asp-route-pEg="@(egPage+1)">Siguiente</a>
+                </li>
+              </ul>
+            </nav>
         }
       </div>
     </div>
   </div>
 </div>
-
-
