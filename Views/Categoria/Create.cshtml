@@ -4,10 +4,10 @@
 }
 <h2>Crear Categoría</h2>
 <div class="text-danger">@Html.ValidationSummary()</div>
-<form asp-action="Create" method="post">
+<form asp-action="Create" method="post" data-unsaved-warning="true">
     <div class="mb-3">
         <label class="form-label">Nombre</label>
-        <input name="Nombre" class="form-control" value="@Model?.Nombre" />
+        <input name="Nombre" class="form-control" value="@Model?.Nombre" required />
         <span class="text-danger">@Html.ValidationMessage("Nombre")</span>
     </div>
     <div class="mb-3">

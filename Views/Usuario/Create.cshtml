@@ -4,7 +4,7 @@
 }
 <h2>Crear Usuario</h2>
 <div class="text-danger">@Html.ValidationSummary()</div>
-<form asp-action="Create" method="post">
+<form asp-action="Create" method="post" data-unsaved-warning="true">
     <div class="mb-3">
         <label class="form-label">Nombre</label>
         <input asp-for="Nombre" class="form-control" />
@@ -49,7 +49,7 @@
     </div>
     <div class="d-flex justify-content-center gap-2 mt-4">
         <button type="submit" class="btn btn-primary px-5">Guardar</button>
-        <a asp-action="Index" class="btn btn-outline-secondary px-5 btn-cancel-leave">Volver</a>
+        <a asp-action="Index" class="btn btn-outline-secondary px-5">Volver</a>
     </div>
 </form>
 

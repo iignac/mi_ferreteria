@@ -52,4 +52,38 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   } catch(e) { /* noop */ }
+
+  // Advertencia de cambios sin guardar (genérica para formularios)
+  try {
+    var forms = Array.prototype.slice.call(document.querySelectorAll('form[data-unsaved-warning="true"]'));
+    if (forms.length) {
+      var dirty = false;
+      var markDirty = function(){ dirty = true; };
+      var clearDirty = function(){ dirty = false; };
+      forms.forEach(function(f){
+        f.addEventListener('input', markDirty, true);
+        f.addEventListener('change', markDirty, true);
+        f.addEventListener('submit', clearDirty);
+      });
+      window.addEventListener('beforeunload', function(e){
+        if (!dirty) return;
+        e.preventDefault();
+        e.returnValue = '';
+      });
+      document.addEventListener('click', function(e){
+        var a = e.target.closest('a[href]');
+        if (!a) return;
+        if (a.hasAttribute('download')) return; // descargas
+        var href = a.getAttribute('href');
+        if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+        if (a.dataset.skipUnsavedWarning === 'true') return;
+        if (!dirty) return;
+        var ok = confirm('Hay cambios sin guardar. Si sales, se perderán. ¿Deseas salir igualmente?');
+        if (!ok) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }, true);
+    }
+  } catch(e) { /* noop */ }
 });
