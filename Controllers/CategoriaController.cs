@@ -67,19 +67,27 @@ namespace mi_ferreteria.Controllers
 
         public IActionResult Create()
         {
-            ViewBag.Categorias = _repo.GetAll();
+            ViewBag.Categorias = _repo.GetAll().Where(c => c.Activo);
             return View(new Categoria());
         }
 
         [HttpPost]
         public IActionResult Create([Required] string Nombre, long? IdPadre, string? Descripcion)
         {
-            ViewBag.Categorias = _repo.GetAll();
+            ViewBag.Categorias = _repo.GetAll().Where(c => c.Activo);
             try
             {
                 if (string.IsNullOrWhiteSpace(Nombre))
                 {
                     ModelState.AddModelError("Nombre", "El nombre es obligatorio");
+                }
+                if (IdPadre.HasValue)
+                {
+                    var padre = _repo.GetById(IdPadre.Value);
+                    if (padre == null || !padre.Activo)
+                    {
+                        ModelState.AddModelError("IdPadre", "La categoría padre no existe o está inactiva");
+                    }
                 }
                 if (!ModelState.IsValid)
                 {
@@ -108,19 +116,31 @@ namespace mi_ferreteria.Controllers
         {
             var c = _repo.GetById(id);
             if (c == null) return NotFound();
-            ViewBag.Categorias = _repo.GetAll().Where(x => x.Id != id);
+            ViewBag.Categorias = _repo.GetAll().Where(x => x.Id != id && x.Activo);
             return View(c);
         }
 
         [HttpPost]
         public IActionResult Edit(long Id, [Required] string Nombre, long? IdPadre, string? Descripcion, bool Activo = true)
         {
-            ViewBag.Categorias = _repo.GetAll().Where(x => x.Id != Id);
+            ViewBag.Categorias = _repo.GetAll().Where(x => x.Id != Id && x.Activo);
             try
             {
                 if (string.IsNullOrWhiteSpace(Nombre))
                 {
                     ModelState.AddModelError("Nombre", "El nombre es obligatorio");
+                }
+                if (IdPadre.HasValue)
+                {
+                    if (IdPadre.Value == Id)
+                    {
+                        ModelState.AddModelError("IdPadre", "La categoría no puede ser su propia padre");
+                    }
+                    var padre = _repo.GetById(IdPadre.Value);
+                    if (padre == null || !padre.Activo)
+                    {
+                        ModelState.AddModelError("IdPadre", "La categoría padre no existe o está inactiva");
+                    }
                 }
                 if (!ModelState.IsValid)
                 {
