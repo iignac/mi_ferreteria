@@ -1,0 +1,72 @@
+@model mi_ferreteria.ViewModels.VentaComprobanteViewModel
+
+@{
+    Layout = "_Layout";
+    var venta = Model.Venta;
+    var factura = Model.Factura;
+}
+
+<div class="container mt-3">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <h3>Comprobante de Pago</h3>
+            <p class="mb-0">Fecha: @venta.Fecha.LocalDateTime.ToString("dd/MM/yyyy HH:mm")</p>
+            <p class="mb-0">Venta N°: @venta.Id</p>
+            @if (factura != null)
+            {
+                <p class="mb-0">@factura.TipoComprobante N° @factura.PuntoVenta.ToString("0000")-@factura.Numero.ToString("00000000")</p>
+            }
+        </div>
+        <div class="text-end">
+            <p class="mb-0"><strong>Cliente:</strong> @(factura?.ClienteNombre ?? "CONSUMIDOR FINAL")</p>
+            @if (!string.IsNullOrWhiteSpace(factura?.ClienteDocumento))
+            {
+                <p class="mb-0"><strong>Documento:</strong> @factura.ClienteDocumento</p>
+            }
+            @if (!string.IsNullOrWhiteSpace(factura?.ClienteDireccion))
+            {
+                <p class="mb-0"><strong>Dirección:</strong> @factura.ClienteDireccion</p>
+            }
+            <p class="mb-0"><strong>Forma de pago:</strong> @(venta.TipoPago == "CUENTA_CORRIENTE" ? "Cuenta corriente" : "Contado")</p>
+        </div>
+    </div>
+
+    <hr />
+
+    <h5>Detalle de productos</h5>
+    <table class="table table-sm table-bordered">
+        <thead class="table-light">
+            <tr>
+                <th>Producto</th>
+                <th class="text-end">Cantidad</th>
+                <th class="text-end">P. Unitario</th>
+                <th class="text-end">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var d in Model.Detalles)
+        {
+            <tr>
+                <td>@d.Descripcion</td>
+                <td class="text-end">@d.Cantidad</td>
+                <td class="text-end">@d.PrecioUnitario.ToString("C")</td>
+                <td class="text-end">@d.Subtotal.ToString("C")</td>
+            </tr>
+        }
+        </tbody>
+        <tfoot>
+            <tr>
+                <th colspan="3" class="text-end">TOTAL</th>
+                <th class="text-end">@venta.Total.ToString("C")</th>
+            </tr>
+        </tfoot>
+    </table>
+
+    <p><strong>Total en letras:</strong> @venta.TotalEnLetras</p>
+
+    <div class="mt-3 d-print-none">
+        <a asp-action="Index" class="btn btn-secondary">Volver</a>
+        <button class="btn btn-primary" onclick="window.print()">Imprimir / Guardar PDF</button>
+    </div>
+</div>
+

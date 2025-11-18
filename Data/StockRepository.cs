@@ -17,22 +17,8 @@ namespace mi_ferreteria.Data
 
         private void EnsureSchema(NpgsqlConnection conn)
         {
-            using (var set = new NpgsqlCommand("SET search_path TO venta, public", conn)) { set.ExecuteNonQuery(); }
-            using var cmd = new NpgsqlCommand(@"
-                CREATE TABLE IF NOT EXISTS producto_stock (
-                    producto_id BIGINT PRIMARY KEY REFERENCES producto(id) ON DELETE CASCADE,
-                    cantidad BIGINT NOT NULL DEFAULT 0
-                );
-                CREATE TABLE IF NOT EXISTS producto_stock_mov (
-                    id BIGSERIAL PRIMARY KEY,
-                    fecha TIMESTAMPTZ NOT NULL DEFAULT now(),
-                    producto_id BIGINT NOT NULL REFERENCES producto(id) ON DELETE CASCADE,
-                    tipo TEXT NOT NULL,
-                    cantidad BIGINT NOT NULL,
-                    motivo TEXT
-                );
-            ", conn);
-            cmd.ExecuteNonQuery();
+            using var set = new NpgsqlCommand("SET search_path TO venta, public", conn);
+            set.ExecuteNonQuery();
         }
 
         public long GetStock(long productoId)
@@ -269,6 +255,36 @@ namespace mi_ferreteria.Data
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error contando movimientos globales de stock (tipo={Tipo})", tipo);
+                throw;
+            }
+        }
+
+        public System.Collections.Generic.IDictionary<long, long> GetStocks(System.Collections.Generic.IEnumerable<long> productoIds)
+        {
+            var result = new System.Collections.Generic.Dictionary<long, long>();
+            var ids = productoIds?.Distinct().ToArray();
+            if (ids == null || ids.Length == 0) return result;
+
+            try
+            {
+                using var conn = new NpgsqlConnection(_cs);
+                conn.Open();
+                EnsureSchema(conn);
+                using var cmd = new NpgsqlCommand("SELECT producto_id, cantidad FROM producto_stock WHERE producto_id = ANY(@ids)", conn);
+                cmd.Parameters.AddWithValue("@ids", ids);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    var id = reader.GetInt64(0);
+                    var cant = reader.GetInt64(1);
+                    result[id] = cant;
+                }
+                // productos sin fila en producto_stock quedan con 0 (no se agregan)
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener stocks para múltiples productos");
                 throw;
             }
         }

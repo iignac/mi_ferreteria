@@ -10,6 +10,8 @@ builder.Services.AddTransient<mi_ferreteria.Data.IPermisoRepository, mi_ferreter
 builder.Services.AddTransient<mi_ferreteria.Data.IProductoRepository, mi_ferreteria.Data.ProductoRepository>();
 builder.Services.AddTransient<mi_ferreteria.Data.ICategoriaRepository, mi_ferreteria.Data.CategoriaRepository>();
 builder.Services.AddTransient<mi_ferreteria.Data.IStockRepository, mi_ferreteria.Data.StockRepository>();
+builder.Services.AddTransient<mi_ferreteria.Data.IClienteRepository, mi_ferreteria.Data.ClienteRepository>();
+builder.Services.AddTransient<mi_ferreteria.Data.IVentaRepository, mi_ferreteria.Data.VentaRepository>();
 
 var app = builder.Build();
 

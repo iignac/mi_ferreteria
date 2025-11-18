@@ -1,0 +1,69 @@
+@model IEnumerable<Venta>
+
+@{
+    ViewData["Title"] = "Historial de Ventas";
+    int page = ViewBag.Page is int p ? p : 1;
+    int totalPages = ViewBag.TotalPages is int tp ? tp : 1;
+}
+
+<h2>Historial de Ventas</h2>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">No hay ventas registradas.</div>
+}
+else
+{
+    <div class="table-responsive mb-3">
+        <table class="table table-striped table-hover table-bordered align-middle">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Fecha</th>
+                    <th>Tipo cliente</th>
+                    <th>Tipo pago</th>
+                    <th class="text-end">Total</th>
+                    <th>Estado</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var v in Model)
+            {
+                <tr>
+                    <td>@v.Id</td>
+                    <td>@v.Fecha.LocalDateTime.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>@(v.TipoCliente == "CONSUMIDOR_FINAL" ? "Consumidor final" : "Cliente registrado")</td>
+                    <td>@(v.TipoPago == "CUENTA_CORRIENTE" ? "Cuenta corriente" : "Contado")</td>
+                    <td class="text-end">@v.Total.ToString("C")</td>
+                    <td>@v.Estado</td>
+                    <td class="text-center">
+                        <a asp-action="Comprobante" asp-route-id="@v.Id" class="btn btn-sm btn-primary">
+                            Ver comprobante
+                        </a>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <nav aria-label="Paginacion de ventas" class="mb-3">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(page <= 1 ? "disabled" : "")">
+                <a class="page-link"
+                   asp-action="Historial"
+                   asp-route-page="@(page - 1)">Anterior</a>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link">Pagina @(page) de @totalPages</span>
+            </li>
+            <li class="page-item @(page >= totalPages ? "disabled" : "")">
+                <a class="page-link"
+                   asp-action="Historial"
+                   asp-route-page="@(page + 1)">Siguiente</a>
+            </li>
+        </ul>
+    </nav>
+}
+

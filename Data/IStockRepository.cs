@@ -3,6 +3,7 @@ namespace mi_ferreteria.Data
     public interface IStockRepository
     {
         long GetStock(long productoId);
+        System.Collections.Generic.IDictionary<long, long> GetStocks(System.Collections.Generic.IEnumerable<long> productoIds);
         void Ingresar(long productoId, long cantidad, string motivo);
         void Egresar(long productoId, long cantidad, string motivo);
         System.Collections.Generic.IEnumerable<mi_ferreteria.Models.StockMovimiento> GetMovimientos(long productoId, string? tipo = null, int top = 100);

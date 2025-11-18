@@ -1,5 +1,358 @@
+@model mi_ferreteria.ViewModels.VentaCrearViewModel
+@using mi_ferreteria.Models
 @{
-    ViewData["Title"] = "Gestión de Ventas";
+    ViewData["Title"] = "GestiA3n de Ventas";
+
+    string q = ViewBag.Query as string ?? string.Empty;
+    var productos = ViewBag.Productos as IEnumerable<Producto> ?? Enumerable.Empty<Producto>();
+    var stocks = ViewBag.Stocks as System.Collections.Generic.IDictionary<long, long>;
+    int page = ViewBag.Page is int pageValue ? pageValue : 1;
+    int totalPages = ViewBag.TotalPages is int tp ? tp : 1;
 }
-<h2>Gestión de Ventas</h2>
-<p>Aquí irá la gestión de ventas.</p>
+
+<div class="d-flex justify-content-between align-items-center">
+    <h2 class="mb-0">GestiA3n de Ventas</h2>
+    <a asp-action="Historial" class="btn btn-outline-secondary">
+        Ver historial de ventas
+    </a>
+</div>
+
+@if (TempData["VentaOk"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["VentaOk"]
+    </div>
+}
+
+<!-- BUSCADOR Y TABLA DE PRODUCTOS (10 por pA�gina) -->
+<h4>Productos</h4>
+<form method="get" asp-action="Index" class="mb-3">
+    <div class="input-group">
+        <input type="search"
+               name="q"
+               value="@q"
+               class="form-control"
+               placeholder="Buscar por cualquier dato (SKU, nombre, descripciA3n, categorA-a, ubicaciA3n, cA3digo de barra)"
+               aria-label="Buscar productos" />
+        <input type="hidden" name="page" value="1" />
+        <button class="btn btn-primary" type="submit">Buscar</button>
+        @if (!string.IsNullOrWhiteSpace(q))
+        {
+            <a class="btn btn-outline-secondary" asp-action="Index">Limpiar</a>
+        }
+    </div>
+</form>
+
+@if (!productos.Any())
+{
+    <div class="alert alert-info">No hay productos para mostrar.</div>
+}
+else
+{
+    <div class="table-responsive mb-4">
+        <table class="table table-striped table-hover table-bordered align-middle">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>SKU</th>
+                    <th>Nombre</th>
+                    <th>Precio</th>
+                    <th>Stock</th>
+                    <th class="text-end">Agregar</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var p in productos)
+            {
+                var stock = stocks != null && stocks.TryGetValue(p.Id, out var s) ? s : 0;
+                <tr>
+                    <td>@p.Id</td>
+                    <td>@p.Sku</td>
+                    <td>@p.Nombre</td>
+                    <td>$ @p.PrecioVentaActual</td>
+                    <td>@stock</td>
+                    <td class="text-end">
+                        <button type="button"
+                                class="btn btn-sm btn-success"
+                                data-id="@p.Id"
+                                data-sku="@p.Sku"
+                                data-nombre="@p.Nombre"
+                                data-stock="@stock"
+                                onclick="agregarAlCarritoDesdeBoton(this)">
+                            Agregar
+                        </button>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <nav aria-label="PaginaciA3n de productos" class="mb-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(page <= 1 ? "disabled" : "")">
+                <a class="page-link"
+                   asp-action="Index"
+                   asp-route-q="@q"
+                   asp-route-page="@(page - 1)">Anterior</a>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link">PA�gina @(page) de @totalPages</span>
+            </li>
+            <li class="page-item @(page >= totalPages ? "disabled" : "")">
+                <a class="page-link"
+                   asp-action="Index"
+                   asp-route-q="@q"
+                   asp-route-page="@(page + 1)">Siguiente</a>
+            </li>
+        </ul>
+    </nav>
+}
+
+@using (Html.BeginForm("Crear", "Venta", FormMethod.Post))
+{
+    @Html.AntiForgeryToken()
+
+    <!-- CARRITO -->
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="mb-0">Carrito de productos</h4>
+            <p class="text-muted mb-0">La venta debe tener al menos un producto.</p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="limpiarCarrito()">Limpiar carrito</button>
+        </div>
+    </div>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Stock disp.</th>
+                <th>Permitir sin stock</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="carritoBody">
+        @for (var i = 0; i < Model.Lineas.Count; i++)
+        {
+            <tr>
+                <td>
+                    <input type="hidden" name="Lineas[@i].ProductoId" value="@Model.Lineas[i].ProductoId" />
+                    @Model.Lineas[i].ProductoNombre
+                </td>
+                <td>
+                    @Html.TextBoxFor(m => m.Lineas[i].Cantidad, new { @class = "form-control", type = "number", step = "1", min = "1" })
+                </td>
+                <td>
+                    @Model.Lineas[i].StockDisponible
+                </td>
+                <td class="text-center">
+                    @Html.CheckBoxFor(m => m.Lineas[i].PermitirVentaSinStock)
+                </td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove();">Quitar</button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+
+    <hr />
+
+    <!-- DATOS DEL CLIENTE Y PAGO -->
+    <h4>Datos del cliente y forma de pago</h4>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group mb-2">
+                <label asp-for="TipoCliente"></label>
+                <select asp-for="TipoCliente" class="form-control">
+                    <option value="CONSUMIDOR_FINAL">Consumidor final</option>
+                    <option value="REGISTRADO">Cliente registrado</option>
+                </select>
+            </div>
+            <div class="form-group mb-2">
+                <label asp-for="ClienteId"></label>
+                <select asp-for="ClienteId" class="form-control" asp-items="Model.Clientes">
+                    <option value="">-- Consumidor final --</option>
+                </select>
+                <span asp-validation-for="ClienteId" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group mb-2">
+                <label asp-for="TipoPago"></label>
+                <select asp-for="TipoPago" class="form-control">
+                    <option value="CONTADO">Contado</option>
+                    <option value="CUENTA_CORRIENTE">Cuenta corriente</option>
+                </select>
+            </div>
+            <div class="form-group form-check mb-2">
+                <input asp-for="IgnorarLimiteCredito" class="form-check-input" />
+                <label asp-for="IgnorarLimiteCredito" class="form-check-label">
+                    Ignorar lA-mite de crAcdito (requiere autorizaciA3n del dueA�o)
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-danger mt-2">
+        @Html.ValidationSummary()
+    </div>
+
+    <div class="text-center mt-4">
+        <button type="submit" class="btn btn-lg btn-primary">Confirmar venta</button>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        const STORAGE_KEY = 'ventaCarrito';
+        let carritoIndex = 0;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const carrito = obtenerCarrito();
+            carrito.forEach(item => agregarFilaCarrito(item));
+        });
+
+        function obtenerCarrito() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return [];
+            try {
+                const arr = JSON.parse(raw);
+                if (!Array.isArray(arr)) return [];
+                return arr;
+            } catch {
+                return [];
+            }
+        }
+
+        function guardarCarrito(carrito) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(carrito));
+        }
+
+        function agregarAlCarritoDesdeBoton(btn) {
+            const id = parseInt(btn.getAttribute('data-id') || '0', 10);
+            if (!id) return;
+            const sku = btn.getAttribute('data-sku') || '';
+            const nombre = btn.getAttribute('data-nombre') || '';
+            const stock = parseInt(btn.getAttribute('data-stock') || '0', 10);
+
+            const carrito = obtenerCarrito();
+            const existente = carrito.find(x => x.productoId === id);
+            if (existente) {
+                existente.cantidad = (existente.cantidad || 0) + 1;
+                guardarCarrito(carrito);
+                // Actualizar cantidad in-line
+                const row = document.querySelector(`#carritoBody tr[data-producto-id="${id}"]`);
+                if (row) {
+                    const inputCant = row.querySelector('input[name$=".Cantidad"]');
+                    if (inputCant) inputCant.value = existente.cantidad;
+                }
+            } else {
+                const item = {
+                    productoId: id,
+                    sku: sku,
+                    nombre: nombre,
+                    stock: isNaN(stock) ? 0 : stock,
+                    cantidad: 1,
+                    permitirSinStock: false
+                };
+                carrito.push(item);
+                guardarCarrito(carrito);
+                agregarFilaCarrito(item);
+            }
+        }
+
+        function agregarFilaCarrito(item) {
+            const tbody = document.getElementById('carritoBody');
+            const index = carritoIndex++;
+
+            const tr = document.createElement('tr');
+            tr.setAttribute('data-producto-id', item.productoId);
+
+            const tdProd = document.createElement('td');
+            const hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = `Lineas[${index}].ProductoId`;
+            hidden.value = item.productoId;
+            tdProd.appendChild(hidden);
+            tdProd.appendChild(document.createTextNode((item.sku ? item.sku + ' - ' : '') + item.nombre));
+            tr.appendChild(tdProd);
+
+            const tdCant = document.createElement('td');
+            const inputCant = document.createElement('input');
+            inputCant.type = 'number';
+            inputCant.className = 'form-control';
+            inputCant.name = `Lineas[${index}].Cantidad`;
+            inputCant.value = (item.cantidad && item.cantidad > 0) ? item.cantidad : 1;
+            inputCant.min = '1';
+            inputCant.step = '1';
+            inputCant.addEventListener('change', () => {
+                let val = parseInt(inputCant.value || '0', 10);
+                if (isNaN(val) || val < 1) {
+                    val = 1;
+                    inputCant.value = '1';
+                }
+                const carrito = obtenerCarrito();
+                const existente = carrito.find(x => x.productoId === item.productoId);
+                if (existente) {
+                    existente.cantidad = val;
+                    guardarCarrito(carrito);
+                }
+            });
+            tdCant.appendChild(inputCant);
+            tr.appendChild(tdCant);
+
+            const tdStock = document.createElement('td');
+            tdStock.textContent = (item.stock ?? 0);
+            tr.appendChild(tdStock);
+
+            const tdPerm = document.createElement('td');
+            tdPerm.className = 'text-center';
+            const chk = document.createElement('input');
+            chk.type = 'checkbox';
+            chk.name = `Lineas[${index}].PermitirVentaSinStock`;
+            chk.checked = !!item.permitirSinStock;
+            chk.addEventListener('change', () => {
+                const carrito = obtenerCarrito();
+                const existente = carrito.find(x => x.productoId === item.productoId);
+                if (existente) {
+                    existente.permitirSinStock = chk.checked;
+                    guardarCarrito(carrito);
+                }
+            });
+            tdPerm.appendChild(chk);
+            tr.appendChild(tdPerm);
+
+            const tdQuitar = document.createElement('td');
+            const btnQuitar = document.createElement('button');
+            btnQuitar.type = 'button';
+            btnQuitar.className = 'btn btn-sm btn-danger';
+            btnQuitar.textContent = 'Quitar';
+            btnQuitar.addEventListener('click', () => quitarProductoDelCarrito(item.productoId, tr));
+            tdQuitar.appendChild(btnQuitar);
+            tr.appendChild(tdQuitar);
+
+            tbody.appendChild(tr);
+        }
+
+        function quitarProductoDelCarrito(productoId, row) {
+            const carrito = obtenerCarrito().filter(x => x.productoId !== productoId);
+            guardarCarrito(carrito);
+            row.remove();
+        }
+
+        function limpiarCarrito() {
+            if (!confirm('¿EstAcs seguro de que querAcs limpiar todo el carrito?')) {
+                return;
+            }
+            const tbody = document.getElementById('carritoBody');
+            tbody.innerHTML = '';
+            carritoIndex = 0;
+            localStorage.removeItem(STORAGE_KEY);
+        }
+    </script>
+}
+

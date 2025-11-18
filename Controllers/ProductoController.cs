@@ -54,7 +54,7 @@ namespace mi_ferreteria.Controllers
                     if (page > totalPages) page = totalPages;
                     productos = _repo.GetPageSorted(page, pageSize, sort).ToList();
                 }
-                var stocks = productos.ToDictionary(p => p.Id, p => _stockRepo.GetStock(p.Id));
+                var stocks = _stockRepo.GetStocks(productos.Select(p => p.Id));
                 ViewBag.Stocks = stocks;
                 ViewBag.Page = page;
                 ViewBag.PageSize = pageSize;
