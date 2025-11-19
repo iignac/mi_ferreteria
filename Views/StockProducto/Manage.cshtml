@@ -38,33 +38,38 @@
 
 <hr class="my-4" />
 <div class="row g-4 stock-manage">
-    <div class="col-12 col-lg-6">
-        <h5>Historial de ingresos</h5>
+    <div class="col-12">
+        <h5>Historial de movimientos</h5>
         <div class="table-responsive">
-            <table class="table table-striped table-hover table-bordered align-middle">
+            <table class="table table-striped table-hover table-bordered align-middle text-center">
                 <thead>
                     <tr>
-                        <th>Fecha</th>
+                        <th class="text-center">Fecha</th>
+                        <th class="text-center">Tipo</th>
                         <th class="text-center">Cantidad</th>
-                        <th>Motivo</th>
+                        <th class="text-center">Motivo</th>
                     </tr>
                 </thead>
                 <tbody>
                     @{
-                        var ingresos = ViewBag.Ingresos as IEnumerable<mi_ferreteria.Models.StockMovimiento>;
+                        var movimientos = ViewBag.Movimientos as IEnumerable<mi_ferreteria.Models.StockMovimiento>;
                     }
-                    @if (ingresos == null || !ingresos.Any())
+                    @if (movimientos == null || !movimientos.Any())
                     {
-                        <tr><td colspan="3" class="text-center text-muted">Sin movimientos</td></tr>
+                        <tr><td colspan="4" class="text-center text-muted">Sin movimientos</td></tr>
                     }
                     else
                     {
-                        foreach (var m in ingresos)
+                        foreach (var m in movimientos)
                         {
+                            var esIngreso = string.Equals(m.Tipo, "INGRESO", System.StringComparison.OrdinalIgnoreCase);
+                            var claseCant = esIngreso ? "text-success" : "text-danger";
+                            var signo = esIngreso ? "+" : "-";
                             <tr>
-                                <td>@m.Fecha.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</td>
-                                <td class="text-success text-center">+@m.Cantidad</td>
-                                <td>@(string.IsNullOrWhiteSpace(m.Motivo) ? "-" : m.Motivo)</td>
+                                <td class="text-center">@m.Fecha.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td class="text-center">@(esIngreso ? "Ingreso" : "Egreso")</td>
+                                <td class="text-center @claseCant">@signo@m.Cantidad</td>
+                                <td class="text-center">@(string.IsNullOrWhiteSpace(m.Motivo) ? "-" : m.Motivo)</td>
                             </tr>
                         }
                     }
@@ -72,85 +77,26 @@
             </table>
         </div>
         @{
-            int ingresosPage = ViewBag.IngresosPage is int ? (int)ViewBag.IngresosPage : 1;
-            int ingresosTotalPages = ViewBag.IngresosTotalPages is int ? (int)ViewBag.IngresosTotalPages : 1;
+            int page = ViewBag.Page is int ? (int)ViewBag.Page : 1;
+            int totalPages = ViewBag.TotalPages is int ? (int)ViewBag.TotalPages : 1;
         }
-        @if (ingresosTotalPages > 1)
+        @if (totalPages > 1)
         {
-            var start = System.Math.Max(1, ingresosPage - 2);
-            var end = System.Math.Min(ingresosTotalPages, ingresosPage + 2);
-            <nav aria-label="Paginación ingresos" class="mt-2">
+            var start = System.Math.Max(1, page - 2);
+            var end = System.Math.Min(totalPages, page + 2);
+            <nav aria-label="Paginacion movimientos" class="mt-2">
                 <ul class="pagination pagination-sm justify-content-center">
-                    <li class="page-item @(ingresosPage <= 1 ? "disabled" : "")">
-                        <a class="page-link" asp-action="Manage" asp-route-id="@p.Id" asp-route-ingresosPage="@(ingresosPage - 1)" asp-route-egresosPage="@ViewBag.EgresosPage">Anterior</a>
+                    <li class="page-item @(page <= 1 ? "disabled" : "")">
+                        <a class="page-link" asp-action="Manage" asp-route-id="@p.Id" asp-route-page="@(page - 1)">Anterior</a>
                     </li>
                     @for (var i = start; i <= end; i++)
                     {
-                        <li class="page-item @(i == ingresosPage ? "active" : "")">
-                            <a class="page-link" asp-action="Manage" asp-route-id="@p.Id" asp-route-ingresosPage="@i" asp-route-egresosPage="@ViewBag.EgresosPage">@i</a>
+                        <li class="page-item @(i == page ? "active" : "")">
+                            <a class="page-link" asp-action="Manage" asp-route-id="@p.Id" asp-route-page="@i">@i</a>
                         </li>
                     }
-                    <li class="page-item @(ingresosPage >= ingresosTotalPages ? "disabled" : "")">
-                        <a class="page-link" asp-action="Manage" asp-route-id="@p.Id" asp-route-ingresosPage="@(ingresosPage + 1)" asp-route-egresosPage="@ViewBag.EgresosPage">Siguiente</a>
-                    </li>
-                </ul>
-            </nav>
-        }
-    </div>
-    <div class="col-12 col-lg-6">
-        <h5>Historial de egresos</h5>
-        <div class="table-responsive">
-            <table class="table table-striped table-hover table-bordered align-middle">
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th class="text-center">Cantidad</th>
-                        <th>Motivo</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @{
-                        var egresos = ViewBag.Egresos as IEnumerable<mi_ferreteria.Models.StockMovimiento>;
-                    }
-                    @if (egresos == null || !egresos.Any())
-                    {
-                        <tr><td colspan="3" class="text-center text-muted">Sin movimientos</td></tr>
-                    }
-                    else
-                    {
-                        foreach (var m in egresos)
-                        {
-                            <tr>
-                                <td>@m.Fecha.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</td>
-                                <td class="text-danger text-center">-@m.Cantidad</td>
-                                <td>@(string.IsNullOrWhiteSpace(m.Motivo) ? "-" : m.Motivo)</td>
-                            </tr>
-                        }
-                    }
-                </tbody>
-            </table>
-        </div>
-        @{
-            int egresosPage = ViewBag.EgresosPage is int ? (int)ViewBag.EgresosPage : 1;
-            int egresosTotalPages = ViewBag.EgresosTotalPages is int ? (int)ViewBag.EgresosTotalPages : 1;
-        }
-        @if (egresosTotalPages > 1)
-        {
-            var start = System.Math.Max(1, egresosPage - 2);
-            var end = System.Math.Min(egresosTotalPages, egresosPage + 2);
-            <nav aria-label="Paginación egresos" class="mt-2">
-                <ul class="pagination pagination-sm justify-content-center">
-                    <li class="page-item @(egresosPage <= 1 ? "disabled" : "")">
-                        <a class="page-link" asp-action="Manage" asp-route-id="@p.Id" asp-route-ingresosPage="@ViewBag.IngresosPage" asp-route-egresosPage="@(egresosPage - 1)">Anterior</a>
-                    </li>
-                    @for (var i = start; i <= end; i++)
-                    {
-                        <li class="page-item @(i == egresosPage ? "active" : "")">
-                            <a class="page-link" asp-action="Manage" asp-route-id="@p.Id" asp-route-ingresosPage="@ViewBag.IngresosPage" asp-route-egresosPage="@i">@i</a>
-                        </li>
-                    }
-                    <li class="page-item @(egresosPage >= egresosTotalPages ? "disabled" : "")">
-                        <a class="page-link" asp-action="Manage" asp-route-id="@p.Id" asp-route-ingresosPage="@ViewBag.IngresosPage" asp-route-egresosPage="@(egresosPage + 1)">Siguiente</a>
+                    <li class="page-item @(page >= totalPages ? "disabled" : "")">
+                        <a class="page-link" asp-action="Manage" asp-route-id="@p.Id" asp-route-page="@(page + 1)">Siguiente</a>
                     </li>
                 </ul>
             </nav>

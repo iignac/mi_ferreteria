@@ -12,6 +12,9 @@ namespace mi_ferreteria.Data
 
         decimal GetSaldoCuentaCorriente(long clienteId);
         void RegistrarDeuda(long clienteId, long ventaId, decimal monto, int usuarioId, string descripcion);
+
+        // Listado paginado y bA-squeda
+        int Count(string? q = null);
+        IEnumerable<Cliente> GetPage(string? q, int page, int pageSize);
     }
 }
-

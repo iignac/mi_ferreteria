@@ -18,31 +18,22 @@ namespace mi_ferreteria.Controllers
         }
 
         [HttpGet]
-        public IActionResult Manage(long id, int ingresosPage = 1, int egresosPage = 1)
+        public IActionResult Manage(long id, int page = 1)
         {
             var p = _prodRepo.GetById(id);
             if (p == null) return NotFound();
             ViewBag.Producto = p;
             ViewBag.Stock = _stockRepo.GetStock(id);
             const int pageSize = 5;
-            if (ingresosPage < 1) ingresosPage = 1;
-            if (egresosPage < 1) egresosPage = 1;
-            var ingresosTotal = _stockRepo.CountMovimientos(id, "INGRESO");
-            var ingresosPages = (int)System.Math.Ceiling(ingresosTotal / (double)pageSize);
-            if (ingresosPages == 0) ingresosPages = 1;
-            if (ingresosPage > ingresosPages) ingresosPage = ingresosPages;
+            if (page < 1) page = 1;
+            var total = _stockRepo.CountMovimientos(id, null);
+            var totalPages = (int)System.Math.Ceiling(total / (double)pageSize);
+            if (totalPages == 0) totalPages = 1;
+            if (page > totalPages) page = totalPages;
 
-            var egresosTotal = _stockRepo.CountMovimientos(id, "EGRESO");
-            var egresosPages = (int)System.Math.Ceiling(egresosTotal / (double)pageSize);
-            if (egresosPages == 0) egresosPages = 1;
-            if (egresosPage > egresosPages) egresosPage = egresosPages;
-
-            ViewBag.Ingresos = _stockRepo.GetMovimientosPage(id, "INGRESO", ingresosPage, pageSize);
-            ViewBag.Egresos = _stockRepo.GetMovimientosPage(id, "EGRESO", egresosPage, pageSize);
-            ViewBag.IngresosPage = ingresosPage;
-            ViewBag.IngresosTotalPages = ingresosPages;
-            ViewBag.EgresosPage = egresosPage;
-            ViewBag.EgresosTotalPages = egresosPages;
+            ViewBag.Movimientos = _stockRepo.GetMovimientosPage(id, null, page, pageSize);
+            ViewBag.Page = page;
+            ViewBag.TotalPages = totalPages;
             return View();
         }
 

@@ -1,0 +1,137 @@
+@model mi_ferreteria.Models.Cliente
+@removeTagHelper Microsoft.AspNetCore.Mvc.TagHelpers.OptionTagHelper, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    ViewData["Title"] = "Editar cliente";
+    string tipoDocSel = Context.Request.HasFormContentType ? (string)Context.Request.Form["TipoDocumento"] : Model.TipoDocumento;
+    string numeroDocVal = Context.Request.HasFormContentType ? (string)Context.Request.Form["NumeroDocumento"] : Model.NumeroDocumento;
+    string dirCalle = Context.Request.HasFormContentType ? (string)Context.Request.Form["DireccionCalle"] : string.Empty;
+    string dirNumero = Context.Request.HasFormContentType ? (string)Context.Request.Form["DireccionNumero"] : string.Empty;
+    string dirLocalidad = Context.Request.HasFormContentType ? (string)Context.Request.Form["DireccionLocalidad"] : string.Empty;
+    string telefonoVal = Context.Request.HasFormContentType ? (string)Context.Request.Form["Telefono"] : Model.Telefono;
+    string emailVal = Context.Request.HasFormContentType ? (string)Context.Request.Form["Email"] : Model.Email;
+    string tipoClienteSel = Context.Request.HasFormContentType ? (string)Context.Request.Form["TipoCliente"] : (Model.TipoCliente ?? "CONSUMIDOR_FINAL");
+    string ccHabSel = Context.Request.HasFormContentType ? (string)Context.Request.Form["CuentaCorrienteHabilitada"] : (Model.CuentaCorrienteHabilitada ? "true" : "false");
+    string activoSel = Context.Request.HasFormContentType ? (string)Context.Request.Form["Activo"] : (Model.Activo ? "true" : "false");
+    string limiteCreditoVal = Context.Request.HasFormContentType ? (string)Context.Request.Form["LimiteCredito"] : Model.LimiteCredito.ToString("0.##");
+    string optTipoDocVacio = string.IsNullOrWhiteSpace(tipoDocSel) ? "selected=\"selected\"" : string.Empty;
+    string optTipoDocDni = tipoDocSel == "DNI" ? "selected=\"selected\"" : string.Empty;
+    string optTipoDocCuit = tipoDocSel == "CUIT" ? "selected=\"selected\"" : string.Empty;
+    string optTipoCliCf = tipoClienteSel == "CONSUMIDOR_FINAL" ? "selected=\"selected\"" : string.Empty;
+    string optTipoCliCc = tipoClienteSel == "CUENTA_CORRIENTE" ? "selected=\"selected\"" : string.Empty;
+    string optCcSi = ccHabSel == "true" ? "selected=\"selected\"" : string.Empty;
+    string optCcNo = ccHabSel != "true" ? "selected=\"selected\"" : string.Empty;
+    string optActSi = activoSel == "true" ? "selected=\"selected\"" : string.Empty;
+    string optActNo = activoSel != "true" ? "selected=\"selected\"" : string.Empty;
+}
+
+<h2>Editar cliente</h2>
+
+<form asp-action="Edit" method="post" class="mt-3">
+    <input type="hidden" name="Id" value="@Model.Id" />
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label">Nombre / Razón social</label>
+            <input class="form-control" name="Nombre" value="@(Context.Request.HasFormContentType ? (string)Context.Request.Form["Nombre"] : Model.Nombre)" />
+            <span asp-validation-for="Nombre" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Apellido (si corresponde)</label>
+            <input class="form-control" name="Apellido" value="@(Context.Request.HasFormContentType ? (string)Context.Request.Form["Apellido"] : Model.Apellido)" />
+            <span asp-validation-for="Apellido" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label">Tipo documento</label>
+            <select class="form-select" name="TipoDocumento">
+                <option value="" @optTipoDocVacio>(Seleccione)</option>
+                <option value="DNI" @optTipoDocDni>DNI</option>
+                <option value="CUIT" @optTipoDocCuit>CUIT</option>
+            </select>
+            <span asp-validation-for="TipoDocumento" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Nro documento / CUIT</label>
+            <input class="form-control" name="NumeroDocumento" value="@numeroDocVal" />
+            <span asp-validation-for="NumeroDocumento" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Calle</label>
+            <input class="form-control" name="DireccionCalle" value="@dirCalle" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Número</label>
+            <input class="form-control" name="DireccionNumero" value="@dirNumero" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Localidad</label>
+            <input class="form-control" name="DireccionLocalidad" value="@dirLocalidad" />
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Teléfono</label>
+            <input class="form-control" name="Telefono" value="@telefonoVal" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Email</label>
+            <input class="form-control" type="email" name="Email" value="@emailVal" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Tipo de cliente</label>
+            <select class="form-select" name="TipoCliente">
+                <option value="CONSUMIDOR_FINAL" @optTipoCliCf>Consumidor final</option>
+                <option value="CUENTA_CORRIENTE" @optTipoCliCc>Cuenta corriente</option>
+            </select>
+            <span asp-validation-for="TipoCliente" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label">Habilitar cuenta corriente</label>
+            <select class="form-select" name="CuentaCorrienteHabilitada">
+                <option value="true" @optCcSi>Sí</option>
+                <option value="false" @optCcNo>No</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Límite de crédito</label>
+            <input class="form-control" type="number" step="0.01" name="LimiteCredito" value="@limiteCreditoVal" />
+            <span asp-validation-for="LimiteCredito" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label">Estado</label>
+            <select class="form-select" name="Activo">
+                <option value="true" @optActSi>Activo</option>
+                <option value="false" @optActNo>Inactivo</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="mt-4 d-flex justify-content-center gap-2">
+        <button type="submit" class="btn btn-primary px-4">Guardar</button>
+        <a asp-action="Index" class="btn btn-outline-secondary px-4">Volver</a>
+    </div>
+    <p class="text-muted small mt-2 text-center">
+        Si vuelve atrás o cierra la página sin guardar, se perderán los datos ingresados.
+    </p>
+</form>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        (function () {
+            let isDirty = false;
+            const form = document.querySelector('form');
+            if (!form) return;
+            form.addEventListener('change', function () { isDirty = true; });
+            form.addEventListener('submit', function () { isDirty = false; });
+            window.addEventListener('beforeunload', function (e) {
+                if (!isDirty) return;
+                e.preventDefault();
+                e.returnValue = 'Tiene cambios sin guardar. Si vuelve atrás, se perderán.';
+            });
+        })();
+    </script>
+}

@@ -1,7 +1,7 @@
 @model mi_ferreteria.ViewModels.VentaCrearViewModel
 @using mi_ferreteria.Models
 @{
-    ViewData["Title"] = "GestiA3n de Ventas";
+    ViewData["Title"] = "Gestión de Ventas";
 
     string q = ViewBag.Query as string ?? string.Empty;
     var productos = ViewBag.Productos as IEnumerable<Producto> ?? Enumerable.Empty<Producto>();
@@ -11,7 +11,7 @@
 }
 
 <div class="d-flex justify-content-between align-items-center">
-    <h2 class="mb-0">GestiA3n de Ventas</h2>
+    <h2 class="mb-0">Gestión de Ventas</h2>
     <a asp-action="Historial" class="btn btn-outline-secondary">
         Ver historial de ventas
     </a>
@@ -24,7 +24,7 @@
     </div>
 }
 
-<!-- BUSCADOR Y TABLA DE PRODUCTOS (10 por pA�gina) -->
+<!-- BUSCADOR Y TABLA DE PRODUCTOS (10 por página) -->
 <h4>Productos</h4>
 <form method="get" asp-action="Index" class="mb-3">
     <div class="input-group">
@@ -32,7 +32,7 @@
                name="q"
                value="@q"
                class="form-control"
-               placeholder="Buscar por cualquier dato (SKU, nombre, descripciA3n, categorA-a, ubicaciA3n, cA3digo de barra)"
+               placeholder="Buscar por cualquier dato (SKU, nombre, descripción, categoría, ubicación, código de barra)"
                aria-label="Buscar productos" />
         <input type="hidden" name="page" value="1" />
         <button class="btn btn-primary" type="submit">Buscar</button>
@@ -97,7 +97,7 @@ else
                    asp-route-page="@(page - 1)">Anterior</a>
             </li>
             <li class="page-item disabled">
-                <span class="page-link">PA�gina @(page) de @totalPages</span>
+                <span class="page-link">Página @(page) de @totalPages</span>
             </li>
             <li class="page-item @(page >= totalPages ? "disabled" : "")">
                 <a class="page-link"
@@ -191,7 +191,7 @@ else
             <div class="form-group form-check mb-2">
                 <input asp-for="IgnorarLimiteCredito" class="form-check-input" />
                 <label asp-for="IgnorarLimiteCredito" class="form-check-label">
-                    Ignorar lA-mite de crAcdito (requiere autorizaciA3n del dueA�o)
+                    Ignorar límite de crédito (requiere autorización del dueño)
                 </label>
             </div>
         </div>
@@ -314,6 +314,7 @@ else
             const chk = document.createElement('input');
             chk.type = 'checkbox';
             chk.name = `Lineas[${index}].PermitirVentaSinStock`;
+            chk.value = 'true';
             chk.checked = !!item.permitirSinStock;
             chk.addEventListener('change', () => {
                 const carrito = obtenerCarrito();
@@ -355,4 +356,3 @@ else
         }
     </script>
 }
-

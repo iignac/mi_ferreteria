@@ -33,18 +33,18 @@
         }
       </div>
       <div class="col-md-3"><strong>Precio:</strong> $ @Model.PrecioVentaActual</div>
-      <div class="col-md-3"><strong>Stock mÃ­nimo:</strong> @Model.StockMinimo</div>
-      <div class="col-md-3"><strong>Activo:</strong> @(Model.Activo ? "SÃ­" : "No")</div>
-      <div class="col-md-3"><strong>UbicaciÃ³n cÃ³digo:</strong> @(string.IsNullOrWhiteSpace(Model.UbicacionCodigo) ? "-" : Model.UbicacionCodigo)</div>
+      <div class="col-md-3"><strong>Stock mínimo:</strong> @Model.StockMinimo</div>
+      <div class="col-md-3"><strong>Activo:</strong> @(Model.Activo ? "Sí" : "No")</div>
+      <div class="col-md-3"><strong>Ubicación código:</strong> @(string.IsNullOrWhiteSpace(Model.UbicacionCodigo) ? "-" : Model.UbicacionCodigo)</div>
       <div class="col-md-3"><strong>Stock actual:</strong> @stock</div>
       <div class="col-md-3"><strong>Creado:</strong> @Model.CreatedAt.LocalDateTime</div>
       <div class="col-md-3"><strong>Actualizado:</strong> @Model.UpdatedAt.LocalDateTime</div>
     </div>
     <hr/>
-    <h5>CÃ³digos de barra</h5>
+    <h5>Códigos de barra</h5>
     @if (!barcodes.Any())
     {
-        <div class="text-muted">Sin cÃ³digos de barra.</div>
+        <div class="text-muted">Sin códigos de barra.</div>
     }
     else
     {

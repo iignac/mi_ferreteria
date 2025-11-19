@@ -1,0 +1,30 @@
+@model mi_ferreteria.Models.Cliente
+@{
+    ViewData["Title"] = "Baja de cliente";
+}
+
+<h2>Baja de cliente</h2>
+
+<div class="alert alert-warning mt-3">
+    ¿Está seguro que desea dar de baja al siguiente cliente?
+</div>
+
+<dl class="row">
+    <dt class="col-sm-3">ID</dt>
+    <dd class="col-sm-9">@Model.Id</dd>
+
+    <dt class="col-sm-3">Nombre / Razón social</dt>
+    <dd class="col-sm-9">@Model.Nombre</dd>
+
+    <dt class="col-sm-3">Apellido</dt>
+    <dd class="col-sm-9">@Model.Apellido</dd>
+
+    <dt class="col-sm-3">Documento</dt>
+    <dd class="col-sm-9">@($"{Model.TipoDocumento} {Model.NumeroDocumento}")</dd>
+</dl>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Confirmar baja</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+</form>

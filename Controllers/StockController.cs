@@ -17,46 +17,34 @@ namespace mi_ferreteria.Controllers
             _prodRepo = prodRepo;
         }
 
-        public IActionResult Index(int pIn = 1, int pEg = 1)
+        public IActionResult Index(int page = 1)
         {
             try
             {
                 _logger.LogInformation("Cargando vista de Stock");
                 const int pageSize = 5;
-                // Ingresos
-                var totalIn = _stockRepo.CountMovimientosGlobal("INGRESO");
-                var totalPagesIn = (int)System.Math.Ceiling(totalIn / (double)pageSize);
-                if (totalPagesIn == 0) totalPagesIn = 1;
-                if (pIn < 1) pIn = 1;
-                if (pIn > totalPagesIn) pIn = totalPagesIn;
-                var ultIngresos = _stockRepo.GetMovimientosGlobalPage("INGRESO", pIn, pageSize).ToList();
-                // Egresos
-                var totalEg = _stockRepo.CountMovimientosGlobal("EGRESO");
-                var totalPagesEg = (int)System.Math.Ceiling(totalEg / (double)pageSize);
-                if (totalPagesEg == 0) totalPagesEg = 1;
-                if (pEg < 1) pEg = 1;
-                if (pEg > totalPagesEg) pEg = totalPagesEg;
-                var ultEgresos = _stockRepo.GetMovimientosGlobalPage("EGRESO", pEg, pageSize).ToList();
+                // Movimientos combinados (ingresos y egresos)
+                var total = _stockRepo.CountMovimientosGlobal(null);
+                var totalPages = (int)System.Math.Ceiling(total / (double)pageSize);
+                if (totalPages == 0) totalPages = 1;
+                if (page < 1) page = 1;
+                if (page > totalPages) page = totalPages;
+                var movimientos = _stockRepo.GetMovimientosGlobalPage(null, page, pageSize).ToList();
                 // Construir diccionario de nombres de productos
-                var ids = ultIngresos.Select(x => x.ProductoId).Concat(ultEgresos.Select(x => x.ProductoId)).Distinct().ToList();
+                var ids = movimientos.Select(x => x.ProductoId).Distinct().ToList();
                 var names = new System.Collections.Generic.Dictionary<long, string>();
                 foreach (var pid in ids)
                 {
                     var p = _prodRepo.GetById(pid);
                     names[pid] = p?.Nombre ?? ("#" + pid);
                 }
-                ViewBag.UltimosIngresos = ultIngresos;
-                ViewBag.UltimosEgresos = ultEgresos;
+                ViewBag.Movimientos = movimientos;
                 ViewBag.ProductNames = names;
-                // Paging info for each table
-                ViewBag.IngresosPage = pIn;
-                ViewBag.IngresosPageSize = pageSize;
-                ViewBag.IngresosTotalCount = totalIn;
-                ViewBag.IngresosTotalPages = totalPagesIn;
-                ViewBag.EgresosPage = pEg;
-                ViewBag.EgresosPageSize = pageSize;
-                ViewBag.EgresosTotalCount = totalEg;
-                ViewBag.EgresosTotalPages = totalPagesEg;
+                // Info de paginación combinada
+                ViewBag.Page = page;
+                ViewBag.PageSize = pageSize;
+                ViewBag.TotalCount = total;
+                ViewBag.TotalPages = totalPages;
                 return View();
             }
             catch (System.Exception ex)

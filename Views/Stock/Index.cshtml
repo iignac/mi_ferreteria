@@ -1,113 +1,71 @@
-﻿@using mi_ferreteria.Models
+@using mi_ferreteria.Models
 @{
     ViewData["Title"] = "Gestion de Stock";
-    var ingresos = ViewBag.UltimosIngresos as IEnumerable<StockMovimiento> ?? Enumerable.Empty<StockMovimiento>();
-    var egresos = ViewBag.UltimosEgresos as IEnumerable<StockMovimiento> ?? Enumerable.Empty<StockMovimiento>();
-    var prodNames = ViewBag.ProductNames as System.Collections.Generic.IDictionary<long,string> ?? new System.Collections.Generic.Dictionary<long,string>();
-    int inPage = ViewBag.IngresosPage is int ip ? ip : 1;
-    int inTotal = ViewBag.IngresosTotalCount is int it ? it : ingresos.Count();
-    int inPages = ViewBag.IngresosTotalPages is int ipg ? ipg : 1;
-    int egPage = ViewBag.EgresosPage is int ep ? ep : 1;
-    int egTotal = ViewBag.EgresosTotalCount is int et ? et : egresos.Count();
-    int egPages = ViewBag.EgresosTotalPages is int epg ? epg : 1;
+    var movimientos = ViewBag.Movimientos as IEnumerable<StockMovimiento> ?? Enumerable.Empty<StockMovimiento>();
+    var prodNames = ViewBag.ProductNames as System.Collections.Generic.IDictionary<long, string> ?? new System.Collections.Generic.Dictionary<long, string>();
+    int page = ViewBag.Page is int p ? p : 1;
+    int total = ViewBag.TotalCount is int t ? t : movimientos.Count();
+    int totalPages = ViewBag.TotalPages is int tp ? tp : 1;
 }
 <h2 class="mb-3">Gestion de Stock</h2>
 
-<div class="row g-4">
-  <div class="col-12 col-lg-6">
-    <div class="card h-100">
-      <div class="card-header bg-success text-white">Ultimos Ingresos</div>
-      <div class="card-body p-0">
-        @if (!ingresos.Any())
-        {
-            <div class="p-3 text-muted">Sin movimientos recientes.</div>
-        }
-        else
-        {
-            <div class="table-responsive">
-              <table class="table table-sm mb-0 align-middle">
-                <thead>
-                  <tr><th>Fecha</th><th>Producto</th><th class="text-end">Cantidad</th><th>Motivo</th></tr>
-                </thead>
-                <tbody>
-                @foreach (var m in ingresos)
-                {
-                    <tr>
-                      <td>@m.Fecha.LocalDateTime</td>
-                      <td><a asp-controller="Producto" asp-action="Details" asp-route-id="@m.ProductoId">@(prodNames.ContainsKey(m.ProductoId) ? prodNames[m.ProductoId] : ("#" + m.ProductoId))</a></td>
-                      <td class="text-end text-success fw-semibold">+@m.Cantidad</td>
-                      <td class="text-muted">@m.Motivo</td>
-                    </tr>
-                }
-                </tbody>
-              </table>
-            </div>
-            <nav aria-label="Paginacion ingresos" class="p-2">
-              <ul class="pagination pagination-sm justify-content-center mb-0">
-                <li class="page-item @(inPage <= 1 ? "disabled" : "")">
-                  <a class="page-link" asp-action="Index" asp-route-pIn="@(inPage-1)" asp-route-pEg="@egPage">Anterior</a>
+<div class="card">
+  <div class="card-header bg-primary text-white">Ultimos movimientos de stock</div>
+  <div class="card-body p-3">
+    @if (!movimientos.Any())
+    {
+        <div class="p-3 text-muted">Sin movimientos recientes.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+          <table class="table table-sm mb-0 align-middle text-center">
+            <thead>
+              <tr>
+                  <th class="text-center">Fecha</th>
+                  <th class="text-center">Producto</th>
+                  <th class="text-center">Tipo</th>
+                  <th class="text-center">Cantidad</th>
+                  <th class="text-center">Motivo</th>
+              </tr>
+            </thead>
+            <tbody>
+            @foreach (var m in movimientos)
+            {
+                var esIngreso = string.Equals(m.Tipo, "INGRESO", System.StringComparison.OrdinalIgnoreCase);
+                var claseCant = esIngreso ? "text-success" : "text-danger";
+                var signo = esIngreso ? "+" : "-";
+                <tr>
+                  <td class="text-center">@m.Fecha.LocalDateTime</td>
+                  <td class="text-center">
+                      <a asp-controller="Producto" asp-action="Details" asp-route-id="@m.ProductoId">
+                          @(prodNames.ContainsKey(m.ProductoId) ? prodNames[m.ProductoId] : ("#" + m.ProductoId))
+                      </a>
+                  </td>
+                  <td class="text-center">@(esIngreso ? "Ingreso" : "Egreso")</td>
+                  <td class="text-center fw-semibold @claseCant">@signo@m.Cantidad</td>
+                  <td class="text-center text-muted">@m.Motivo</td>
+                </tr>
+            }
+            </tbody>
+          </table>
+        </div>
+        <nav aria-label="Paginacion movimientos" class="p-2">
+          <ul class="pagination pagination-sm justify-content-center mb-0">
+            <li class="page-item @(page <= 1 ? "disabled" : "")">
+              <a class="page-link" asp-action="Index" asp-route-page="@(page-1)">Anterior</a>
+            </li>
+            @for (var i = 1; i <= totalPages; i++)
+            {
+                <li class="page-item @(i == page ? "active" : "")">
+                  <a class="page-link" asp-action="Index" asp-route-page="@i">@i</a>
                 </li>
-                @for (var i = 1; i <= inPages; i++)
-                {
-                    <li class="page-item @(i == inPage ? "active" : "")">
-                      <a class="page-link" asp-action="Index" asp-route-pIn="@i" asp-route-pEg="@egPage">@i</a>
-                    </li>
-                }
-                <li class="page-item @(inPage >= inPages ? "disabled" : "")">
-                  <a class="page-link" asp-action="Index" asp-route-pIn="@(inPage+1)" asp-route-pEg="@egPage">Siguiente</a>
-                </li>
-              </ul>
-            </nav>
-        }
-      </div>
-    </div>
-  </div>
-  <div class="col-12 col-lg-6">
-    <div class="card h-100">
-      <div class="card-header bg-danger text-white">Ultimos Egresos</div>
-      <div class="card-body p-0">
-        @if (!egresos.Any())
-        {
-            <div class="p-3 text-muted">Sin movimientos recientes.</div>
-        }
-        else
-        {
-            <div class="table-responsive">
-              <table class="table table-sm mb-0 align-middle">
-                <thead>
-                  <tr><th>Fecha</th><th>Producto</th><th class="text-end">Cantidad</th><th>Motivo</th></tr>
-                </thead>
-                <tbody>
-                @foreach (var m in egresos)
-                {
-                    <tr>
-                      <td>@m.Fecha.LocalDateTime</td>
-                      <td><a asp-controller="Producto" asp-action="Details" asp-route-id="@m.ProductoId">@(prodNames.ContainsKey(m.ProductoId) ? prodNames[m.ProductoId] : ("#" + m.ProductoId))</a></td>
-                      <td class="text-end text-danger fw-semibold">-@m.Cantidad</td>
-                      <td class="text-muted">@m.Motivo</td>
-                    </tr>
-                }
-                </tbody>
-              </table>
-            </div>
-            <nav aria-label="Paginacion egresos" class="p-2">
-              <ul class="pagination pagination-sm justify-content-center mb-0">
-                <li class="page-item @(egPage <= 1 ? "disabled" : "")">
-                  <a class="page-link" asp-action="Index" asp-route-pIn="@inPage" asp-route-pEg="@(egPage-1)">Anterior</a>
-                </li>
-                @for (var i = 1; i <= egPages; i++)
-                {
-                    <li class="page-item @(i == egPage ? "active" : "")">
-                      <a class="page-link" asp-action="Index" asp-route-pIn="@inPage" asp-route-pEg="@i">@i</a>
-                    </li>
-                }
-                <li class="page-item @(egPage >= egPages ? "disabled" : "")">
-                  <a class="page-link" asp-action="Index" asp-route-pIn="@inPage" asp-route-pEg="@(egPage+1)">Siguiente</a>
-                </li>
-              </ul>
-            </nav>
-        }
-      </div>
-    </div>
+            }
+            <li class="page-item @(page >= totalPages ? "disabled" : "")">
+              <a class="page-link" asp-action="Index" asp-route-page="@(page+1)">Siguiente</a>
+            </li>
+          </ul>
+        </nav>
+    }
   </div>
 </div>
