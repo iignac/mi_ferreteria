@@ -195,7 +195,14 @@ namespace mi_ferreteria.Controllers
                     try
                     {
                         // Descontar stock y registrar movimiento con motivo "VENTA"
-                        _stockRepo.Egresar(d.ProductoId, (long)d.Cantidad, "VENTA");
+                        if (d.PermiteVentaSinStock)
+                        {
+                            _stockRepo.EgresarPermitiendoNegativo(d.ProductoId, (long)d.Cantidad, "VENTA");
+                        }
+                        else
+                        {
+                            _stockRepo.Egresar(d.ProductoId, (long)d.Cantidad, "VENTA");
+                        }
                     }
                     catch (Exception ex)
                     {

@@ -204,6 +204,22 @@ namespace mi_ferreteria.Controllers
             return View(c);
         }
 
+        public IActionResult Details(long id)
+        {
+            var c = _repo.GetById(id);
+            if (c == null) return NotFound();
+            decimal? saldoActual = null;
+            decimal? saldoDisponible = null;
+            if (c.CuentaCorrienteHabilitada)
+            {
+                saldoActual = _repo.GetSaldoCuentaCorriente(id);
+                saldoDisponible = c.LimiteCredito - saldoActual.GetValueOrDefault();
+            }
+            ViewBag.SaldoActual = saldoActual;
+            ViewBag.SaldoDisponible = saldoDisponible;
+            return View(c);
+        }
+
         [HttpPost]
         public IActionResult Edit(long Id, [Required] string Nombre, string? Apellido, string? TipoDocumento, string? NumeroDocumento,
                                   string? DireccionCalle, string? DireccionNumero, string? DireccionLocalidad,

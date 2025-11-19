@@ -1,0 +1,122 @@
+@model mi_ferreteria.Models.Cliente
+@{
+    ViewData["Title"] = "Detalle de cliente";
+    decimal? saldoActual = ViewBag.SaldoActual as decimal?;
+    decimal? saldoDisponible = ViewBag.SaldoDisponible as decimal?;
+}
+
+<h2>Detalle de cliente</h2>
+
+<div class="card mt-3">
+    <div class="card-header">
+        Datos generales
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">ID</dt>
+            <dd class="col-sm-9">@Model.Id</dd>
+
+            <dt class="col-sm-3">Nombre / Razón social</dt>
+            <dd class="col-sm-9">@Model.Nombre</dd>
+
+            <dt class="col-sm-3">Apellido</dt>
+            <dd class="col-sm-9">@Model.Apellido</dd>
+
+            <dt class="col-sm-3">Documento</dt>
+            <dd class="col-sm-9">
+                @if (!string.IsNullOrWhiteSpace(Model.TipoDocumento) || !string.IsNullOrWhiteSpace(Model.NumeroDocumento))
+                {
+                    @($"{Model.TipoDocumento} {Model.NumeroDocumento}")
+                }
+                else
+                {
+                    @("-")
+                }
+            </dd>
+
+            <dt class="col-sm-3">Dirección</dt>
+            <dd class="col-sm-9">@(!string.IsNullOrWhiteSpace(Model.Direccion) ? Model.Direccion : "-")</dd>
+
+            <dt class="col-sm-3">Teléfono</dt>
+            <dd class="col-sm-9">@(!string.IsNullOrWhiteSpace(Model.Telefono) ? Model.Telefono : "-")</dd>
+
+            <dt class="col-sm-3">Email</dt>
+            <dd class="col-sm-9">@(!string.IsNullOrWhiteSpace(Model.Email) ? Model.Email : "-")</dd>
+
+            <dt class="col-sm-3">Fecha de alta</dt>
+            <dd class="col-sm-9">@Model.FechaAlta.ToString("yyyy-MM-dd HH:mm")</dd>
+
+            <dt class="col-sm-3">Estado</dt>
+            <dd class="col-sm-9">
+                @if (Model.Activo)
+                {
+                    <span class="badge bg-success">Activo</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">Inactivo</span>
+                }
+            </dd>
+        </dl>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header">
+        Cuenta corriente
+    </div>
+    <div class="card-body">
+        @if (!Model.CuentaCorrienteHabilitada)
+        {
+            <p class="mb-0 text-muted">La cuenta corriente no está habilitada para este cliente.</p>
+        }
+        else
+        {
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Tipo de cliente</dt>
+                <dd class="col-sm-9">
+                    @(Model.TipoCliente == "CUENTA_CORRIENTE" ? "Cuenta corriente" : "Consumidor final")
+                </dd>
+
+                <dt class="col-sm-3">Límite de crédito</dt>
+                <dd class="col-sm-9">$ @Model.LimiteCredito.ToString("N2")</dd>
+
+                <dt class="col-sm-3">Saldo actual (deuda)</dt>
+                <dd class="col-sm-9">
+                    @if (saldoActual.HasValue)
+                    {
+                        <span class="@(saldoActual.Value > 0 ? "text-danger" : (saldoActual.Value < 0 ? "text-success" : ""))">
+                            $ @saldoActual.Value.ToString("N2")
+                        </span>
+                    }
+                    else
+                    {
+                        @("-")
+                    }
+                </dd>
+
+                <dt class="col-sm-3">Saldo disponible</dt>
+                <dd class="col-sm-9">
+                    @if (saldoDisponible.HasValue)
+                    {
+                        <span class="@(saldoDisponible.Value <= 0 ? "text-danger" : "text-success")">
+                            $ @saldoDisponible.Value.ToString("N2")
+                        </span>
+                    }
+                    else
+                    {
+                        @("-")
+                    }
+                </dd>
+            </dl>
+            <p class="text-muted small mt-2 mb-0">
+                El saldo actual incluye el saldo inicial, las compras (deuda) y los pagos/ajustes registrados.
+            </p>
+        }
+    </div>
+</div>
+
+<div class="mt-4">
+    <a asp-action="Index" class="btn btn-outline-secondary">Volver al listado</a>
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Editar cliente</a>
+</div>

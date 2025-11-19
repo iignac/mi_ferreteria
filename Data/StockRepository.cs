@@ -111,6 +111,36 @@ namespace mi_ferreteria.Data
             }
         }
 
+        public void EgresarPermitiendoNegativo(long productoId, long cantidad, string motivo)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_cs);
+                conn.Open();
+                EnsureSchema(conn);
+                // No se valida que el stock alcance: puede quedar negativo
+                using (var up = new NpgsqlCommand(@"INSERT INTO producto_stock (producto_id, cantidad) VALUES (@id, @neg)
+                        ON CONFLICT (producto_id) DO UPDATE SET cantidad = producto_stock.cantidad + EXCLUDED.cantidad", conn))
+                {
+                    up.Parameters.AddWithValue("@id", productoId);
+                    up.Parameters.AddWithValue("@neg", -cantidad);
+                    up.ExecuteNonQuery();
+                }
+                using (var mov = new NpgsqlCommand("INSERT INTO producto_stock_mov (producto_id, tipo, cantidad, motivo) VALUES (@id,'EGRESO',@cant,@mot)", conn))
+                {
+                    mov.Parameters.AddWithValue("@id", productoId);
+                    mov.Parameters.AddWithValue("@cant", cantidad);
+                    mov.Parameters.AddWithValue("@mot", motivo);
+                    mov.ExecuteNonQuery();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error en egreso de stock permitiendo negativo {ProductoId} {Cantidad}", productoId, cantidad);
+                throw;
+            }
+        }
+
         public System.Collections.Generic.IEnumerable<mi_ferreteria.Models.StockMovimiento> GetMovimientos(long productoId, string? tipo = null, int top = 100)
         {
             var list = new System.Collections.Generic.List<mi_ferreteria.Models.StockMovimiento>();

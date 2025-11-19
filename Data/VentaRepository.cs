@@ -255,7 +255,19 @@ namespace mi_ferreteria.Data
                     cmdFac.Parameters.AddWithValue("@pto", 1);
                     cmdFac.Parameters.AddWithValue("@total", venta.Total);
                     cmdFac.Parameters.AddWithValue("@txt", venta.TotalEnLetras);
-                    var nom = cliente?.Nombre ?? "CONSUMIDOR FINAL";
+                    string nom;
+                    if (cliente == null)
+                    {
+                        nom = "CONSUMIDOR FINAL";
+                    }
+                    else if (!string.IsNullOrWhiteSpace(cliente.Apellido))
+                    {
+                        nom = $"{cliente.Nombre} {cliente.Apellido}";
+                    }
+                    else
+                    {
+                        nom = cliente.Nombre;
+                    }
                     var doc = cliente?.NumeroDocumento ?? (object?)null;
                     var dir = cliente?.Direccion ?? (object?)null;
                     cmdFac.Parameters.AddWithValue("@cnom", nom);

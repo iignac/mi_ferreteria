@@ -87,7 +87,8 @@ else
                         }
                     </td>
                     <td class="text-end">
-                        <a asp-action="Edit" asp-route-id="@c.Id" class="btn btn-sm btn-outline-primary">Editar</a>
+                        <a asp-action="Details" asp-route-id="@c.Id" class="btn btn-sm btn-outline-info me-1">Ver</a>
+                        <a asp-action="Edit" asp-route-id="@c.Id" class="btn btn-sm btn-outline-primary me-1">Editar</a>
                         @if (c.Activo)
                         {
                             <form asp-action="Delete" asp-route-id="@c.Id" method="post" class="d-inline">
