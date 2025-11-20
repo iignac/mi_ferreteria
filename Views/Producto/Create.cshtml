@@ -18,26 +18,26 @@
             <span asp-validation-for="Nombre" class="text-danger"></span>
         </div>
         <div class="col-12">
-            <label class="form-label">Descripción</label>
+            <label class="form-label">DescripciÃ³n</label>
             <textarea asp-for="Descripcion" class="form-control" rows="3"></textarea>
             <span asp-validation-for="Descripcion" class="text-danger"></span>
         </div>
         <div class="col-12">
             <label class="form-label d-flex align-items-center justify-content-between">
-                <span>Códigos de barra</span>
+                <span>CÃ³digos de barra</span>
                 <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddBarcode">+ Agregar</button>
             </label>
             <div id="barcodeList" class="vstack gap-2"></div>
-            <div id="barcodeMsg" class="form-text text-danger d-none">No se pueden agregar más códigos (máximo 5).</div>
+            <div id="barcodeMsg" class="form-text text-danger d-none">No se pueden agregar mï¿½s cï¿½digos (mï¿½ximo 5).</div>
         </div>
         <div class="col-12">
-            <label class="form-label">Categorías</label>
+            <label class="form-label">CategorÃ­as</label>
             <div class="d-flex gap-2 mb-2 align-items-center">
                 <div class="dropdown">
-                    <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Categorías</button>
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Categorï¿½as</button>
                     <ul class="dropdown-menu p-2" style="max-height: 260px; overflow:auto; min-width: 280px;">
                         <li class="px-1 mb-2">
-                            <input type="text" class="form-control form-control-sm" placeholder="Filtrar categorías..." id="catFilterCreate">
+                            <input type="text" class="form-control form-control-sm" placeholder="Filtrar categorï¿½as..." id="catFilterCreate">
                         </li>
                         @foreach (var c in Model.Categorias)
                         {
@@ -45,7 +45,7 @@
                         }
                     </ul>
                 </div>
-                <small class="text-muted">Hasta 3 categorías.</small>
+                <small class="text-muted">Hasta 3 categorÃ­as.</small>
             </div>
             <div id="catSelectedCreate" class="d-flex flex-wrap gap-2 cat-box"></div>
             <div id="catInputsCreate"></div>
@@ -56,12 +56,12 @@
             <span asp-validation-for="PrecioVentaActual" class="text-danger"></span>
         </div>
         <div class="col-md-4">
-            <label class="form-label">Stock mínimo</label>
+            <label class="form-label">Stock mÃ­nimo</label>
             <input asp-for="StockMinimo" class="form-control" type="number" min="0" />
             <span asp-validation-for="StockMinimo" class="text-danger"></span>
         </div>
         <div class="col-md-6">
-            <label class="form-label">Código ubicación (ej: A1)</label>
+            <label class="form-label">CÃ³digo ubicaciÃ³n (ej: A1)</label>
             <input asp-for="UbicacionCodigo" class="form-control" />
             <span asp-validation-for="UbicacionCodigo" class="text-danger"></span>
         </div>
@@ -96,13 +96,13 @@
   isDirty=false;
 });
   window.addEventListener('beforeunload',function(e){ if(!isDirty) return; e.preventDefault(); e.returnValue=''; });
-  document.querySelectorAll('.btn-cancel-leave').forEach(a=>a.addEventListener('click',function(e){ if(isDirty && !confirm('Hay cambios sin guardar. Si vuelves, se perderán. ¿Deseas salir igualmente?')){ e.preventDefault(); }}));
+  document.querySelectorAll('.btn-cancel-leave').forEach(a=>a.addEventListener('click',function(e){ if(isDirty && !confirm('Hay cambios sin guardar. Si vuelves, se perderï¿½n. ï¿½Deseas salir igualmente?')){ e.preventDefault(); }}));
   // Barcodes dynamic inputs
   const list = document.getElementById('barcodeList');
   const btnAdd = document.getElementById('btnAddBarcode');
   const msg = document.getElementById('barcodeMsg');
   const max = 5;
-  // Función: agrega una fila (input de código + botón eliminar) y reenumera cuando se borra
+  // Funciï¿½n: agrega una fila (input de cï¿½digo + botï¿½n eliminar) y reenumera cuando se borra
   const addInput = (val='')=>{
     const count = list.querySelectorAll('.barcode-item').length;
     if(count >= max){ msg.classList.remove('d-none'); return; }
@@ -113,7 +113,7 @@
     const input = document.createElement('input');
     input.name = `Barcodes[${idx}]`;
     input.className = 'form-control';
-    input.placeholder = 'Código de barra';
+    input.placeholder = 'Cï¿½digo de barra';
     input.value = val;
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -123,7 +123,7 @@
     row.appendChild(input); row.appendChild(btn);
     list.appendChild(row);
   };
-  // Función: reenumerar nombres Barcodes[i] después de altas/bajas
+  // Funciï¿½n: reenumerar nombres Barcodes[i] despuï¿½s de altas/bajas
   const renumber = ()=>{
     const items = list.querySelectorAll('.barcode-item input');
     items.forEach((inp, i)=>{ inp.name = `Barcodes[${i}]`; });
@@ -133,7 +133,7 @@
   // Initialize with one empty input
   if(list && list.children.length === 0){ addInput(); }
 
-  // Selección de categorías vía botón (hasta 3)
+  // Selecciï¿½n de categorï¿½as vï¿½a botï¿½n (hasta 3)
   (function(){
     const container = document.getElementById('catSelectedCreate');
     const inputs = document.getElementById('catInputsCreate');
@@ -169,7 +169,7 @@
         const id = this.dataset.id;
         if (!id) return;
         if (ids.includes(id)) return; // ya seleccionado
-        if (ids.length >= 3) { alert('Solo puedes seleccionar hasta 3 categorías.'); return; }
+        if (ids.length >= 3) { alert('Solo puedes seleccionar hasta 3 categorï¿½as.'); return; }
         ids.push(id);
         renumber();
         renderChips();

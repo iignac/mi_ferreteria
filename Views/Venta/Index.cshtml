@@ -1,7 +1,7 @@
 @model mi_ferreteria.ViewModels.VentaCrearViewModel
 @using mi_ferreteria.Models
 @{
-    ViewData["Title"] = "Gestión de Ventas";
+    ViewData["Title"] = "Gestion de Ventas";
 
     string q = ViewBag.Query as string ?? string.Empty;
     var productos = ViewBag.Productos as IEnumerable<Producto> ?? Enumerable.Empty<Producto>();
@@ -12,7 +12,7 @@
 
 <div class="d-flex justify-content-between align-items-center">
     <h2 class="mb-0">Gestión de Ventas</h2>
-    <a asp-action="Historial" class="btn btn-outline-secondary">
+    <a asp-action="Historial" class="btn btn-outline-secondary btn-historial-ventas">
         Ver historial de ventas
     </a>
 </div>
@@ -29,7 +29,7 @@
 <form method="get" asp-action="Index" class="mb-3">
     <div class="input-group">
         <input type="search"
-               name="q"
+               id="buscadorProductos" name="q"
                value="@q"
                class="form-control"
                placeholder="Buscar por cualquier dato (SKU, nombre, descripción, categoría, ubicación, código de barra)"
@@ -61,7 +61,7 @@ else
                     <th class="text-end">Agregar</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="productosBody">
             @foreach (var p in productos)
             {
                 var stock = stocks != null && stocks.TryGetValue(p.Id, out var s) ? s : 0;
@@ -88,7 +88,7 @@ else
         </table>
     </div>
 
-    <nav aria-label="PaginaciA3n de productos" class="mb-4">
+    <nav id="paginacionProductos" aria-label="PaginaciA3n de productos" class="mb-4">
         <ul class="pagination justify-content-center">
             <li class="page-item @(page <= 1 ? "disabled" : "")">
                 <a class="page-link"
@@ -113,86 +113,98 @@ else
 {
     @Html.AntiForgeryToken()
 
-    <!-- CARRITO -->
-    <div class="d-flex justify-content-between align-items-center">
-        <div>
-            <h4 class="mb-0">Carrito de productos</h4>
-            <p class="text-muted mb-0">La venta debe tener al menos un producto.</p>
-        </div>
-        <div>
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="limpiarCarrito()">Limpiar carrito</button>
-        </div>
-    </div>
-
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Producto</th>
-                <th>Cantidad</th>
-                <th>Stock disp.</th>
-                <th>Permitir sin stock</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody id="carritoBody">
-        @for (var i = 0; i < Model.Lineas.Count; i++)
-        {
-            <tr>
-                <td>
-                    <input type="hidden" name="Lineas[@i].ProductoId" value="@Model.Lineas[i].ProductoId" />
-                    @Model.Lineas[i].ProductoNombre
-                </td>
-                <td>
-                    @Html.TextBoxFor(m => m.Lineas[i].Cantidad, new { @class = "form-control", type = "number", step = "1", min = "1" })
-                </td>
-                <td>
-                    @Model.Lineas[i].StockDisponible
-                </td>
-                <td class="text-center">
-                    @Html.CheckBoxFor(m => m.Lineas[i].PermitirVentaSinStock)
-                </td>
-                <td>
-                    <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove();">Quitar</button>
-                </td>
-            </tr>
-        }
-        </tbody>
-    </table>
-
-    <hr />
-
-    <!-- DATOS DEL CLIENTE Y PAGO -->
-    <h4>Datos del cliente y forma de pago</h4>
-    <div class="row">
-        <div class="col-md-6">
-            <div class="form-group mb-2">
-                <label asp-for="TipoCliente"></label>
-                <select asp-for="TipoCliente" class="form-control">
-                    <option value="CONSUMIDOR_FINAL">Consumidor final</option>
-                    <option value="REGISTRADO">Cliente registrado</option>
-                </select>
+    <!-- CARRITO Y DATOS DEL CLIENTE -->
+    <div class="row mt-4">
+        <div class="col-lg-7">
+            <!-- CARRITO -->
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="mb-0">Carrito de productos</h4>
+                    <p class="text-muted mb-0">La venta debe tener al menos un producto.</p>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="limpiarCarrito()">Limpiar carrito</button>
+                </div>
             </div>
-            <div class="form-group mb-2">
-                <label asp-for="ClienteId"></label>
-                <select asp-for="ClienteId" class="form-control" asp-items="Model.Clientes">
-                    <option value="">-- Consumidor final --</option>
-                </select>
-                <span asp-validation-for="ClienteId" class="text-danger"></span>
-            </div>
+
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Stock disp.</th>
+                        <th>Permitir sin stock</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="carritoBody">
+                @for (var i = 0; i < Model.Lineas.Count; i++)
+                {
+                    <tr>
+                        <td>
+                            <input type="hidden" name="Lineas[@i].ProductoId" value="@Model.Lineas[i].ProductoId" />
+                            @Model.Lineas[i].ProductoNombre
+                        </td>
+                        <td>
+                            @Html.TextBoxFor(m => m.Lineas[i].Cantidad, new { @class = "form-control", type = "number", step = "1", min = "1" })
+                        </td>
+                        <td>
+                            @Model.Lineas[i].StockDisponible
+                        </td>
+                        <td class="text-center">
+                            @Html.CheckBoxFor(m => m.Lineas[i].PermitirVentaSinStock)
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove();">Quitar</button>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
         </div>
-        <div class="col-md-6">
-            <div class="form-group mb-2">
-                <label asp-for="TipoPago"></label>
-                <select asp-for="TipoPago" class="form-control">
-                    <option value="CONTADO">Contado</option>
-                    <option value="CUENTA_CORRIENTE">Cuenta corriente</option>
-                </select>
-            </div>
-            <div class="form-group form-check mb-2">
-                <input asp-for="IgnorarLimiteCredito" class="form-check-input" />
-                <label asp-for="IgnorarLimiteCredito" class="form-check-label">
-                    Ignorar límite de crédito (requiere autorización del dueño)
-                </label>
+        <div class="col-lg-5">
+            <!-- DATOS DEL CLIENTE Y PAGO -->
+            <h4>Datos del cliente y forma de pago</h4>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="form-group mb-2">
+                        <label asp-for="TipoCliente"></label>
+                        <select asp-for="TipoCliente" class="form-control">
+                            <option value="CONSUMIDOR_FINAL">Consumidor final</option>
+                            <option value="REGISTRADO">Cliente registrado</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-2" id="grupoClienteRegistrado">
+                        <label asp-for="ClienteId"></label>
+                        <select asp-for="ClienteId" class="form-control" asp-items="Model.Clientes">
+                            <option value="">-- Consumidor final --</option>
+                        </select>
+                        <span asp-validation-for="ClienteId" class="text-danger"></span>
+                        <div class="mt-2">
+                            <a asp-controller="Cliente"
+                               asp-action="Create"
+                               target="_blank"
+                               class="btn btn-sm btn-outline-primary">
+                                Crear cliente
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-12 mt-3">
+                    <div class="form-group mb-2">
+                        <label asp-for="TipoPago"></label>
+                        <select asp-for="TipoPago" class="form-control">
+                            <option value="CONTADO">Contado</option>
+                            <option value="CUENTA_CORRIENTE">Cuenta corriente</option>
+                        </select>
+                    </div>
+                    <div class="form-group form-check mb-2">
+                        <input asp-for="IgnorarLimiteCredito" class="form-check-input" />
+                        <label asp-for="IgnorarLimiteCredito" class="form-check-label">
+                            Ignorar límite de crédito (requiere autorización del dueño)
+                        </label>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -214,6 +226,70 @@ else
         document.addEventListener('DOMContentLoaded', () => {
             const carrito = obtenerCarrito();
             carrito.forEach(item => agregarFilaCarrito(item));
+
+            const inputBusqueda = document.getElementById('buscadorProductos');
+            const tbodyProductos = document.getElementById('productosBody');
+            const paginacion = document.getElementById('paginacionProductos');
+            const urlBuscarProductos = '@Url.Action("BuscarProductos", "Venta")';
+            let buscadorTimeoutId = null;
+
+            if (inputBusqueda && tbodyProductos && urlBuscarProductos) {
+                inputBusqueda.addEventListener('input', () => {
+                    const termino = (inputBusqueda.value || '').trim();
+
+                    if (buscadorTimeoutId) {
+                        clearTimeout(buscadorTimeoutId);
+                    }
+
+                    buscadorTimeoutId = setTimeout(() => {
+                        if (termino.length === 0) {
+                            if (paginacion) {
+                                paginacion.style.display = '';
+                            }
+                            return;
+                        }
+
+                        if (paginacion) {
+                            paginacion.style.display = 'none';
+                        }
+
+                        fetch(urlBuscarProductos + '?q=' + encodeURIComponent(termino))
+                            .then(r => r.ok ? r.json() : [])
+                            .then(data => {
+                                if (!Array.isArray(data)) return;
+                                tbodyProductos.innerHTML = '';
+
+                                data.forEach(p => {
+                                    const tr = document.createElement('tr');
+                                    const sku = p.sku || '';
+                                    const nombre = p.nombre || '';
+                                    const precio = p.precio ?? 0;
+                                    const stock = p.stock ?? 0;
+
+                                    tr.innerHTML = `
+                                        <td>${p.id}</td>
+                                        <td>${sku}</td>
+                                        <td>${nombre}</td>
+                                        <td>$ ${precio}</td>
+                                        <td>${stock}</td>
+                                        <td class="text-end">
+                                            <button type="button"
+                                                    class="btn btn-sm btn-success"
+                                                    data-id="${p.id}"
+                                                    data-sku="${sku}"
+                                                    data-nombre="${nombre}"
+                                                    data-stock="${stock}"
+                                                    onclick="agregarAlCarritoDesdeBoton(this)">
+                                                Agregar
+                                            </button>
+                                        </td>`;
+                                    tbodyProductos.appendChild(tr);
+                                });
+                            })
+                            .catch(() => { /* ignorar errores de red en bA-usqueda rA-pida */ });
+                    }, 300);
+                });
+            }
         });
 
         function obtenerCarrito() {
@@ -346,7 +422,7 @@ else
         }
 
         function limpiarCarrito() {
-            if (!confirm('¿EstAcs seguro de que querAcs limpiar todo el carrito?')) {
+            if (!confirm('Estás seguro de que querAcs limpiar todo el carrito?')) {
                 return;
             }
             const tbody = document.getElementById('carritoBody');
@@ -356,3 +432,41 @@ else
         }
     </script>
 }
+
+    <script>
+        (function () {
+            const tipoClienteSelect = document.getElementById('TipoCliente');
+            const grupoClienteRegistrado = document.getElementById('grupoClienteRegistrado');
+            const tipoPagoSelect = document.getElementById('TipoPago');
+            const clienteSelect = document.getElementById('ClienteId');
+
+            function actualizarUIClientePago() {
+                const tipo = tipoClienteSelect ? tipoClienteSelect.value : 'CONSUMIDOR_FINAL';
+
+                if (tipo === 'CONSUMIDOR_FINAL') {
+                    if (grupoClienteRegistrado) {
+                        grupoClienteRegistrado.style.display = 'none';
+                    }
+                    if (clienteSelect) {
+                        clienteSelect.value = '';
+                    }
+                    if (tipoPagoSelect) {
+                        tipoPagoSelect.value = 'CONTADO';
+                        tipoPagoSelect.disabled = true;
+                    }
+                } else if (tipo === 'REGISTRADO') {
+                    if (grupoClienteRegistrado) {
+                        grupoClienteRegistrado.style.display = '';
+                    }
+                    if (tipoPagoSelect) {
+                        tipoPagoSelect.disabled = false;
+                    }
+                }
+            }
+
+            if (tipoClienteSelect) {
+                tipoClienteSelect.addEventListener('change', actualizarUIClientePago);
+                actualizarUIClientePago();
+            }
+        })();
+    </script>

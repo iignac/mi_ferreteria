@@ -257,6 +257,46 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        [HttpGet]
+        public IActionResult BuscarProductos(string? q)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(q))
+                {
+                    return Json(Array.Empty<object>());
+                }
+
+                const int pageSize = 10;
+                var productos = _productoRepo
+                    .SearchPageSorted(q, 1, pageSize, "nombre_asc")
+                    .ToList();
+
+                var stocks = _stockRepo.GetStocks(productos.Select(p => p.Id))
+                             ?? new Dictionary<long, long>();
+
+                var resultado = productos.Select(p =>
+                {
+                    var stock = stocks.TryGetValue(p.Id, out var s) ? s : 0L;
+                    return new
+                    {
+                        id = p.Id,
+                        sku = p.Sku,
+                        nombre = p.Nombre,
+                        precio = p.PrecioVentaActual,
+                        stock
+                    };
+                });
+
+                return Json(resultado);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error en bA-osqueda rA-pida de productos en venta");
+                return Json(Array.Empty<object>());
+            }
+        }
+
         private void CargarProductosParaVista(string? q, int page)
         {
             const int pageSize = 10;

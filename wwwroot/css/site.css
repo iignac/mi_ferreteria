@@ -318,3 +318,10 @@ body {
   border-radius: .6rem;
   padding: .4rem .75rem;
 }
+
+/* Botón "Ver historial de ventas" en pantalla de ventas */
+.btn-historial-ventas:hover {
+  background-color: #0d6efd;
+  color: #fff;
+  border-color: #0d6efd;
+}
