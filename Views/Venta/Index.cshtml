@@ -72,15 +72,16 @@ else
                     <td>$ @p.PrecioVentaActual</td>
                     <td>@stock</td>
                     <td class="text-end">
-                        <button type="button"
-                                class="btn btn-sm btn-success"
-                                data-id="@p.Id"
-                                data-sku="@p.Sku"
-                                data-nombre="@p.Nombre"
-                                data-stock="@stock"
-                                onclick="agregarAlCarritoDesdeBoton(this)">
-                            Agregar
-                        </button>
+                            <button type="button"
+                                    class="btn btn-sm btn-success"
+                                    data-id="@p.Id"
+                                    data-sku="@p.Sku"
+                                    data-nombre="@p.Nombre"
+                                    data-precio="@p.PrecioVentaActual.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                    data-stock="@stock"
+                                    onclick="agregarAlCarritoDesdeBoton(this)">
+                                Agregar
+                            </button>
                     </td>
                 </tr>
             }
@@ -114,23 +115,23 @@ else
     @Html.AntiForgeryToken()
 
     <!-- CARRITO Y DATOS DEL CLIENTE -->
-    <div class="row mt-4">
-        <div class="col-lg-7">
-            <!-- CARRITO -->
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h4 class="mb-0">Carrito de productos</h4>
-                    <p class="text-muted mb-0">La venta debe tener al menos un producto.</p>
-                </div>
-                <div>
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="limpiarCarrito()">Limpiar carrito</button>
-                </div>
+    <div class="mt-4">
+        <!-- CARRITO -->
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="mb-0">Carrito de productos</h4>
+                <p class="text-muted mb-0">La venta debe tener al menos un producto.</p>
             </div>
+            <div>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="limpiarCarrito()">Limpiar carrito</button>
+            </div>
+        </div>
 
-            <table class="table table-striped">
+        <table class="table table-striped">
                 <thead>
                     <tr>
                         <th>Producto</th>
+                        <th>Precio</th>
                         <th>Cantidad</th>
                         <th>Stock disp.</th>
                         <th>Permitir sin stock</th>
@@ -140,13 +141,21 @@ else
                 <tbody id="carritoBody">
                 @for (var i = 0; i < Model.Lineas.Count; i++)
                 {
-                    <tr>
+                    <tr data-producto-id="@Model.Lineas[i].ProductoId"
+                        data-precio-unitario="@Model.Lineas[i].PrecioUnitario.ToString(System.Globalization.CultureInfo.InvariantCulture)">
                         <td>
                             <input type="hidden" name="Lineas[@i].ProductoId" value="@Model.Lineas[i].ProductoId" />
                             @Model.Lineas[i].ProductoNombre
                         </td>
                         <td>
-                            @Html.TextBoxFor(m => m.Lineas[i].Cantidad, new { @class = "form-control", type = "number", step = "1", min = "1" })
+                            <input type="hidden"
+                                   name="Lineas[@i].PrecioUnitario"
+                                   class="precio-unitario"
+                                   value='@Model.Lineas[i].PrecioUnitario.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)' />
+                            $ @Model.Lineas[i].PrecioUnitario.ToString("0.00")
+                        </td>
+                        <td>
+                            @Html.TextBoxFor(m => m.Lineas[i].Cantidad, new { @class = "form-control cantidad-input", type = "number", step = "1", min = "1" })
                         </td>
                         <td>
                             @Model.Lineas[i].StockDisponible
@@ -155,14 +164,18 @@ else
                             @Html.CheckBoxFor(m => m.Lineas[i].PermitirVentaSinStock)
                         </td>
                         <td>
-                            <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove();">Quitar</button>
+                            <button type="button" class="btn btn-sm btn-danger" onclick="quitarProductoDelCarrito(@Model.Lineas[i].ProductoId, this.closest('tr'));">Quitar</button>
                         </td>
                     </tr>
                 }
                 </tbody>
             </table>
+
+            <div class="d-flex justify-content-end">
+                <div class="fw-bold">Total: <span id="totalCarritoMonto">$ 0.00</span></div>
+            </div>
         </div>
-        <div class="col-lg-5">
+        <div class="mt-4">
             <!-- DATOS DEL CLIENTE Y PAGO -->
             <h4>Datos del cliente y forma de pago</h4>
             <div class="row">
@@ -207,7 +220,6 @@ else
                 </div>
             </div>
         </div>
-    </div>
 
     <div class="text-danger mt-2">
         @Html.ValidationSummary()
@@ -225,7 +237,26 @@ else
 
         document.addEventListener('DOMContentLoaded', () => {
             const carrito = obtenerCarrito();
-            carrito.forEach(item => agregarFilaCarrito(item));
+            const tbodyCarrito = document.getElementById('carritoBody');
+            if (tbodyCarrito) {
+                carritoIndex = tbodyCarrito.children.length;
+            }
+            const carritoTieneFilas = tbodyCarrito && tbodyCarrito.children.length > 0;
+
+            if (!carritoTieneFilas) {
+                carrito.forEach(item => agregarFilaCarrito(item));
+            }
+
+            if (tbodyCarrito) {
+                tbodyCarrito.addEventListener('change', (ev) => {
+                    const target = ev.target;
+                    if (target.matches('input[name$=".Cantidad"]')) {
+                        sincronizarCantidad(target);
+                    } else if (target.matches('input[type="checkbox"][name$=".PermitirVentaSinStock"]')) {
+                        sincronizarPermitirSinStock(target);
+                    }
+                });
+            }
 
             const inputBusqueda = document.getElementById('buscadorProductos');
             const tbodyProductos = document.getElementById('productosBody');
@@ -278,6 +309,7 @@ else
                                                     data-id="${p.id}"
                                                     data-sku="${sku}"
                                                     data-nombre="${nombre}"
+                                                    data-precio="${precio}"
                                                     data-stock="${stock}"
                                                     onclick="agregarAlCarritoDesdeBoton(this)">
                                                 Agregar
@@ -290,6 +322,8 @@ else
                     }, 300);
                 });
             }
+
+            recalcularTotalCarrito();
         });
 
         function obtenerCarrito() {
@@ -314,17 +348,23 @@ else
             const sku = btn.getAttribute('data-sku') || '';
             const nombre = btn.getAttribute('data-nombre') || '';
             const stock = parseInt(btn.getAttribute('data-stock') || '0', 10);
+            const precio = parseFloat(btn.getAttribute('data-precio') || '0') || 0;
 
             const carrito = obtenerCarrito();
             const existente = carrito.find(x => x.productoId === id);
             if (existente) {
                 existente.cantidad = (existente.cantidad || 0) + 1;
+                if (isNaN(existente.precioUnitario)) {
+                    existente.precioUnitario = precio;
+                }
                 guardarCarrito(carrito);
                 // Actualizar cantidad in-line
                 const row = document.querySelector(`#carritoBody tr[data-producto-id="${id}"]`);
                 if (row) {
                     const inputCant = row.querySelector('input[name$=".Cantidad"]');
+                    const inputPrecio = row.querySelector('input[name$=".PrecioUnitario"]');
                     if (inputCant) inputCant.value = existente.cantidad;
+                    if (inputPrecio && !isNaN(precio)) inputPrecio.value = precio;
                 }
             } else {
                 const item = {
@@ -333,20 +373,25 @@ else
                     nombre: nombre,
                     stock: isNaN(stock) ? 0 : stock,
                     cantidad: 1,
-                    permitirSinStock: false
+                    permitirSinStock: false,
+                    precioUnitario: precio
                 };
                 carrito.push(item);
                 guardarCarrito(carrito);
                 agregarFilaCarrito(item);
             }
+
+            recalcularTotalCarrito();
         }
 
         function agregarFilaCarrito(item) {
             const tbody = document.getElementById('carritoBody');
             const index = carritoIndex++;
+            const precioUnitario = isNaN(item.precioUnitario) ? 0 : Number(item.precioUnitario);
 
             const tr = document.createElement('tr');
             tr.setAttribute('data-producto-id', item.productoId);
+            tr.setAttribute('data-precio-unitario', precioUnitario.toString());
 
             const tdProd = document.createElement('td');
             const hidden = document.createElement('input');
@@ -357,27 +402,24 @@ else
             tdProd.appendChild(document.createTextNode((item.sku ? item.sku + ' - ' : '') + item.nombre));
             tr.appendChild(tdProd);
 
+            const tdPrecio = document.createElement('td');
+            const inputPrecio = document.createElement('input');
+            inputPrecio.type = 'hidden';
+            inputPrecio.name = `Lineas[${index}].PrecioUnitario`;
+            inputPrecio.value = precioUnitario;
+            inputPrecio.className = 'precio-unitario';
+            tdPrecio.appendChild(inputPrecio);
+            tdPrecio.appendChild(document.createTextNode(`$ ${precioUnitario.toFixed(2)}`));
+            tr.appendChild(tdPrecio);
+
             const tdCant = document.createElement('td');
             const inputCant = document.createElement('input');
             inputCant.type = 'number';
-            inputCant.className = 'form-control';
+            inputCant.className = 'form-control cantidad-input';
             inputCant.name = `Lineas[${index}].Cantidad`;
             inputCant.value = (item.cantidad && item.cantidad > 0) ? item.cantidad : 1;
             inputCant.min = '1';
             inputCant.step = '1';
-            inputCant.addEventListener('change', () => {
-                let val = parseInt(inputCant.value || '0', 10);
-                if (isNaN(val) || val < 1) {
-                    val = 1;
-                    inputCant.value = '1';
-                }
-                const carrito = obtenerCarrito();
-                const existente = carrito.find(x => x.productoId === item.productoId);
-                if (existente) {
-                    existente.cantidad = val;
-                    guardarCarrito(carrito);
-                }
-            });
             tdCant.appendChild(inputCant);
             tr.appendChild(tdCant);
 
@@ -413,12 +455,14 @@ else
             tr.appendChild(tdQuitar);
 
             tbody.appendChild(tr);
+            recalcularTotalCarrito();
         }
 
         function quitarProductoDelCarrito(productoId, row) {
             const carrito = obtenerCarrito().filter(x => x.productoId !== productoId);
             guardarCarrito(carrito);
             row.remove();
+            recalcularTotalCarrito();
         }
 
         function limpiarCarrito() {
@@ -429,6 +473,58 @@ else
             tbody.innerHTML = '';
             carritoIndex = 0;
             localStorage.removeItem(STORAGE_KEY);
+            recalcularTotalCarrito();
+        }
+
+        function sincronizarCantidad(input) {
+            let val = parseInt(input.value || '0', 10);
+            if (isNaN(val) || val < 1) {
+                val = 1;
+                input.value = '1';
+            }
+            const fila = input.closest('tr');
+            const productoId = fila ? parseInt(fila.getAttribute('data-producto-id') || '0', 10) : 0;
+            if (productoId) {
+                const carrito = obtenerCarrito();
+                const existente = carrito.find(x => x.productoId === productoId);
+                if (existente) {
+                    existente.cantidad = val;
+                    guardarCarrito(carrito);
+                }
+            }
+            recalcularTotalCarrito();
+        }
+
+        function sincronizarPermitirSinStock(input) {
+            const fila = input.closest('tr');
+            const productoId = fila ? parseInt(fila.getAttribute('data-producto-id') || '0', 10) : 0;
+            if (!productoId) return;
+            const carrito = obtenerCarrito();
+            const existente = carrito.find(x => x.productoId === productoId);
+            if (existente) {
+                existente.permitirSinStock = input.checked;
+                guardarCarrito(carrito);
+            }
+        }
+
+        function recalcularTotalCarrito() {
+            const tbody = document.getElementById('carritoBody');
+            let total = 0;
+            if (tbody) {
+                tbody.querySelectorAll('tr').forEach(row => {
+                    const cantInput = row.querySelector('input[name$=".Cantidad"]');
+                    const precioInput = row.querySelector('input[name$=".PrecioUnitario"]');
+                    const cantidad = parseFloat(cantInput && cantInput.value ? cantInput.value : '0');
+                    const precio = parseFloat(precioInput && precioInput.value ? precioInput.value : row.getAttribute('data-precio-unitario') || '0');
+                    if (!isNaN(cantidad) && !isNaN(precio)) {
+                        total += cantidad * precio;
+                    }
+                });
+            }
+            const totalLabel = document.getElementById('totalCarritoMonto');
+            if (totalLabel) {
+                totalLabel.textContent = '$ ' + total.toFixed(2);
+            }
         }
     </script>
 }

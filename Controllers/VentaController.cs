@@ -103,7 +103,10 @@ namespace mi_ferreteria.Controllers
                         continue;
                     }
 
+                    linea.PrecioUnitario = prod.PrecioVentaActual;
+
                     var stock = _stockRepo.GetStock(prod.Id);
+                    linea.StockDisponible = stock;
                     var permiteSinStock = linea.PermitirVentaSinStock;
                     if (stock < (long)linea.Cantidad && !permiteSinStock)
                     {
