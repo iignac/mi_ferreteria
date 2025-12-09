@@ -18,26 +18,45 @@
             <span asp-validation-for="Nombre" class="text-danger"></span>
         </div>
         <div class="col-12">
-            <label class="form-label">Descripción</label>
+            <label class="form-label">Descripcion</label>
             <textarea asp-for="Descripcion" class="form-control" rows="3"></textarea>
             <span asp-validation-for="Descripcion" class="text-danger"></span>
         </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Precio</label>
+            <input asp-for="PrecioVentaActual" class="form-control" type="number" step="0.01" min="0" />
+            <span asp-validation-for="PrecioVentaActual" class="text-danger"></span>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Stock minimo</label>
+            <input asp-for="StockMinimo" class="form-control" type="number" min="0" />
+            <span asp-validation-for="StockMinimo" class="text-danger"></span>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Unidad de medida</label>
+            <select asp-for="UnidadMedida" class="form-select" asp-items="Model.UnidadesMedida"></select>
+            <span asp-validation-for="UnidadMedida" class="text-danger"></span>
+            <div class="form-text">Opciones: unidad, gramos, kilos, m2, juego, bolsa, placa, rollo, litro, mililitro, bidon, kit, par.</div>
+        </div>
+
         <div class="col-12">
             <label class="form-label d-flex align-items-center justify-content-between">
-                <span>Códigos de barra</span>
+                <span>Codigos de barra</span>
                 <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddBarcode">+ Agregar</button>
             </label>
             <div id="barcodeList" class="vstack gap-2"></div>
-            <div id="barcodeMsg" class="form-text text-danger d-none">No se pueden agregar m�s c�digos (m�ximo 5).</div>
+            <div id="barcodeMsg" class="form-text text-danger d-none">No se pueden agregar mas codigos (maximo 5).</div>
         </div>
+
         <div class="col-12">
-            <label class="form-label">Categorías</label>
+            <label class="form-label">Categorias</label>
             <div class="d-flex gap-2 mb-2 align-items-center">
                 <div class="dropdown">
-                    <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Categor�as</button>
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Categorias</button>
                     <ul class="dropdown-menu p-2" style="max-height: 260px; overflow:auto; min-width: 280px;">
                         <li class="px-1 mb-2">
-                            <input type="text" class="form-control form-control-sm" placeholder="Filtrar categor�as..." id="catFilterCreate">
+                            <input type="text" class="form-control form-control-sm" placeholder="Filtrar categorias..." id="catFilterCreate">
                         </li>
                         @foreach (var c in Model.Categorias)
                         {
@@ -45,23 +64,14 @@
                         }
                     </ul>
                 </div>
-                <small class="text-muted">Hasta 3 categorías.</small>
+                <small class="text-muted">Hasta 3 categorias.</small>
             </div>
             <div id="catSelectedCreate" class="d-flex flex-wrap gap-2 cat-box"></div>
             <div id="catInputsCreate"></div>
         </div>
-        <div class="col-md-4">
-            <label class="form-label">Precio</label>
-            <input asp-for="PrecioVentaActual" class="form-control" type="number" step="0.01" min="0" />
-            <span asp-validation-for="PrecioVentaActual" class="text-danger"></span>
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">Stock mínimo</label>
-            <input asp-for="StockMinimo" class="form-control" type="number" min="0" />
-            <span asp-validation-for="StockMinimo" class="text-danger"></span>
-        </div>
+
         <div class="col-md-6">
-            <label class="form-label">Código ubicación (ej: A1)</label>
+            <label class="form-label">Codigo ubicacion (ej: A1)</label>
             <input asp-for="UbicacionCodigo" class="form-control" />
             <span asp-validation-for="UbicacionCodigo" class="text-danger"></span>
         </div>
@@ -83,37 +93,37 @@
 <script>
 (function(){
   let isDirty=false; const form=document.querySelector('form');
-  if(!form) return; form.addEventListener('input',()=>isDirty=true,{capture:true});
+  if(!form) return;
+  form.addEventListener('input',()=>isDirty=true,{capture:true});
   form.addEventListener('change',()=>isDirty=true,{capture:true});
   form.addEventListener('submit',(e)=>{
-  const inputs = Array.from(document.querySelectorAll('#barcodeList .barcode-item input'));
-  const vals = inputs.map(i=>i.value.trim()).filter(v=>v.length>0);
-  const hasEmpty = inputs.some(i=>!i.value.trim());
-  const seen = new Set(); const dup = new Set();
-  vals.forEach(v=>{ const k=v.toLowerCase(); if(seen.has(k)) dup.add(k); else seen.add(k); });
-  if(hasEmpty){ e.preventDefault(); alert('No se permiten codigos de barra vacios.'); return; }
-  if(dup.size>0){ e.preventDefault(); alert('Hay codigos de barra repetidos.'); return; }
-  isDirty=false;
-});
+    const inputs = Array.from(document.querySelectorAll('#barcodeList .barcode-item input'));
+    const vals = inputs.map(i=>i.value.trim()).filter(v=>v.length>0);
+    const hasEmpty = inputs.some(i=>!i.value.trim());
+    const seen = new Set(); const dup = new Set();
+    vals.forEach(v=>{ const k=v.toLowerCase(); if(seen.has(k)) dup.add(k); else seen.add(k); });
+    if(hasEmpty){ e.preventDefault(); alert('No se permiten codigos de barra vacios.'); return; }
+    if(dup.size>0){ e.preventDefault(); alert('Hay codigos de barra repetidos.'); return; }
+    isDirty=false;
+  });
   window.addEventListener('beforeunload',function(e){ if(!isDirty) return; e.preventDefault(); e.returnValue=''; });
-  document.querySelectorAll('.btn-cancel-leave').forEach(a=>a.addEventListener('click',function(e){ if(isDirty && !confirm('Hay cambios sin guardar. Si vuelves, se perder�n. �Deseas salir igualmente?')){ e.preventDefault(); }}));
-  // Barcodes dynamic inputs
+  document.querySelectorAll('.btn-cancel-leave').forEach(a=>a.addEventListener('click',function(e){ if(isDirty && !confirm('Hay cambios sin guardar. Si vuelves, se perderan. Deseas salir igualmente?')){ e.preventDefault(); }}));
+
   const list = document.getElementById('barcodeList');
   const btnAdd = document.getElementById('btnAddBarcode');
   const msg = document.getElementById('barcodeMsg');
   const max = 5;
-  // Funci�n: agrega una fila (input de c�digo + bot�n eliminar) y reenumera cuando se borra
   const addInput = (val='')=>{
     const count = list.querySelectorAll('.barcode-item').length;
     if(count >= max){ msg.classList.remove('d-none'); return; }
     msg.classList.add('d-none');
-    const idx = count; // sequential
+    const idx = count;
     const row = document.createElement('div');
     row.className = 'barcode-item input-group';
     const input = document.createElement('input');
     input.name = `Barcodes[${idx}]`;
     input.className = 'form-control';
-    input.placeholder = 'C�digo de barra';
+    input.placeholder = 'Codigo de barra';
     input.value = val;
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -123,17 +133,18 @@
     row.appendChild(input); row.appendChild(btn);
     list.appendChild(row);
   };
-  // Funci�n: reenumerar nombres Barcodes[i] despu�s de altas/bajas
   const renumber = ()=>{
     const items = list.querySelectorAll('.barcode-item input');
     items.forEach((inp, i)=>{ inp.name = `Barcodes[${i}]`; });
     if(items.length < max) msg.classList.add('d-none');
   };
-  btnAdd?.addEventListener('click', ()=> { const hasEmpty = Array.from(document.querySelectorAll('#barcodeList .barcode-item input')).some(i=>!i.value.trim()); if(hasEmpty){ alert('Complete el codigo vacio antes de agregar otro.'); return; } addInput(); });
-  // Initialize with one empty input
+  btnAdd?.addEventListener('click', ()=> {
+    const hasEmpty = Array.from(document.querySelectorAll('#barcodeList .barcode-item input')).some(i=>!i.value.trim());
+    if(hasEmpty){ alert('Complete el codigo vacio antes de agregar otro.'); return; }
+    addInput();
+  });
   if(list && list.children.length === 0){ addInput(); }
 
-  // Selecci�n de categor�as v�a bot�n (hasta 3)
   (function(){
     const container = document.getElementById('catSelectedCreate');
     const inputs = document.getElementById('catInputsCreate');
@@ -141,7 +152,7 @@
     const filter = document.getElementById('catFilterCreate');
     let ids = [];
 
-    function renumber() {
+    function renumberCats() {
       inputs.innerHTML = '';
       ids.forEach((id, i) => {
         const h = document.createElement('input');
@@ -159,7 +170,7 @@
         const chip = document.createElement('span');
         chip.className = 'cat-chip badge bg-primary-subtle text-primary border border-primary';
         chip.innerHTML = `${name} <button type="button" class="btn-close btn-close-sm ms-1" aria-label="Quitar"></button>`;
-        chip.querySelector('button')?.addEventListener('click', () => { ids = ids.filter(x => String(x) !== String(id)); renumber(); renderChips(); });
+        chip.querySelector('button')?.addEventListener('click', () => { ids = ids.filter(x => String(x) !== String(id)); renumberCats(); renderChips(); });
         container.appendChild(chip);
       });
     }
@@ -168,10 +179,10 @@
         e.preventDefault();
         const id = this.dataset.id;
         if (!id) return;
-        if (ids.includes(id)) return; // ya seleccionado
-        if (ids.length >= 3) { alert('Solo puedes seleccionar hasta 3 categor�as.'); return; }
+        if (ids.includes(id)) return;
+        if (ids.length >= 3) { alert('Solo puedes seleccionar hasta 3 categorias.'); return; }
         ids.push(id);
-        renumber();
+        renumberCats();
         renderChips();
       });
     });
@@ -183,10 +194,3 @@
 })();
 </script>
 }
-
-
-
-
-
-
-

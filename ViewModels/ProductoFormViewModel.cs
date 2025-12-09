@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Collections.Generic;
 
 namespace mi_ferreteria.ViewModels
 {
@@ -15,32 +16,32 @@ namespace mi_ferreteria.ViewModels
         [StringLength(150, ErrorMessage = "El nombre debe tener hasta 150 caracteres")]
         public string Nombre { get; set; }
 
-        [StringLength(1000, ErrorMessage = "La descripción es demasiado larga")]
+        [StringLength(1000, ErrorMessage = "La descripcion es demasiado larga")]
         public string? Descripcion { get; set; }
 
-        // Permite hasta 3 categorías seleccionadas
+        // Permite hasta 3 categorias seleccionadas
         public List<long> CategoriaIds { get; set; } = new();
         public List<SelectListItem> Categorias { get; set; } = new();
+        public List<SelectListItem> UnidadesMedida { get; set; } = new();
 
         [Required(ErrorMessage = "El precio es obligatorio")]
         [Range(0, 9999999999.99, ErrorMessage = "El precio debe ser >= 0")]
         public decimal PrecioVentaActual { get; set; }
 
-        [Range(0, int.MaxValue, ErrorMessage = "El stock mínimo debe ser >= 0")]
+        [Range(0, int.MaxValue, ErrorMessage = "El stock minimo debe ser >= 0")]
         public int StockMinimo { get; set; }
+
+        [Required(ErrorMessage = "La unidad de medida es obligatoria")]
+        public string UnidadMedida { get; set; } = "unidad";
 
         public bool Activo { get; set; } = true;
 
         public long? UbicacionPreferidaId { get; set; }
-        [RegularExpression("^[A-Za-z][0-9]{1,2}$", ErrorMessage = "La ubicación debe tener formato letra+número, ej: A1")]
+        [RegularExpression("^[A-Za-z][0-9]{1,2}$", ErrorMessage = "La ubicacion debe tener formato letra+numero, ej: A1")]
         public string? UbicacionCodigo { get; set; }
 
-        // Códigos de barra: colección de inputs dinámicos en la vista
+        // Codigos de barra: coleccion de inputs dinamicos en la vista
         public List<string> Barcodes { get; set; } = new();
         public string? OriginalHash { get; set; }
     }
 }
-
-
-
-

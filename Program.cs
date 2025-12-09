@@ -1,9 +1,30 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Authorization;
+using mi_ferreteria.Security;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Agrega los servicios al contenedor.
-builder.Services.AddControllersWithViews();
+// Servicios
+builder.Services.AddControllersWithViews(options =>
+{
+    var policy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+    options.Filters.Add(new AuthorizeFilter(policy));
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Auth/Login";
+        options.AccessDeniedPath = "/Auth/Login";
+        options.SlidingExpiration = true;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    });
+builder.Services.AddAuthorization();
 builder.Services.AddTransient<mi_ferreteria.Data.IUsuarioRepository, mi_ferreteria.Data.UsuarioRepository>();
 builder.Services.AddTransient<mi_ferreteria.Data.IRolRepository, mi_ferreteria.Data.RolRepository>();
 builder.Services.AddTransient<mi_ferreteria.Data.IPermisoRepository, mi_ferreteria.Data.PermisoRepository>();
@@ -12,10 +33,11 @@ builder.Services.AddTransient<mi_ferreteria.Data.ICategoriaRepository, mi_ferret
 builder.Services.AddTransient<mi_ferreteria.Data.IStockRepository, mi_ferreteria.Data.StockRepository>();
 builder.Services.AddTransient<mi_ferreteria.Data.IClienteRepository, mi_ferreteria.Data.ClienteRepository>();
 builder.Services.AddTransient<mi_ferreteria.Data.IVentaRepository, mi_ferreteria.Data.VentaRepository>();
+builder.Services.AddTransient<IAuthService, AuthService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -24,25 +46,21 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 app.UseRouting();
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
-
-// Habilita rutas por atributos para APIs
 app.MapControllers();
 
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
-
 
 app.Run();
 

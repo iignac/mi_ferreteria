@@ -1,9 +1,10 @@
-﻿@model mi_ferreteria.Models.Producto
+@model mi_ferreteria.Models.Producto
 @{
     ViewData["Title"] = "Detalle de Producto";
     var barcodes = ViewBag.Barcodes as IEnumerable<mi_ferreteria.Models.ProductoCodigoBarra> ?? Enumerable.Empty<mi_ferreteria.Models.ProductoCodigoBarra>();
     var stock = ViewBag.Stock is long l ? l : 0;
     var returnPage = ViewBag.ReturnPage is int ? (int)ViewBag.ReturnPage : 1;
+    var cats = ViewBag.CategoriasNombres as IEnumerable<string>;
 }
 <h2 class="mb-3">Detalle de Producto</h2>
 
@@ -14,10 +15,7 @@
       <div class="col-md-3"><strong>SKU:</strong> @Model.Sku</div>
       <div class="col-md-6"><strong>Nombre:</strong> @Model.Nombre</div>
       <div class="col-12">
-        <strong>Categorías:</strong>
-        @{
-            var cats = ViewBag.CategoriasNombres as IEnumerable<string>;
-        }
+        <strong>Categorias:</strong>
         @if (cats != null && cats.Any())
         {
             <span class="ms-2">
@@ -33,18 +31,19 @@
         }
       </div>
       <div class="col-md-3"><strong>Precio:</strong> $ @Model.PrecioVentaActual</div>
-      <div class="col-md-3"><strong>Stock mínimo:</strong> @Model.StockMinimo</div>
-      <div class="col-md-3"><strong>Activo:</strong> @(Model.Activo ? "Sí" : "No")</div>
-      <div class="col-md-3"><strong>Ubicación código:</strong> @(string.IsNullOrWhiteSpace(Model.UbicacionCodigo) ? "-" : Model.UbicacionCodigo)</div>
+      <div class="col-md-3"><strong>Stock minimo:</strong> @Model.StockMinimo</div>
+      <div class="col-md-3"><strong>Unidad de medida:</strong> @(string.IsNullOrWhiteSpace(Model.UnidadMedida) ? "-" : Model.UnidadMedida)</div>
+      <div class="col-md-3"><strong>Activo:</strong> @(Model.Activo ? "Si" : "No")</div>
+      <div class="col-md-3"><strong>Ubicacion codigo:</strong> @(string.IsNullOrWhiteSpace(Model.UbicacionCodigo) ? "-" : Model.UbicacionCodigo)</div>
       <div class="col-md-3"><strong>Stock actual:</strong> @stock</div>
       <div class="col-md-3"><strong>Creado:</strong> @Model.CreatedAt.LocalDateTime</div>
       <div class="col-md-3"><strong>Actualizado:</strong> @Model.UpdatedAt.LocalDateTime</div>
     </div>
     <hr/>
-    <h5>Códigos de barra</h5>
+    <h5>Codigos de barra</h5>
     @if (!barcodes.Any())
     {
-        <div class="text-muted">Sin códigos de barra.</div>
+        <div class="text-muted">Sin codigos de barra.</div>
     }
     else
     {
@@ -65,8 +64,3 @@
     <a asp-action="Index" asp-route-page="@returnPage" class="btn btn-outline-secondary">Volver</a>
     <a asp-action="Edit" asp-route-id="@Model.Id" asp-route-page="@returnPage" class="btn btn-primary">Editar</a>
 </div>
-
-
-
-
-

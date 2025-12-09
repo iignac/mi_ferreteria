@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using mi_ferreteria.Data;
 using mi_ferreteria.Models;
@@ -9,6 +11,7 @@ using mi_ferreteria.ViewModels;
 
 namespace mi_ferreteria.Controllers
 {
+    [Authorize(Roles = "Administrador,Vendedor")]
     public class VentaController : Controller
     {
         private readonly IProductoRepository _productoRepo;
@@ -36,6 +39,7 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
+                if (!PuedeVender()) return Forbid();
                 _logger.LogInformation("Cargando pantalla de creación de venta");
 
                 const int pageSize = 10;
@@ -87,6 +91,7 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
+                if (!PuedeVender()) return Forbid();
                 if (model.Lineas == null || model.Lineas.Count == 0)
                 {
                     ModelState.AddModelError(string.Empty, "Debe agregar al menos un producto.");
@@ -176,13 +181,19 @@ namespace mi_ferreteria.Controllers
                     return View("Index", model);
                 }
 
-                // Por ahora usamos un usuario fijo (id=1) ya que no hay autenticación implementada
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdClaim, out var userId) || userId <= 0)
+                {
+                    _logger.LogWarning("No se pudo obtener el usuario autenticado para registrar la venta");
+                    return Forbid();
+                }
+
                 var venta = new Venta
                 {
                     ClienteId = cliente?.Id,
                     TipoCliente = model.TipoCliente,
                     TipoPago = model.TipoPago,
-                    UsuarioId = 1,
+                    UsuarioId = userId,
                     Estado = "CONFIRMADA"
                 };
 
@@ -232,6 +243,7 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
+                if (!PuedeVender()) return Forbid();
                 const int pageSize = 10;
                 if (page < 1) page = 1;
 
@@ -265,6 +277,7 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
+                if (!PuedeVender()) return Forbid();
                 if (string.IsNullOrWhiteSpace(q))
                 {
                     return Json(Array.Empty<object>());
@@ -365,6 +378,7 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
+                if (!PuedeVender()) return Forbid();
                 var data = _ventaRepo.ObtenerComprobante(id);
                 if (data == null)
                 {
@@ -385,6 +399,11 @@ namespace mi_ferreteria.Controllers
                 _logger.LogError(ex, "Error al obtener comprobante de venta {VentaId}", id);
                 return Problem("Ocurrió un error al generar el comprobante de venta.");
             }
+        }
+
+        private bool PuedeVender()
+        {
+            return User.IsInRole("Administrador") || User.IsInRole("Vendedor");
         }
     }
 }

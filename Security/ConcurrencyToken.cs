@@ -31,6 +31,7 @@ namespace mi_ferreteria.Security
                 (p.CategoriaId?.ToString() ?? string.Empty),
                 p.PrecioVentaActual.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 p.StockMinimo.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                (p.UnidadMedida ?? string.Empty).Trim().ToLowerInvariant(),
                 p.Activo ? "1" : "0",
                 (p.UbicacionPreferidaId?.ToString() ?? string.Empty),
                 (p.UbicacionCodigo ?? string.Empty).Trim().ToUpperInvariant(),

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8" />
@@ -19,38 +19,64 @@
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Inicio</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Usuario" asp-action="Index">Usuarios</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Categoria" asp-action="Index">Categorías</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Producto" asp-action="Index">Productos</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Venta" asp-action="Index">Venta</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Venta" asp-action="Historial">Historial ventas</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Stock" asp-action="Index">Stock</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Cliente" asp-action="Index">Clientes</a>
-                        </li>
-                    </ul>
+                    @if (User?.Identity?.IsAuthenticated == true)
+                    {
+                        <ul class="navbar-nav flex-grow-1">
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Inicio</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-controller="Usuario" asp-action="Index">Usuarios</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Categoria" asp-action="Index">Categorias</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-controller="Producto" asp-action="Index">Productos</a>
+                            </li>
+                            @if (!User.IsInRole("Stock"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="" asp-controller="Venta" asp-action="Index">Venta</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="" asp-controller="Venta" asp-action="Historial">Historial ventas</a>
+                                </li>
+                            }
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-controller="Stock" asp-action="Index">Stock</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-controller="Cliente" asp-action="Index">Clientes</a>
+                            </li>
+                        </ul>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="navbar-text text-white small">
+                                @User.Identity?.Name
+                                @if (User.IsInRole("Administrador"))
+                                {
+                                    <span class="badge text-bg-warning text-dark ms-1">Admin</span>
+                                }
+                            </span>
+                            <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-outline-light btn-sm">Cerrar sesion</button>
+                            </form>
+                        </div>
+                    }
+                    else
+                    {
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Auth" asp-action="Login">Iniciar sesion</a>
+                            </li>
+                        </ul>
+                    }
                 </div>
             </div>
         </nav>
     </header>
     <div class="container">
-        @* Alertas globales (éxito/error) con cierre *@
+        @* Alertas globales (exito/error) con cierre *@
         @if (TempData["Success"] is string ok && !string.IsNullOrWhiteSpace(ok))
         {
             <div class="alert alert-success alert-dismissible fade show mt-2" role="alert">
@@ -74,7 +100,3 @@
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
-
-
-
-

@@ -6,6 +6,7 @@ namespace mi_ferreteria.Data
     public interface IUsuarioRepository
     {
         List<Usuario> GetAll();
+        Usuario? GetByEmail(string email, bool includeSecrets = false);
         void Add(Usuario usuario, string plainPassword);
         void Update(Usuario usuario, string? newPlainPassword = null);
         void Delete(int id);

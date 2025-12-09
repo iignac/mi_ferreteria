@@ -1,39 +1,50 @@
 @{
     var p = ViewBag.Producto as mi_ferreteria.Models.Producto;
     long stock = ViewBag.Stock ?? 0;
+    var unidad = p?.UnidadMedida ?? "unidad";
     ViewData["Title"] = $"Stock de {p?.Nombre}";
+    var canMoveStock = User.IsInRole("Administrador") || User.IsInRole("Stock");
 }
 <h2>Stock de @p?.Nombre (@p?.Sku)</h2>
-<div class="mb-3">Stock actual: <span class="badge bg-info">@stock</span></div>
+<div class="mb-3">Stock actual: <span class="badge bg-info">@stock @unidad</span></div>
 
 @if (TempData["StockError"] is string err && !string.IsNullOrEmpty(err))
 {
     <div class="alert alert-danger">@err</div>
 }
 
+@if (!canMoveStock)
+{
+    <div class="alert alert-warning">
+        Los usuarios Vendedor pueden consultar stock pero no registrar ingresos o egresos.
+    </div>
+}
+
 <form asp-action="Manage" method="post">
     <input type="hidden" name="id" value="@p?.Id" />
-    <div class="row g-3">
-        <div class="col-md-3">
-            <label class="form-label">Tipo</label>
-            <select name="tipo" class="form-select">
-                <option value="INGRESO">Ingreso</option>
-                <option value="EGRESO">Egreso</option>
-            </select>
+    <fieldset @(canMoveStock ? "" : "disabled")>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Tipo</label>
+                <select name="tipo" class="form-select">
+                    <option value="INGRESO">Ingreso</option>
+                    <option value="EGRESO">Egreso</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Cantidad (@unidad)</label>
+                <input name="cantidad" type="number" min="1" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Motivo</label>
+                <input name="motivo" class="form-control" required placeholder="Describa el motivo" />
+            </div>
         </div>
-        <div class="col-md-3">
-            <label class="form-label">Cantidad</label>
-            <input name="cantidad" type="number" min="1" class="form-control" />
+        <div class="d-flex justify-content-center gap-2 mt-4">
+            <button type="submit" class="btn btn-primary px-5" @(canMoveStock ? "" : "disabled")>Aplicar</button>
+            <a asp-controller="Producto" asp-action="Index" class="btn btn-outline-secondary px-5">Volver</a>
         </div>
-        <div class="col-md-6">
-            <label class="form-label">Motivo</label>
-            <input name="motivo" class="form-control" required placeholder="Describa el motivo" />
-        </div>
-    </div>
-    <div class="d-flex justify-content-center gap-2 mt-4">
-        <button type="submit" class="btn btn-primary px-5">Aplicar</button>
-        <a asp-controller="Producto" asp-action="Index" class="btn btn-outline-secondary px-5">Volver</a>
-    </div>
+    </fieldset>
 </form>
 
 <hr class="my-4" />
@@ -46,7 +57,7 @@
                     <tr>
                         <th class="text-center">Fecha</th>
                         <th class="text-center">Tipo</th>
-                        <th class="text-center">Cantidad</th>
+                        <th class="text-center">Cantidad (@unidad)</th>
                         <th class="text-center">Motivo</th>
                     </tr>
                 </thead>

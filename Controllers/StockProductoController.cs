@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using mi_ferreteria.Data;
 
@@ -38,10 +39,13 @@ namespace mi_ferreteria.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult Manage(long id, string tipo, long cantidad, string? motivo)
         {
             try
             {
+                if (!PuedeMoverStock()) return Forbid();
+
                 if (cantidad <= 0)
                 {
                     TempData["StockError"] = "La cantidad debe ser mayor a 0.";
@@ -63,6 +67,11 @@ namespace mi_ferreteria.Controllers
                 TempData["StockError"] = "Ocurrió un error al ajustar el stock.";
                 return RedirectToAction("Manage", new { id });
             }
+        }
+
+        private bool PuedeMoverStock()
+        {
+            return User.IsInRole("Administrador") || User.IsInRole("Stock");
         }
     }
 }

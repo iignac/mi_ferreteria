@@ -21,6 +21,56 @@ namespace mi_ferreteria.Data
             _logger = logger;
         }
 
+        public Usuario? GetByEmail(string email, bool includeSecrets = false)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                using var cmd = new NpgsqlCommand(
+                    "SELECT id, nombre, email, activo, password_hash, password_salt FROM usuario WHERE lower(email)=lower(@mail) LIMIT 1",
+                    conn);
+                cmd.Parameters.AddWithValue("@mail", email);
+                using var reader = cmd.ExecuteReader();
+                if (!reader.Read()) return null;
+
+                var usuario = new Usuario
+                {
+                    Id = reader.GetInt32(0),
+                    Nombre = reader.IsDBNull(1) ? string.Empty : reader.GetString(1),
+                    Email = reader.GetString(2),
+                    Activo = reader.GetBoolean(3),
+                    PasswordHash = includeSecrets && !reader.IsDBNull(4) ? (byte[])reader["password_hash"] : null,
+                    PasswordSalt = includeSecrets && !reader.IsDBNull(5) ? (byte[])reader["password_salt"] : null
+                };
+
+                reader.Close();
+                using var cmdRoles = new NpgsqlCommand(@"SELECT r.id, r.nombre, r.descripcion
+                                                         FROM usuario_rol ur
+                                                         JOIN rol r ON r.id = ur.rol_id
+                                                         WHERE ur.usuario_id = @uid", conn);
+                cmdRoles.Parameters.AddWithValue("@uid", usuario.Id);
+                using var rolesReader = cmdRoles.ExecuteReader();
+                var roles = new List<Rol>();
+                while (rolesReader.Read())
+                {
+                    roles.Add(new Rol
+                    {
+                        Id = rolesReader.GetInt32(0),
+                        Nombre = rolesReader.GetString(1),
+                        Descripcion = rolesReader.GetString(2)
+                    });
+                }
+                usuario.Roles = roles;
+                return usuario;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener usuario por email {Email}", email);
+                throw;
+            }
+        }
+
         public List<Usuario> GetAll()
         {
             var usuarios = new List<Usuario>();

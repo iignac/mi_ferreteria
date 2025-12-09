@@ -1,8 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Logging;
 using mi_ferreteria.Data;
 using mi_ferreteria.Models;
 using mi_ferreteria.ViewModels;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace mi_ferreteria.Controllers
@@ -14,6 +17,11 @@ namespace mi_ferreteria.Controllers
         private readonly IStockRepository _stockRepo;
         private readonly ILogger<ProductoController> _logger;
 
+        private static readonly string[] UnidadesPermitidas = new[]
+        {
+            "unidad","gramos","kilos","metros cuadrados","juego","bolsa","placa","rollo","litro","mililitro","bidon","kit","par"
+        };
+
         public ProductoController(IProductoRepository repo, ICategoriaRepository catRepo, IStockRepository stockRepo, ILogger<ProductoController> logger)
         {
             _repo = repo;
@@ -21,19 +29,20 @@ namespace mi_ferreteria.Controllers
             _stockRepo = stockRepo;
             _logger = logger;
         }
-        
+
         public IActionResult Index(string? q = null, string? sort = null, int page = 1)
         {
             try
             {
                 const int pageSize = 10;
                 if (page < 1) page = 1;
-                // validar sort
-                var validSorts = new System.Collections.Generic.HashSet<string>(new[] {
+                var validSorts = new HashSet<string>(new[]
+                {
                     "id_desc","id_asc","nombre_asc","nombre_desc","precio_asc","precio_desc","stock_asc","stock_desc"
-                }, System.StringComparer.OrdinalIgnoreCase);
+                }, StringComparer.OrdinalIgnoreCase);
                 sort = string.IsNullOrWhiteSpace(sort) ? "id_asc" : sort.Trim().ToLowerInvariant();
                 if (!validSorts.Contains(sort)) sort = "id_desc";
+
                 int total;
                 int totalPages;
                 IEnumerable<Producto> productos;
@@ -54,6 +63,7 @@ namespace mi_ferreteria.Controllers
                     if (page > totalPages) page = totalPages;
                     productos = _repo.GetPageSorted(page, pageSize, sort).ToList();
                 }
+
                 var stocks = _stockRepo.GetStocks(productos.Select(p => p.Id));
                 ViewBag.Stocks = stocks;
                 ViewBag.Page = page;
@@ -64,7 +74,7 @@ namespace mi_ferreteria.Controllers
                 ViewBag.Sort = sort;
                 return View(productos);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al listar productos");
                 ViewBag.LoadError = true;
@@ -73,50 +83,55 @@ namespace mi_ferreteria.Controllers
             }
         }
 
-        // Utilidad: parsear lista de input de códigos de barra (solo código; tipo opcional si se desea ampliar)
-        private static System.Collections.Generic.List<mi_ferreteria.Models.ProductoCodigoBarra> ParseBarcodes(System.Collections.Generic.IEnumerable<string>? codes)
+        private static List<ProductoCodigoBarra> ParseBarcodes(IEnumerable<string>? codes)
         {
-            var list = new System.Collections.Generic.List<mi_ferreteria.Models.ProductoCodigoBarra>();
-            var seen = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+            var list = new List<ProductoCodigoBarra>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             if (codes == null) return list;
             foreach (var raw in codes)
             {
                 var t = raw?.Trim();
                 if (string.IsNullOrWhiteSpace(t)) continue;
-                // Si alguien ingresa "codigo,tipo" lo separamos; si no, tomamos solo codigo
-                var parts = t.Split(new[] { ',', ';' }, 2, System.StringSplitOptions.RemoveEmptyEntries);
+                var parts = t.Split(new[] { ',', ';' }, 2, StringSplitOptions.RemoveEmptyEntries);
                 var code = parts[0].Trim();
                 if (seen.Contains(code)) continue;
                 seen.Add(code);
                 string? tipo = parts.Length > 1 ? parts[1].Trim() : null;
-                list.Add(new mi_ferreteria.Models.ProductoCodigoBarra { CodigoBarra = code, Tipo = tipo });
+                list.Add(new ProductoCodigoBarra { CodigoBarra = code, Tipo = tipo });
             }
             return list;
         }
 
         public IActionResult Create(int? page = null)
         {
-            var model = new ProductoFormViewModel { Activo = true };
-            model.Categorias = _catRepo.GetAll().Where(c => c.Activo).Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre }).ToList();
-                        ViewBag.ReturnPage = page ?? 1;
+            var model = new ProductoFormViewModel { Activo = true, UnidadMedida = "unidad" };
+            model.Categorias = _catRepo.GetAll().Where(c => c.Activo).Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Nombre }).ToList();
+            model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
             ViewBag.ReturnPage = page ?? 1;
-                    return View(model);
+            return View(model);
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult Create(ProductoFormViewModel model, int? page = null)
         {
             try
             {
-                // Normalización básica
                 model.Sku = model.Sku?.Trim();
                 model.Nombre = model.Nombre?.Trim();
                 model.UbicacionCodigo = model.UbicacionCodigo?.Trim().ToUpperInvariant();
+                model.UnidadMedida = (model.UnidadMedida ?? string.Empty).Trim().ToLowerInvariant();
+
                 if (string.IsNullOrWhiteSpace(model.Sku)) ModelState.AddModelError("Sku", "El SKU es obligatorio.");
                 if (string.IsNullOrWhiteSpace(model.Nombre)) ModelState.AddModelError("Nombre", "El nombre es obligatorio.");
+                if (string.IsNullOrWhiteSpace(model.UnidadMedida) || !UnidadesPermitidas.Contains(model.UnidadMedida))
+                {
+                    ModelState.AddModelError("UnidadMedida", "Seleccione una unidad de medida válida.");
+                }
                 if (!ModelState.IsValid)
                 {
-                    model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre }).ToList();
+                    model.Categorias = _catRepo.GetAll().Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Nombre }).ToList();
+                    model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
                     ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }
@@ -124,18 +139,21 @@ namespace mi_ferreteria.Controllers
                 {
                     ModelState.AddModelError("Sku", "El SKU ya existe en otro producto.");
                     Response.StatusCode = 409;
+                    model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
                     ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }
-                // Validar categorías existentes
+
                 var categoriasValidas = _catRepo.GetAll().Where(c => c.Activo).Select(c => c.Id).ToHashSet();
                 if (model.CategoriaIds != null && model.CategoriaIds.Any(id2 => !categoriasValidas.Contains(id2)))
                 {
-                    ModelState.AddModelError("CategoriaIds", "Alguna categoría seleccionada no existe.");
-                    model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre }).ToList();
+                    ModelState.AddModelError("CategoriaIds", "Alguna categoria seleccionada no existe.");
+                    model.Categorias = _catRepo.GetAll().Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Nombre }).ToList();
+                    model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
                     ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }
+
                 var p = new Producto
                 {
                     Sku = model.Sku,
@@ -144,17 +162,17 @@ namespace mi_ferreteria.Controllers
                     CategoriaId = (model.CategoriaIds != null && model.CategoriaIds.Count > 0) ? model.CategoriaIds.First() : (long?)null,
                     PrecioVentaActual = model.PrecioVentaActual,
                     StockMinimo = model.StockMinimo,
+                    UnidadMedida = model.UnidadMedida,
                     Activo = model.Activo,
                     UbicacionPreferidaId = model.UbicacionPreferidaId,
                     UbicacionCodigo = model.UbicacionCodigo
                 };
                 _repo.Add(p);
-                // Guardar hasta 3 categorías seleccionadas
-                var catIdsCreate = (model.CategoriaIds ?? new System.Collections.Generic.List<long>()).Distinct().Take(3);
+
+                var catIdsCreate = (model.CategoriaIds ?? new List<long>()).Distinct().Take(3);
                 _repo.ReplaceCategorias(p.Id, catIdsCreate);
-                // Parsear códigos de barra desde la lista
+
                 var barcodes = ParseBarcodes(model.Barcodes);
-                // Validar unicidad global
                 foreach (var bc in barcodes)
                 {
                     if (_repo.BarcodeExists(bc.CodigoBarra))
@@ -164,15 +182,17 @@ namespace mi_ferreteria.Controllers
                 }
                 if (!ModelState.IsValid)
                 {
-                    model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre }).ToList();
+                    model.Categorias = _catRepo.GetAll().Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Nombre }).ToList();
+                    model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
                     ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }
+
                 _repo.ReplaceBarcodes(p.Id, barcodes);
                 TempData["Success"] = $"Producto '{p.Nombre}' creado correctamente.";
                 return RedirectToAction("Index", new { page = page ?? 1 });
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al crear producto");
                 return Problem("Ocurrió un error al crear el producto.");
@@ -194,19 +214,21 @@ namespace mi_ferreteria.Controllers
                     CategoriaIds = _repo.GetCategorias(p.Id).ToList(),
                     PrecioVentaActual = p.PrecioVentaActual,
                     StockMinimo = p.StockMinimo,
+                    UnidadMedida = string.IsNullOrWhiteSpace(p.UnidadMedida) ? "unidad" : p.UnidadMedida,
                     Activo = p.Activo,
                     UbicacionPreferidaId = p.UbicacionPreferidaId,
                     UbicacionCodigo = p.UbicacionCodigo,
                     OriginalHash = mi_ferreteria.Security.ConcurrencyToken.ComputeProductoHash(p, _repo.GetCategorias(p.Id))
                 };
-                model.Categorias = _catRepo.GetAll().Where(c => c.Activo).Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = (model.CategoriaIds.Contains(c.Id)) }).ToList();
-                // Cargar barcodes existentes
+                model.Categorias = _catRepo.GetAll().Where(c => c.Activo).Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = model.CategoriaIds.Contains(c.Id) }).ToList();
+                model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
+
                 var bcs = _repo.GetBarcodes(p.Id);
                 model.Barcodes = bcs.Select(x => x.CodigoBarra).ToList();
                 ViewBag.ReturnPage = page ?? 1;
-                    return View(model);
+                return View(model);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error cargando edición de producto {ProductoId}", id);
                 return Problem("Ocurrió un error al cargar la edición del producto.");
@@ -214,6 +236,7 @@ namespace mi_ferreteria.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult Edit(ProductoFormViewModel model, int? page = null)
         {
             try
@@ -221,17 +244,18 @@ namespace mi_ferreteria.Controllers
                 model.Sku = model.Sku?.Trim();
                 model.Nombre = model.Nombre?.Trim();
                 model.UbicacionCodigo = model.UbicacionCodigo?.Trim().ToUpperInvariant();
-                if (!ModelState.IsValid)
-                {
-                    model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = (model.CategoriaIds.Contains(c.Id)) }).ToList();
-                    ViewBag.ReturnPage = page ?? 1;
-                    return View(model);
-                }
+                model.UnidadMedida = (model.UnidadMedida ?? string.Empty).Trim().ToLowerInvariant();
+
                 if (string.IsNullOrWhiteSpace(model.Sku)) { ModelState.AddModelError("Sku", "El SKU es obligatorio."); }
                 if (string.IsNullOrWhiteSpace(model.Nombre)) { ModelState.AddModelError("Nombre", "El nombre es obligatorio."); }
+                if (string.IsNullOrWhiteSpace(model.UnidadMedida) || !UnidadesPermitidas.Contains(model.UnidadMedida))
+                {
+                    ModelState.AddModelError("UnidadMedida", "Seleccione una unidad de medida válida.");
+                }
                 if (!ModelState.IsValid)
                 {
-                    model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = (model.CategoriaIds.Contains(c.Id)) }).ToList();
+                    model.Categorias = _catRepo.GetAll().Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = model.CategoriaIds.Contains(c.Id) }).ToList();
+                    model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
                     ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }
@@ -239,30 +263,34 @@ namespace mi_ferreteria.Controllers
                 {
                     ModelState.AddModelError("Sku", "El SKU ya existe en otro producto.");
                     Response.StatusCode = 409;
+                    model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
                     ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }
-                // Concurrencia optimista
+
                 var actual = _repo.GetById(model.Id);
                 if (actual == null) return NotFound();
                 var hashActual = mi_ferreteria.Security.ConcurrencyToken.ComputeProductoHash(actual, _repo.GetCategorias(actual.Id));
-                if (!string.IsNullOrEmpty(model.OriginalHash) && !string.Equals(model.OriginalHash, hashActual, System.StringComparison.Ordinal))
+                if (!string.IsNullOrEmpty(model.OriginalHash) && !string.Equals(model.OriginalHash, hashActual, StringComparison.Ordinal))
                 {
                     Response.StatusCode = 409;
-                    ModelState.AddModelError(string.Empty, "El producto fue modificado por otro proceso. Recarga la pA!gina.");
-                    model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = (model.CategoriaIds.Contains(c.Id)) }).ToList();
+                    ModelState.AddModelError(string.Empty, "El producto fue modificado por otro proceso. Recarga la página.");
+                    model.Categorias = _catRepo.GetAll().Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = model.CategoriaIds.Contains(c.Id) }).ToList();
+                    model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
                     ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }
-                // Validar categorías existentes
+
                 var categoriasValidas = _catRepo.GetAll().Where(c => c.Activo).Select(c => c.Id).ToHashSet();
                 if (model.CategoriaIds != null && model.CategoriaIds.Any(id2 => !categoriasValidas.Contains(id2)))
                 {
-                    ModelState.AddModelError("CategoriaIds", "Alguna categoría seleccionada no existe.");
-                    model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = (model.CategoriaIds.Contains(c.Id)) }).ToList();
+                    ModelState.AddModelError("CategoriaIds", "Alguna categoria seleccionada no existe.");
+                    model.Categorias = _catRepo.GetAll().Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = model.CategoriaIds.Contains(c.Id) }).ToList();
+                    model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
                     ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }
+
                 var p = _repo.GetById(model.Id);
                 if (p == null) return NotFound();
                 p.Sku = model.Sku;
@@ -271,14 +299,15 @@ namespace mi_ferreteria.Controllers
                 p.CategoriaId = (model.CategoriaIds != null && model.CategoriaIds.Count > 0) ? model.CategoriaIds.First() : (long?)null;
                 p.PrecioVentaActual = model.PrecioVentaActual;
                 p.StockMinimo = model.StockMinimo;
+                p.UnidadMedida = model.UnidadMedida;
                 p.Activo = model.Activo;
                 p.UbicacionPreferidaId = model.UbicacionPreferidaId;
                 p.UbicacionCodigo = model.UbicacionCodigo;
                 _repo.Update(p);
-                // Guardar hasta 3 categorías seleccionadas
-                var catIdsEdit = (model.CategoriaIds ?? new System.Collections.Generic.List<long>()).Distinct().Take(3);
+
+                var catIdsEdit = (model.CategoriaIds ?? new List<long>()).Distinct().Take(3);
                 _repo.ReplaceCategorias(p.Id, catIdsEdit);
-                // Validar y reemplazar códigos de barra
+
                 var barcodes = ParseBarcodes(model.Barcodes);
                 foreach (var bc in barcodes)
                 {
@@ -289,7 +318,8 @@ namespace mi_ferreteria.Controllers
                 }
                 if (!ModelState.IsValid)
                 {
-                    model.Categorias = _catRepo.GetAll().Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = (model.CategoriaIds.Contains(c.Id)) }).ToList();
+                    model.Categorias = _catRepo.GetAll().Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = model.CategoriaIds.Contains(c.Id) }).ToList();
+                    model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
                     ViewBag.ReturnPage = page ?? 1;
                     return View(model);
                 }
@@ -297,7 +327,7 @@ namespace mi_ferreteria.Controllers
                 TempData["Success"] = $"Producto '{p.Nombre}' actualizado correctamente.";
                 return RedirectToAction("Index", new { page = page ?? 1 });
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al actualizar producto {ProductoId}", model.Id);
                 return Problem("Ocurrió un error al actualizar el producto.");
@@ -313,7 +343,7 @@ namespace mi_ferreteria.Controllers
                 ViewBag.ReturnPage = page ?? 1;
                 return View(p);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error cargando eliminación de producto {ProductoId}", id);
                 return Problem("Ocurrió un error al cargar la eliminación del producto.");
@@ -330,7 +360,7 @@ namespace mi_ferreteria.Controllers
                 var stock = _stockRepo.GetStock(id);
                 var catIds = _repo.GetCategorias(id).ToList();
                 if (!catIds.Any() && p.CategoriaId.HasValue) catIds.Add(p.CategoriaId.Value);
-                var catNames = new System.Collections.Generic.List<string>();
+                var catNames = new List<string>();
                 foreach (var cid in catIds)
                 {
                     var c = _catRepo.GetById(cid);
@@ -342,7 +372,7 @@ namespace mi_ferreteria.Controllers
                 ViewBag.ReturnPage = page ?? 1;
                 return View(p);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al cargar detalles de producto {ProductoId}", id);
                 return Problem("Ocurrió un error al cargar los detalles del producto.");
@@ -350,6 +380,7 @@ namespace mi_ferreteria.Controllers
         }
 
         [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
         public IActionResult DeleteConfirmed(long id, int? page = null)
         {
             try
@@ -360,13 +391,19 @@ namespace mi_ferreteria.Controllers
                 TempData["Success"] = $"Producto '{nombre}' eliminado correctamente.";
                 return RedirectToAction("Index", new { page = page ?? 1 });
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al eliminar producto {ProductoId}", id);
                 return Problem("Ocurrió un error al eliminar el producto.");
             }
         }
 
+        private List<SelectListItem> BuildUnidadesSelect(string? selected)
+        {
+            var sel = (selected ?? "unidad").Trim().ToLowerInvariant();
+            return UnidadesPermitidas
+                .Select(u => new SelectListItem { Value = u, Text = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase(u), Selected = string.Equals(u, sel, StringComparison.OrdinalIgnoreCase) })
+                .ToList();
+        }
     }
 }
-

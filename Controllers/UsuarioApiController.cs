@@ -5,6 +5,7 @@ using System.Linq;
 using System.Collections.Generic;
 using mi_ferreteria.Dtos;
 using Microsoft.Extensions.Logging;
+using mi_ferreteria.Security;
 
 namespace mi_ferreteria.Controllers
 {
@@ -90,7 +91,7 @@ namespace mi_ferreteria.Controllers
                 {
                     return ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>
                     {
-                        { "Email", new[] { "El email ya está registrado" } }
+                        { "Email", new[] { "El email ya esta registrado" } }
                     }));
                 }
                 var rolesSeleccionados = _rolRepository.GetAll()
@@ -99,7 +100,12 @@ namespace mi_ferreteria.Controllers
 
                 if (string.IsNullOrWhiteSpace(dto.Password) || dto.Password != dto.ConfirmPassword)
                 {
-                    return BadRequest("La contraseña es obligatoria y debe coincidir con la confirmación.");
+                    return BadRequest("La contrasena es obligatoria y debe coincidir con la confirmacion.");
+                }
+
+                if (!PasswordPolicy.IsStrong(dto.Password, out var pwdMsg))
+                {
+                    return BadRequest(pwdMsg);
                 }
 
                 var usuario = new Usuario
@@ -144,7 +150,7 @@ namespace mi_ferreteria.Controllers
                 {
                     return ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>
                     {
-                        { "Email", new[] { "El email ya está registrado por otro usuario" } }
+                        { "Email", new[] { "El email ya esta registrado por otro usuario" } }
                     }));
                 }
 
@@ -168,8 +174,14 @@ namespace mi_ferreteria.Controllers
                 {
                     if (string.IsNullOrWhiteSpace(dto.Password) || dto.Password != dto.ConfirmPassword)
                     {
-                        return BadRequest("Las contraseñas no coinciden o están vacías.");
+                        return BadRequest("Las contrasenas no coinciden o estan vacias.");
                     }
+
+                    if (!PasswordPolicy.IsStrong(dto.Password, out var pwdMsg))
+                    {
+                        return BadRequest(pwdMsg);
+                    }
+
                     newPwd = dto.Password;
                 }
 

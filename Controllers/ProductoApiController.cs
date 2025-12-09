@@ -5,6 +5,7 @@ using mi_ferreteria.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.ComponentModel.DataAnnotations;
+using System;
 
 namespace mi_ferreteria.Controllers
 {
@@ -14,6 +15,9 @@ namespace mi_ferreteria.Controllers
     {
         private readonly IProductoRepository _repo;
         private readonly ILogger<ProductoApiController> _logger;
+        private static readonly string[] UnidadesPermitidas = new[] {
+            "unidad","gramos","kilos","metros cuadrados","juego","bolsa","placa","rollo","litro","mililitro","bidon","kit","par"
+        };
 
         public ProductoApiController(IProductoRepository repo, ILogger<ProductoApiController> logger)
         {
@@ -62,6 +66,7 @@ namespace mi_ferreteria.Controllers
             [Range(0, int.MaxValue)] public int StockMinimo { get; set; }
             public bool Activo { get; set; } = true;
             public long? UbicacionPreferidaId { get; set; }
+            [Required] public string UnidadMedida { get; set; } = "unidad";
         }
 
         [HttpPost("crear-producto")]
@@ -77,6 +82,14 @@ namespace mi_ferreteria.Controllers
                         { "Sku", new[] { "El SKU ya existe" } }
                     }));
                 }
+                var unidad = (dto.UnidadMedida ?? string.Empty).Trim().ToLowerInvariant();
+                if (string.IsNullOrWhiteSpace(unidad) || !UnidadesPermitidas.Contains(unidad))
+                {
+                    return ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>
+                    {
+                        { "UnidadMedida", new[] { "Unidad de medida invalida." } }
+                    }));
+                }
                 var p = new Producto
                 {
                     Sku = dto.Sku,
@@ -85,6 +98,7 @@ namespace mi_ferreteria.Controllers
                     CategoriaId = dto.CategoriaId,
                     PrecioVentaActual = dto.PrecioVentaActual,
                     StockMinimo = dto.StockMinimo,
+                    UnidadMedida = unidad,
                     Activo = dto.Activo,
                     UbicacionPreferidaId = dto.UbicacionPreferidaId
                 };
@@ -117,6 +131,14 @@ namespace mi_ferreteria.Controllers
                         { "Sku", new[] { "El SKU ya existe en otro producto" } }
                     }));
                 }
+                var unidad = (dto.UnidadMedida ?? string.Empty).Trim().ToLowerInvariant();
+                if (string.IsNullOrWhiteSpace(unidad) || !UnidadesPermitidas.Contains(unidad))
+                {
+                    return ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>
+                    {
+                        { "UnidadMedida", new[] { "Unidad de medida invalida." } }
+                    }));
+                }
                 var existente = _repo.GetById(dto.Id);
                 if (existente == null) return NotFound();
                 existente.Sku = dto.Sku;
@@ -127,6 +149,7 @@ namespace mi_ferreteria.Controllers
                 existente.StockMinimo = dto.StockMinimo;
                 existente.Activo = dto.Activo;
                 existente.UbicacionPreferidaId = dto.UbicacionPreferidaId;
+                existente.UnidadMedida = unidad;
                 _repo.Update(existente);
                 return NoContent();
             }
