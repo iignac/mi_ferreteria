@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Authorization;
 using mi_ferreteria.Data;
 using mi_ferreteria.Models;
 using System.ComponentModel.DataAnnotations;
@@ -65,6 +66,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Create()
         {
             ViewBag.Categorias = _repo.GetAll().Where(c => c.Activo);
@@ -72,6 +74,7 @@ namespace mi_ferreteria.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Create([Required] string Nombre, long? IdPadre, string? Descripcion)
         {
             ViewBag.Categorias = _repo.GetAll().Where(c => c.Activo);
@@ -112,6 +115,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Edit(long id)
         {
             var c = _repo.GetById(id);
@@ -121,6 +125,7 @@ namespace mi_ferreteria.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Edit(long Id, [Required] string Nombre, long? IdPadre, string? Descripcion, bool Activo = true)
         {
             ViewBag.Categorias = _repo.GetAll().Where(x => x.Id != Id && x.Activo);
@@ -162,6 +167,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Delete(long id)
         {
             var c = _repo.GetById(id);
@@ -170,6 +176,7 @@ namespace mi_ferreteria.Controllers
         }
 
         [HttpPost, ActionName("Delete")]
+        [Authorize(Roles = "Administrador,Stock")]
         public IActionResult DeleteConfirmed(long id)
         {
             try
@@ -185,6 +192,7 @@ namespace mi_ferreteria.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Activate(long id)
         {
             try
@@ -200,6 +208,7 @@ namespace mi_ferreteria.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Administrador,Stock")]
         public IActionResult HardDelete(long id)
         {
             try
@@ -215,4 +224,3 @@ namespace mi_ferreteria.Controllers
         }
     }
 }
-

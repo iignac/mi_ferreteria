@@ -3,6 +3,7 @@
     ViewData["Title"] = "Categorías";
     string q = ViewBag.Query as string ?? string.Empty;
     string sort = ViewBag.Sort as string ?? "id_asc";
+    bool canManageCategorias = User.IsInRole("Administrador") || User.IsInRole("Stock");
     string NextSort(string col) {
         return col switch {
             "id" => sort == "id_asc" ? "id_desc" : "id_asc",
@@ -32,9 +33,12 @@
         }
     </div>
 </form>
-<div class="text-center mb-4">
-    <a asp-action="Create" class="btn btn-primary btn-lg btn-cta">Crear categoría</a>
-</div>
+@if (canManageCategorias)
+{
+    <div class="text-center mb-4">
+        <a asp-action="Create" class="btn btn-primary btn-lg btn-cta">Crear categoria</a>
+    </div>
+}
 @if (Model == null || !Model.Any())
 {
     <div class="alert alert-info">No hay categorías.</div>
@@ -55,7 +59,9 @@ else
             <tbody>
             @foreach (var c in Model)
             {
-                <tr class="clickable-row" data-href="@Url.Action("Edit","Categoria", new { id = c.Id })">
+                var rowHref = canManageCategorias ? Url.Action("Edit","Categoria", new { id = c.Id }) : null;
+                var rowClass = canManageCategorias ? "clickable-row" : string.Empty;
+                <tr class="@rowClass" data-href="@rowHref">
                     <td>@c.Id</td>
                     <td>@c.Nombre</td>
                     <td class="text-center">
@@ -79,22 +85,29 @@ else
                         }
                     </td>
                     <td class="text-end">
-                        <a asp-action="Edit" asp-route-id="@c.Id" class="btn btn-sm btn-outline-primary">Editar</a>
-                        @if (c.Activo)
+                        @if (canManageCategorias)
                         {
-                            <a asp-action="Delete" asp-route-id="@c.Id" class="btn btn-sm btn-outline-warning">Desactivar</a>
+                            <a asp-action="Edit" asp-route-id="@c.Id" class="btn btn-sm btn-outline-primary">Editar</a>
+                            @if (c.Activo)
+                            {
+                                <a asp-action="Delete" asp-route-id="@c.Id" class="btn btn-sm btn-outline-warning">Desactivar</a>
+                            }
+                            else
+                            {
+                                <form asp-action="Activate" method="post" class="d-inline">
+                                    <input type="hidden" name="id" value="@c.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-success">Activar</button>
+                                </form>
+                            }
+                            <form asp-action="HardDelete" method="post" class="d-inline">
+                                <input type="hidden" name="id" value="@c.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger btn-hard-delete">Eliminar</button>
+                            </form>
                         }
                         else
                         {
-                            <form asp-action="Activate" method="post" class="d-inline">
-                                <input type="hidden" name="id" value="@c.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-success">Activar</button>
-                            </form>
+                            <span class="text-muted small">Solo lectura</span>
                         }
-                        <form asp-action="HardDelete" method="post" class="d-inline">
-                            <input type="hidden" name="id" value="@c.Id" />
-                            <button type="submit" class="btn btn-sm btn-outline-danger btn-hard-delete">Eliminar</button>
-                        </form>
                     </td>
                 </tr>
             }

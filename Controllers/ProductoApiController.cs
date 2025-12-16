@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using mi_ferreteria.Data;
 using mi_ferreteria.Models;
@@ -70,6 +71,7 @@ namespace mi_ferreteria.Controllers
         }
 
         [HttpPost("crear-producto")]
+        [Authorize(Roles = "Administrador,Stock")]
         public ActionResult<Producto> Crear([FromBody] ProductoCreateDto dto)
         {
             try
@@ -118,6 +120,7 @@ namespace mi_ferreteria.Controllers
         }
 
         [HttpPut("actualizar-producto/{id:long}")]
+        [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Actualizar(long id, [FromBody] ProductoUpdateDto dto)
         {
             try
@@ -161,6 +164,7 @@ namespace mi_ferreteria.Controllers
         }
 
         [HttpDelete("eliminar-producto/{id:long}")]
+        [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Eliminar(long id)
         {
             try
@@ -176,4 +180,3 @@ namespace mi_ferreteria.Controllers
         }
     }
 }
-

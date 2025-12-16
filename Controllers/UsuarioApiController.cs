@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using mi_ferreteria.Data;
 using mi_ferreteria.Models;
 using System.Linq;
@@ -11,6 +12,7 @@ namespace mi_ferreteria.Controllers
 {
     [ApiController]
     [Route("api/usuarios")]
+    [Authorize(Roles = "Administrador")]
     public class UsuarioApiController : ControllerBase
     {
         private readonly IUsuarioRepository _usuarioRepository;

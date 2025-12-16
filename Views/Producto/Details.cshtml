@@ -5,6 +5,7 @@
     var stock = ViewBag.Stock is long l ? l : 0;
     var returnPage = ViewBag.ReturnPage is int ? (int)ViewBag.ReturnPage : 1;
     var cats = ViewBag.CategoriasNombres as IEnumerable<string>;
+    var canManageProductos = User.IsInRole("Administrador") || User.IsInRole("Stock");
 }
 <h2 class="mb-3">Detalle de Producto</h2>
 
@@ -62,5 +63,8 @@
 
 <div class="d-flex justify-content-center gap-2 mt-4">
     <a asp-action="Index" asp-route-page="@returnPage" class="btn btn-outline-secondary">Volver</a>
-    <a asp-action="Edit" asp-route-id="@Model.Id" asp-route-page="@returnPage" class="btn btn-primary">Editar</a>
+    @if (canManageProductos)
+    {
+        <a asp-action="Edit" asp-route-id="@Model.Id" asp-route-page="@returnPage" class="btn btn-primary">Editar</a>
+    }
 </div>

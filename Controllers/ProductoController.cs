@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Authorization;
 using mi_ferreteria.Data;
 using mi_ferreteria.Models;
 using mi_ferreteria.ViewModels;
@@ -102,6 +103,7 @@ namespace mi_ferreteria.Controllers
             return list;
         }
 
+        [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Create(int? page = null)
         {
             var model = new ProductoFormViewModel { Activo = true, UnidadMedida = "unidad" };
@@ -113,6 +115,7 @@ namespace mi_ferreteria.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Create(ProductoFormViewModel model, int? page = null)
         {
             try
@@ -199,6 +202,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Edit(long id, int? page = null)
         {
             try
@@ -237,6 +241,7 @@ namespace mi_ferreteria.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Edit(ProductoFormViewModel model, int? page = null)
         {
             try
@@ -334,6 +339,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Delete(long id, int? page = null)
         {
             try
@@ -381,6 +387,7 @@ namespace mi_ferreteria.Controllers
 
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Administrador,Stock")]
         public IActionResult DeleteConfirmed(long id, int? page = null)
         {
             try

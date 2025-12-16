@@ -3,11 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using mi_ferreteria.Models;
 using mi_ferreteria.ViewModels;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Authorization;
 using System.Linq;
 using mi_ferreteria.Security;
 
 namespace mi_ferreteria.Controllers
 {
+    [Authorize(Roles = "Administrador")]
     public class UsuarioController : Controller
     {
         private readonly IUsuarioRepository _usuarioRepository;

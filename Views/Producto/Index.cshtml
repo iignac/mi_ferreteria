@@ -7,6 +7,7 @@
 @{
     string q = ViewBag.Query as string ?? string.Empty;
     string sort = ViewBag.Sort as string ?? "id_asc";
+    bool canManageProductos = User.IsInRole("Administrador") || User.IsInRole("Stock");
     string SortLabel(string s) {
         return s switch {
             "id_desc" => "ID (recientes)",
@@ -56,22 +57,23 @@
 @{
     var stocks = ViewBag.Stocks as System.Collections.Generic.IDictionary<long, long>;
 }
-@* stocks: diccionario (ProductoId -> Stock actual) calculado en el controlador *@
-@{
+@* stocks: diccionario (ProductoId -> Stock actual) calculado en el controlador *@@{
     int page = ViewBag.Page is int ? (int)ViewBag.Page : 1;
     int totalPages = ViewBag.TotalPages is int ? (int)ViewBag.TotalPages : 1;
 }
-@* page y totalPages llegan desde el controlador para soportar la paginación *@
+@* page y totalPages llegan desde el controlador para soportar la paginacion *@
 @if (ViewBag.LoadError == true)
 {
-    <div class="alert alert-danger">No pudimos cargar los productos. Por favor, intenta nuevamente más tarde.</div>
+    <div class="alert alert-danger">No pudimos cargar los productos. Por favor, intenta nuevamente mas tarde.</div>
 }
 
-<div class="text-center mb-4">
-    @* Enlace de alta: preserva la página actual para volver luego *@
-    <a asp-action="Create" asp-route-page="@(page)" class="btn btn-primary btn-lg btn-cta">Crear producto</a>
- </div>
-
+@if (canManageProductos)
+{
+    <div class="text-center mb-4">
+        @* Enlace de alta: preserva la pagina actual para volver luego *@
+        <a asp-action="Create" asp-route-page="@(page)" class="btn btn-primary btn-lg btn-cta">Crear producto</a>
+    </div>
+}
 @if (Model == null || !Model.Any())
 {
     <div class="alert alert-info">No hay productos cargados.</div>
@@ -108,9 +110,15 @@ else
                     </td>
                     <td class="text-end">
                         <a asp-action="Details" asp-route-id="@p.Id" asp-route-page="@(page)" asp-route-q="@q"  asp-route-sort="@sort" class="btn btn-sm btn-outline-info">Ver</a>
-                        <a asp-action="Edit" asp-route-id="@p.Id" asp-route-page="@(page)" asp-route-q="@q"  asp-route-sort="@sort" class="btn btn-sm btn-outline-primary">Editar</a>
+                        @if (canManageProductos)
+                        {
+                            <a asp-action="Edit" asp-route-id="@p.Id" asp-route-page="@(page)" asp-route-q="@q"  asp-route-sort="@sort" class="btn btn-sm btn-outline-primary">Editar</a>
+                        }
                         <a asp-controller="StockProducto" asp-action="Manage" asp-route-id="@p.Id" class="btn btn-sm btn-outline-secondary">Stock</a>
-                        <a asp-action="Delete" asp-route-id="@p.Id" asp-route-page="@(page)" asp-route-q="@q"  asp-route-sort="@sort" class="btn btn-sm btn-outline-danger btn-delete-prod">Eliminar</a>
+                        @if (canManageProductos)
+                        {
+                            <a asp-action="Delete" asp-route-id="@p.Id" asp-route-page="@(page)" asp-route-q="@q"  asp-route-sort="@sort" class="btn btn-sm btn-outline-danger btn-delete-prod">Eliminar</a>
+                        }
                     </td>
                 </tr>
             }
@@ -211,7 +219,6 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
 -->
-
 
 
 
