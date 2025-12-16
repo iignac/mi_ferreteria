@@ -1,0 +1,237 @@
+@model mi_ferreteria.ViewModels.ClienteCuentaCorrienteViewModel
+@{
+    ViewData["Title"] = "Cuenta corriente de cliente";
+    string? success = TempData["CuentaCorrienteOk"] as string;
+    string? error = TempData["CuentaCorrienteError"] as string;
+}
+
+<h2>Cuenta corriente - @Model.Cliente.Nombre</h2>
+
+<div class="mb-3">
+    <a asp-action="Details" asp-route-id="@Model.Cliente.Id" class="btn btn-outline-secondary btn-sm">Volver al cliente</a>
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Lista de clientes</a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(success))
+{
+    <div class="alert alert-success">@success</div>
+}
+@if (!string.IsNullOrWhiteSpace(error))
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+@if (!Model.Cliente.CuentaCorrienteHabilitada)
+{
+    <div class="alert alert-warning">
+        La cuenta corriente no estケ habilitada para este cliente.
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-2">Resumen</h5>
+                    <p class="mb-1"><strong>Saldo actual:</strong>
+                        <span class="@(Model.SaldoActual > 0 ? "text-danger" : (Model.SaldoActual < 0 ? "text-success" : ""))">
+                            $ @Model.SaldoActual.ToString("N2")
+                        </span>
+                    </p>
+                    <p class="mb-1"><strong>Lヴmite de crゼdito:</strong> $ @Model.Cliente.LimiteCredito.ToString("N2")</p>
+                    <p class="mb-0"><strong>Saldo disponible:</strong>
+                        @{
+                            var disponible = Model.Cliente.LimiteCredito - Model.SaldoActual;
+                        }
+                        <span class="@(disponible <= 0 ? "text-danger" : "text-success")">$ @disponible.ToString("N2")</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Facturas vencidas</h5>
+                    @if (Model.FacturasVencidas.Any())
+                    {
+                        <p class="text-muted small">Seleccione una factura vencida e ingrese el monto para generar una nota de dИbito (recargo o interИs).</p>
+                        <form asp-action="GenerarNotaDebito" method="post" class="row g-2 align-items-end">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="clienteId" value="@Model.Cliente.Id" />
+                            <div class="col-md-6">
+                                <label class="form-label">Factura vencida</label>
+                                <select class="form-select" name="movimientoDeudaId" id="facturaVencidaSelect" required>
+                                    <option value="">Seleccione...</option>
+                                    @foreach (var f in Model.FacturasVencidas)
+                                    {
+                                        var label = string.IsNullOrWhiteSpace(f.Comprobante)
+                                            ? $"Venta {f.VentaId}"
+                                            : f.Comprobante;
+                                        <option value="@f.MovimientoDeudaId" data-saldo="@f.SaldoPendiente.ToString("F2")">
+                                            @label - Vto: @f.FechaVencimiento.ToString("yyyy-MM-dd") - Saldo $ @f.SaldoPendiente.ToString("N2")
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Monto</label>
+                                <input class="form-control" type="number" step="0.01" min="0.01" name="monto" id="notaDebitoMonto" required />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">DescripciИn</label>
+                                <input class="form-control" type="text" name="descripcion" placeholder="Opcional" />
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">Generar nota de dИbito</button>
+                            </div>
+                        </form>
+                    }
+                    else
+                    {
+                        <p class="mb-0 text-muted">No hay facturas vencidas con saldo pendiente.</p>
+                    }
+                </div>
+            </div>
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">Registrar pago de cuenta corriente</h5>
+                    @if (Model.SaldoActual <= 0)
+                    {
+                        <p class="mb-0 text-muted">El cliente no registra deuda. No es posible registrar pagos.</p>
+                    }
+                    else
+                    {
+                        <p class="text-muted small">Si lo desea puede asociar el pago a una factura con saldo pendiente.</p>
+                        <form asp-action="RegistrarPagoCuentaCorriente" method="post" class="row g-2 align-items-end">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="clienteId" value="@Model.Cliente.Id" />
+                            <div class="col-md-6">
+                                <label class="form-label">Factura a cancelar (opcional)</label>
+                                <select class="form-select" name="movimientoDeudaId" id="facturaPagoSelect">
+                                    <option value="">Aplicar a saldo general</option>
+                                    @foreach (var f in Model.FacturasPendientes)
+                                    {
+                                        var label = string.IsNullOrWhiteSpace(f.Comprobante)
+                                            ? $"Venta {f.VentaId}"
+                                            : f.Comprobante;
+                                        <option value="@f.MovimientoDeudaId" data-saldo="@f.SaldoPendiente.ToString("F2")">
+                                            @label - Saldo $ @f.SaldoPendiente.ToString("N2")
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Monto</label>
+                                <input class="form-control" type="number" step="0.01" min="0.01" name="monto" id="pagoMontoInput" required />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Descripción</label>
+                                <input class="form-control" type="text" name="descripcion" placeholder="Opcional" />
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-success">Registrar pago</button>
+                            </div>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-body">
+            <h5 class="card-title">Movimientos</h5>
+            @if (!Model.Movimientos.Any())
+            {
+                <p class="mb-0 text-muted">No hay movimientos registrados en esta cuenta corriente.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped align-middle">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Tipo</th>
+                                <th>Comprobante</th>
+                                <th>DescripciИn</th>
+                                <th>Vencimiento</th>
+                                <th class="text-end">Importe</th>
+                                <th class="text-end">Saldo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var mov in Model.Movimientos)
+                            {
+                                string tipo;
+                                switch (mov.Tipo)
+                                {
+                                    case "DEUDA":
+                                        tipo = "Factura (CC)";
+                                        break;
+                                    case "PAGO":
+                                        tipo = "Recibo";
+                                        break;
+                                    case "AJUSTE":
+                                        tipo = "Ajuste";
+                                        break;
+                                    case "NOTA_DEBITO":
+                                        tipo = "Nota de dИbito";
+                                        break;
+                                    case "NOTA_CREDITO":
+                                        tipo = "Nota de crゼdito";
+                                        break;
+                                    default:
+                                        tipo = mov.Tipo;
+                                        break;
+                                }
+                                var montoSigned = mov.Monto;
+                                if (mov.Tipo == "PAGO" || mov.Tipo == "NOTA_CREDITO")
+                                {
+                                    montoSigned = -mov.Monto;
+                                }
+                                <tr>
+                                    <td>@mov.Fecha.ToString("yyyy-MM-dd HH:mm")</td>
+                                    <td>@tipo</td>
+                                    <td>@(string.IsNullOrWhiteSpace(mov.Comprobante) ? "-" : mov.Comprobante)</td>
+                                    <td>@(string.IsNullOrWhiteSpace(mov.Descripcion) ? "-" : mov.Descripcion)</td>
+                                    <td>@(mov.FechaVencimiento.HasValue ? mov.FechaVencimiento.Value.ToString("yyyy-MM-dd") : "-")</td>
+                                    <td class="text-end">
+                                        <span class="@(montoSigned >= 0 ? "text-danger" : "text-success")">
+                                            $ @montoSigned.ToString("N2")
+                                        </span>
+                                    </td>
+                                    <td class="text-end">$ @mov.SaldoAcumulado.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<script>
+    (function () {
+        function bindSelect(selectId, inputId) {
+            const select = document.getElementById(selectId);
+            const input = document.getElementById(inputId);
+            if (!select || !input) {
+                return;
+            }
+            select.addEventListener('change', function () {
+                const option = select.options[select.selectedIndex];
+                if (!option) return;
+                const saldo = option.getAttribute('data-saldo');
+                if (saldo) {
+                    input.value = saldo;
+                }
+            });
+        }
+
+        bindSelect('facturaVencidaSelect', 'notaDebitoMonto');
+        bindSelect('facturaPagoSelect', 'pagoMontoInput');
+    })();
+</script>

@@ -11,7 +11,12 @@ namespace mi_ferreteria.Data
         void Update(Cliente cliente);
 
         decimal GetSaldoCuentaCorriente(long clienteId);
-        void RegistrarDeuda(long clienteId, long ventaId, decimal monto, int usuarioId, string descripcion);
+        long RegistrarDeuda(long clienteId, long ventaId, decimal monto, int usuarioId, string descripcion, DateTimeOffset? fechaVencimiento = null);
+        void RegistrarNotaDebito(long clienteId, decimal monto, int usuarioId, string descripcion, long? ventaId, long? movimientoRelacionadoId = null);
+        void RegistrarPagoCuentaCorriente(long clienteId, decimal monto, int usuarioId, string descripcion, long? ventaId = null, long? movimientoRelacionadoId = null);
+        ClienteCuentaCorrienteMovimiento? GetMovimiento(long movimientoId);
+        IEnumerable<ClienteCuentaCorrienteMovimiento> GetMovimientosCuentaCorriente(long clienteId);
+        IEnumerable<ClienteCuentaCorrienteFacturaPendiente> GetFacturasPendientes(long clienteId);
 
         // Listado paginado y bA-squeda
         int Count(string? q = null);

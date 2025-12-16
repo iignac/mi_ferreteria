@@ -2,8 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using mi_ferreteria.Data;
 using mi_ferreteria.Models;
+using mi_ferreteria.ViewModels;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Security.Claims;
 
 namespace mi_ferreteria.Controllers
 {
@@ -218,6 +221,161 @@ namespace mi_ferreteria.Controllers
             ViewBag.SaldoActual = saldoActual;
             ViewBag.SaldoDisponible = saldoDisponible;
             return View(c);
+        }
+
+        public IActionResult CuentaCorriente(long id)
+        {
+            var cliente = _repo.GetById(id);
+            if (cliente == null) return NotFound();
+            var movimientos = _repo.GetMovimientosCuentaCorriente(id).ToList();
+            var facturasPendientes = _repo.GetFacturasPendientes(id).ToList();
+            var ahora = DateTimeOffset.UtcNow;
+            var facturasVencidas = facturasPendientes.Where(f => f.FechaVencimiento < ahora).ToList();
+            var saldoActual = cliente.CuentaCorrienteHabilitada ? _repo.GetSaldoCuentaCorriente(id) : 0m;
+            var vm = new ClienteCuentaCorrienteViewModel
+            {
+                Cliente = cliente,
+                Movimientos = movimientos,
+                FacturasVencidas = facturasVencidas,
+                FacturasPendientes = facturasPendientes,
+                SaldoActual = saldoActual
+            };
+            return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult GenerarNotaDebito(long clienteId, long movimientoDeudaId, decimal monto, string? descripcion)
+        {
+            try
+            {
+                var cliente = _repo.GetById(clienteId);
+                if (cliente == null) return NotFound();
+                if (!cliente.CuentaCorrienteHabilitada)
+                {
+                    TempData["CuentaCorrienteError"] = "La cuenta corriente no estケ habilitada para este cliente.";
+                    return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+                }
+
+                var movimiento = _repo.GetMovimiento(movimientoDeudaId);
+                if (movimiento == null || movimiento.ClienteId != clienteId || movimiento.Tipo != "DEUDA")
+                {
+                    TempData["CuentaCorrienteError"] = "El movimiento de deuda seleccionado no es vケlido.";
+                    return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+                }
+
+                var facturasPendientes = _repo.GetFacturasPendientes(clienteId).ToList();
+                var facturaObjetivo = facturasPendientes.FirstOrDefault(f => f.MovimientoDeudaId == movimientoDeudaId);
+                if (facturaObjetivo == null || facturaObjetivo.FechaVencimiento >= DateTimeOffset.UtcNow)
+                {
+                    TempData["CuentaCorrienteError"] = "La factura seleccionada no estケ vencida o ya fue cancelada.";
+                    return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+                }
+
+                if (monto <= 0 || monto > facturaObjetivo.SaldoPendiente)
+                {
+                    TempData["CuentaCorrienteError"] = "El monto debe ser mayor a cero y no puede superar el saldo pendiente.";
+                    return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+                }
+
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdClaim, out var userId) || userId <= 0)
+                {
+                    TempData["CuentaCorrienteError"] = "No se pudo identificar al usuario actual.";
+                    return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+                }
+
+                var descripcionFinal = string.IsNullOrWhiteSpace(descripcion)
+                    ? $"Nota de dИbito por factura vencida {(facturaObjetivo.Comprobante ?? $"Venta {facturaObjetivo.VentaId}")}"
+                    : descripcion.Trim();
+
+                _repo.RegistrarNotaDebito(clienteId, monto, userId, descripcionFinal, movimiento.VentaId, movimiento.Id);
+                TempData["CuentaCorrienteOk"] = "La nota de dИbito se gener籀 con Иxito.";
+                return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error al registrar nota de dИbito para cliente {ClienteId}", clienteId);
+                TempData["CuentaCorrienteError"] = "OcurriИ un error al registrar la nota de dИbito.";
+                return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult RegistrarPagoCuentaCorriente(long clienteId, decimal monto, string? descripcion, long? movimientoDeudaId = null)
+        {
+            try
+            {
+                var cliente = _repo.GetById(clienteId);
+                if (cliente == null) return NotFound();
+                if (!cliente.CuentaCorrienteHabilitada)
+                {
+                    TempData["CuentaCorrienteError"] = "La cuenta corriente no estケ habilitada para este cliente.";
+                    return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+                }
+
+                if (monto <= 0)
+                {
+                    TempData["CuentaCorrienteError"] = "El monto del pago debe ser mayor a cero.";
+                    return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+                }
+
+                var saldoActual = _repo.GetSaldoCuentaCorriente(clienteId);
+                if (saldoActual <= 0)
+                {
+                    TempData["CuentaCorrienteError"] = "El cliente no registra deuda en cuenta corriente.";
+                    return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+                }
+
+                List<ClienteCuentaCorrienteFacturaPendiente>? facturasPendientes = null;
+                long? ventaId = null;
+                long? movRelacionadoId = null;
+                if (movimientoDeudaId.HasValue)
+                {
+                    facturasPendientes = _repo.GetFacturasPendientes(clienteId).ToList();
+                    var factura = facturasPendientes
+                        .FirstOrDefault(f => f.MovimientoDeudaId == movimientoDeudaId.Value);
+                    if (factura == null)
+                    {
+                        TempData["CuentaCorrienteError"] = "La factura seleccionada no tiene saldo pendiente.";
+                        return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+                    }
+                    if (monto > factura.SaldoPendiente)
+                    {
+                        TempData["CuentaCorrienteError"] = "El monto supera el saldo pendiente de la factura seleccionada.";
+                        return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+                    }
+                    ventaId = factura.VentaId;
+                    movRelacionadoId = factura.MovimientoDeudaId;
+                }
+                else if (monto > saldoActual)
+                {
+                    TempData["CuentaCorrienteError"] = "El monto supera la deuda actual del cliente.";
+                    return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+                }
+
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdClaim, out var userId) || userId <= 0)
+                {
+                    TempData["CuentaCorrienteError"] = "No se pudo identificar al usuario actual.";
+                    return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+                }
+
+                var descripcionFinal = string.IsNullOrWhiteSpace(descripcion)
+                    ? "Pago registrado en cuenta corriente"
+                    : descripcion.Trim();
+
+                _repo.RegistrarPagoCuentaCorriente(clienteId, monto, userId, descripcionFinal, ventaId, movRelacionadoId);
+                TempData["CuentaCorrienteOk"] = "El pago se registr籀 correctamente.";
+                return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error al registrar pago de cuenta corriente para cliente {ClienteId}", clienteId);
+                TempData["CuentaCorrienteError"] = "Ocurri籀 un error al registrar el pago.";
+                return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+            }
         }
 
         [HttpPost]

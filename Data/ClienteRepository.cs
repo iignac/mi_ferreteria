@@ -9,6 +9,7 @@ namespace mi_ferreteria.Data
 {
     public class ClienteRepository : IClienteRepository
     {
+        private const int DiasVencimientoCuentaCorriente = 30;
         private readonly string _connectionString;
         private readonly ILogger<ClienteRepository> _logger;
 
@@ -136,10 +137,12 @@ namespace mi_ferreteria.Data
                     cliente_id BIGINT NOT NULL REFERENCES cliente(id),
                     venta_id BIGINT NULL,
                     fecha TIMESTAMPTZ NOT NULL DEFAULT now(),
+                    fecha_vencimiento TIMESTAMPTZ NULL,
                     tipo TEXT NOT NULL,
                     monto NUMERIC(12,2) NOT NULL,
                     descripcion TEXT NULL,
-                    usuario_id INT NULL
+                    usuario_id INT NULL,
+                    movimiento_relacionado_id BIGINT NULL REFERENCES cliente_cuenta_corriente_mov(id)
                 );
             ", conn);
             cmd.ExecuteNonQuery();
@@ -157,6 +160,8 @@ namespace mi_ferreteria.Data
                 ALTER TABLE IF EXISTS cliente ADD COLUMN IF NOT EXISTS limite_credito NUMERIC(12,2) NOT NULL DEFAULT 0;
                 ALTER TABLE IF EXISTS cliente ADD COLUMN IF NOT EXISTS activo BOOLEAN NOT NULL DEFAULT true;
                 ALTER TABLE IF EXISTS cliente ADD COLUMN IF NOT EXISTS fecha_alta TIMESTAMPTZ NOT NULL DEFAULT now();
+                ALTER TABLE IF EXISTS cliente_cuenta_corriente_mov ADD COLUMN IF NOT EXISTS fecha_vencimiento TIMESTAMPTZ NULL;
+                ALTER TABLE IF EXISTS cliente_cuenta_corriente_mov ADD COLUMN IF NOT EXISTS movimiento_relacionado_id BIGINT NULL;
             ", conn);
             alt.ExecuteNonQuery();
         }
@@ -335,8 +340,8 @@ namespace mi_ferreteria.Data
                 using var cmd = new NpgsqlCommand(@"
                     SELECT COALESCE(SUM(
                         CASE
-                            WHEN tipo = 'DEUDA' THEN monto
-                            WHEN tipo = 'PAGO' THEN -monto
+                            WHEN tipo IN ('DEUDA', 'NOTA_DEBITO') THEN monto
+                            WHEN tipo IN ('PAGO', 'NOTA_CREDITO') THEN -monto
                             WHEN tipo = 'AJUSTE' THEN monto
                             ELSE 0
                         END
@@ -354,7 +359,36 @@ namespace mi_ferreteria.Data
             }
         }
 
-        public void RegistrarDeuda(long clienteId, long ventaId, decimal monto, int usuarioId, string descripcion)
+        public long RegistrarDeuda(long clienteId, long ventaId, decimal monto, int usuarioId, string descripcion, DateTimeOffset? fechaVencimiento = null)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureSchema(conn);
+                var vencimiento = fechaVencimiento?.ToUniversalTime() ?? DateTimeOffset.UtcNow.AddDays(DiasVencimientoCuentaCorriente);
+                using var cmd = new NpgsqlCommand(@"
+                    INSERT INTO cliente_cuenta_corriente_mov
+                        (cliente_id, venta_id, fecha_vencimiento, tipo, monto, descripcion, usuario_id)
+                    VALUES (@cid, @vid, @fv, 'DEUDA', @monto, @desc, @uid)
+                    RETURNING id", conn);
+                cmd.Parameters.AddWithValue("@cid", clienteId);
+                cmd.Parameters.AddWithValue("@vid", ventaId);
+                cmd.Parameters.AddWithValue("@fv", (object?)vencimiento.UtcDateTime ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@monto", monto);
+                cmd.Parameters.AddWithValue("@desc", (object?)descripcion ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@uid", usuarioId);
+                var res = cmd.ExecuteScalar();
+                return res is long l ? l : Convert.ToInt64(res);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al registrar deuda para cliente {ClienteId} por venta {VentaId}", clienteId, ventaId);
+                throw;
+            }
+        }
+
+        public void RegistrarNotaDebito(long clienteId, decimal monto, int usuarioId, string descripcion, long? ventaId, long? movimientoRelacionadoId = null)
         {
             try
             {
@@ -363,10 +397,11 @@ namespace mi_ferreteria.Data
                 EnsureSchema(conn);
                 using var cmd = new NpgsqlCommand(@"
                     INSERT INTO cliente_cuenta_corriente_mov
-                        (cliente_id, venta_id, tipo, monto, descripcion, usuario_id)
-                    VALUES (@cid, @vid, 'DEUDA', @monto, @desc, @uid)", conn);
+                        (cliente_id, venta_id, movimiento_relacionado_id, tipo, monto, descripcion, usuario_id)
+                    VALUES (@cid, @vid, @rel, 'NOTA_DEBITO', @monto, @desc, @uid)", conn);
                 cmd.Parameters.AddWithValue("@cid", clienteId);
-                cmd.Parameters.AddWithValue("@vid", ventaId);
+                cmd.Parameters.AddWithValue("@vid", (object?)ventaId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@rel", (object?)movimientoRelacionadoId ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@monto", monto);
                 cmd.Parameters.AddWithValue("@desc", (object?)descripcion ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@uid", usuarioId);
@@ -374,7 +409,219 @@ namespace mi_ferreteria.Data
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al registrar deuda para cliente {ClienteId} por venta {VentaId}", clienteId, ventaId);
+                _logger.LogError(ex, "Error al registrar nota de dИbito para cliente {ClienteId}", clienteId);
+                throw;
+            }
+        }
+
+        public ClienteCuentaCorrienteMovimiento? GetMovimiento(long movimientoId)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureSchema(conn);
+                using var cmd = new NpgsqlCommand(@"
+                    SELECT id, cliente_id, venta_id, fecha, fecha_vencimiento, tipo, monto, descripcion, usuario_id, movimiento_relacionado_id
+                    FROM cliente_cuenta_corriente_mov
+                    WHERE id = @id", conn);
+                cmd.Parameters.AddWithValue("@id", movimientoId);
+                using var reader = cmd.ExecuteReader();
+                if (reader.Read())
+                {
+                    return new ClienteCuentaCorrienteMovimiento
+                    {
+                        Id = reader.GetInt64(0),
+                        ClienteId = reader.GetInt64(1),
+                        VentaId = reader.IsDBNull(2) ? null : reader.GetInt64(2),
+                        Fecha = reader.GetFieldValue<DateTimeOffset>(3),
+                        FechaVencimiento = reader.IsDBNull(4) ? null : reader.GetFieldValue<DateTimeOffset>(4),
+                        Tipo = reader.GetString(5),
+                        Monto = reader.GetDecimal(6),
+                        Descripcion = reader.IsDBNull(7) ? null : reader.GetString(7),
+                        UsuarioId = reader.IsDBNull(8) ? null : reader.GetInt32(8),
+                        MovimientoRelacionadoId = reader.IsDBNull(9) ? null : reader.GetInt64(9)
+                    };
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener movimiento {MovimientoId}", movimientoId);
+                throw;
+            }
+        }
+
+        public IEnumerable<ClienteCuentaCorrienteMovimiento> GetMovimientosCuentaCorriente(long clienteId)
+        {
+            var list = new List<ClienteCuentaCorrienteMovimiento>();
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureSchema(conn);
+                using var cmd = new NpgsqlCommand(@"
+                    WITH base AS (
+                        SELECT ccm.id, ccm.cliente_id, ccm.venta_id, ccm.fecha, ccm.fecha_vencimiento,
+                               ccm.tipo, ccm.monto, ccm.descripcion, ccm.usuario_id, ccm.movimiento_relacionado_id,
+                               f.tipo_comprobante, f.punto_venta, f.numero, f.fecha_emision
+                        FROM cliente_cuenta_corriente_mov ccm
+                        LEFT JOIN factura f ON f.venta_id = ccm.venta_id
+                        WHERE ccm.cliente_id = @cid
+                    )
+                    SELECT id, cliente_id, venta_id, fecha, fecha_vencimiento, tipo, monto, descripcion,
+                           usuario_id, movimiento_relacionado_id,
+                           tipo_comprobante, punto_venta, numero, fecha_emision,
+                           SUM(
+                                CASE
+                                    WHEN tipo IN ('DEUDA','NOTA_DEBITO') THEN monto
+                                    WHEN tipo IN ('PAGO','NOTA_CREDITO') THEN -monto
+                                    WHEN tipo = 'AJUSTE' THEN monto
+                                    ELSE 0
+                                END
+                           ) OVER (ORDER BY fecha ASC, id ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS saldo
+                    FROM base
+                    ORDER BY fecha ASC, id ASC;", conn);
+                cmd.Parameters.AddWithValue("@cid", clienteId);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    string? comprobante = null;
+                    if (!reader.IsDBNull(10) && !reader.IsDBNull(11) && !reader.IsDBNull(12))
+                    {
+                        var tipo = reader.GetString(10);
+                        var pv = reader.GetInt32(11);
+                        var numero = reader.GetInt64(12);
+                        comprobante = $"{tipo} {pv:0000}-{numero:00000000}";
+                    }
+                    list.Add(new ClienteCuentaCorrienteMovimiento
+                    {
+                        Id = reader.GetInt64(0),
+                        ClienteId = reader.GetInt64(1),
+                        VentaId = reader.IsDBNull(2) ? null : reader.GetInt64(2),
+                        Fecha = reader.GetFieldValue<DateTimeOffset>(3),
+                        FechaVencimiento = reader.IsDBNull(4) ? null : reader.GetFieldValue<DateTimeOffset>(4),
+                        Tipo = reader.GetString(5),
+                        Monto = reader.GetDecimal(6),
+                        Descripcion = reader.IsDBNull(7) ? null : reader.GetString(7),
+                        UsuarioId = reader.IsDBNull(8) ? null : reader.GetInt32(8),
+                        MovimientoRelacionadoId = reader.IsDBNull(9) ? null : reader.GetInt64(9),
+                        Comprobante = comprobante,
+                        ComprobanteFecha = reader.IsDBNull(13) ? null : reader.GetFieldValue<DateTimeOffset>(13),
+                        SaldoAcumulado = reader.GetDecimal(14)
+                    });
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener movimientos de cuenta corriente del cliente {ClienteId}", clienteId);
+                throw;
+            }
+        }
+
+        public void RegistrarPagoCuentaCorriente(long clienteId, decimal monto, int usuarioId, string descripcion, long? ventaId = null, long? movimientoRelacionadoId = null)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureSchema(conn);
+                using var cmd = new NpgsqlCommand(@"
+                    INSERT INTO cliente_cuenta_corriente_mov
+                        (cliente_id, venta_id, movimiento_relacionado_id, tipo, monto, descripcion, usuario_id)
+                    VALUES (@cid, @vid, @rel, 'PAGO', @monto, @desc, @uid)", conn);
+                cmd.Parameters.AddWithValue("@cid", clienteId);
+                cmd.Parameters.AddWithValue("@vid", (object?)ventaId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@rel", (object?)movimientoRelacionadoId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@monto", monto);
+                cmd.Parameters.AddWithValue("@desc", (object?)descripcion ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@uid", usuarioId);
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al registrar pago en cuenta corriente para cliente {ClienteId}", clienteId);
+                throw;
+            }
+        }
+
+        public IEnumerable<ClienteCuentaCorrienteFacturaPendiente> GetFacturasPendientes(long clienteId)
+        {
+            var list = new List<ClienteCuentaCorrienteFacturaPendiente>();
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureSchema(conn);
+                using var cmd = new NpgsqlCommand(@"
+                    WITH base AS (
+                        SELECT ccm.id, ccm.venta_id, ccm.fecha, ccm.fecha_vencimiento, ccm.tipo, ccm.monto,
+                               f.tipo_comprobante, f.punto_venta, f.numero, f.fecha_emision
+                        FROM cliente_cuenta_corriente_mov ccm
+                        LEFT JOIN factura f ON f.venta_id = ccm.venta_id
+                        WHERE ccm.cliente_id = @cid AND ccm.venta_id IS NOT NULL
+                    ),
+                    agrupado AS (
+                        SELECT
+                            venta_id,
+                            MAX(id) FILTER (WHERE tipo = 'DEUDA') AS movimiento_deuda_id,
+                            MAX(fecha) FILTER (WHERE tipo = 'DEUDA') AS fecha_deuda,
+                            MAX(fecha_vencimiento) AS fecha_vencimiento_original,
+                            MAX(monto) FILTER (WHERE tipo = 'DEUDA') AS importe_deuda,
+                            MAX(tipo_comprobante) AS tipo_comprobante,
+                            MAX(punto_venta) AS punto_venta,
+                            MAX(numero) AS numero,
+                            MAX(fecha_emision) AS fecha_emision,
+                            SUM(
+                                CASE
+                                    WHEN tipo IN ('DEUDA','NOTA_DEBITO') THEN monto
+                                    WHEN tipo IN ('PAGO','NOTA_CREDITO') THEN -monto
+                                    WHEN tipo = 'AJUSTE' THEN monto
+                                    ELSE 0
+                                END
+                            ) AS saldo_pendiente
+                        FROM base
+                        GROUP BY venta_id
+                    )
+                    SELECT movimiento_deuda_id,
+                           venta_id,
+                           COALESCE(fecha_emision, fecha_deuda) AS fecha_emision,
+                           COALESCE(fecha_vencimiento_original, fecha_deuda + (@dias::text || ' days')::interval) AS fecha_vencimiento,
+                           COALESCE(importe_deuda, 0) AS importe_deuda,
+                           saldo_pendiente,
+                           tipo_comprobante,
+                           punto_venta,
+                           numero
+                    FROM agrupado
+                    WHERE saldo_pendiente > 0
+                    ORDER BY fecha_vencimiento ASC;", conn);
+                cmd.Parameters.AddWithValue("@cid", clienteId);
+                cmd.Parameters.AddWithValue("@dias", DiasVencimientoCuentaCorriente);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    string? comprobante = null;
+                    if (!reader.IsDBNull(6) && !reader.IsDBNull(7) && !reader.IsDBNull(8))
+                    {
+                        comprobante = $"{reader.GetString(6)} {reader.GetInt32(7):0000}-{reader.GetInt64(8):00000000}";
+                    }
+                    list.Add(new ClienteCuentaCorrienteFacturaPendiente
+                    {
+                        MovimientoDeudaId = reader.IsDBNull(0) ? 0 : reader.GetInt64(0),
+                        VentaId = reader.GetInt64(1),
+                        FechaEmision = reader.IsDBNull(2) ? DateTimeOffset.UtcNow : reader.GetFieldValue<DateTimeOffset>(2),
+                        FechaVencimiento = reader.GetFieldValue<DateTimeOffset>(3),
+                        ImporteOriginal = reader.GetDecimal(4),
+                        SaldoPendiente = reader.GetDecimal(5),
+                        Comprobante = comprobante
+                    });
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener facturas vencidas del cliente {ClienteId}", clienteId);
                 throw;
             }
         }

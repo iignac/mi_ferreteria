@@ -201,7 +201,14 @@ namespace mi_ferreteria.Controllers
 
                 if (model.TipoPago == "CUENTA_CORRIENTE" && cliente != null)
                 {
-                    _clienteRepo.RegistrarDeuda(cliente.Id, ventaCreada.Id, ventaCreada.Total, ventaCreada.UsuarioId, "Venta a cuenta corriente");
+                    var fechaVencimiento = ventaCreada.Fecha.AddDays(30);
+                    _ = _clienteRepo.RegistrarDeuda(
+                        cliente.Id,
+                        ventaCreada.Id,
+                        ventaCreada.Total,
+                        ventaCreada.UsuarioId,
+                        "Venta a cuenta corriente",
+                        fechaVencimiento);
                 }
 
                 foreach (var d in detalles)
