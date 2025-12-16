@@ -9,7 +9,7 @@ namespace mi_ferreteria.Data
         IEnumerable<Producto> GetPage(int page, int pageSize);
         IEnumerable<Producto> GetPageSorted(int page, int pageSize, string sort);
         int CountAll();
-        // Búsqueda paginada por cualquier campo relevante
+        // BA§squeda paginada por cualquier campo relevante
         int CountSearch(string query);
         IEnumerable<Producto> SearchPage(string query, int page, int pageSize);
         IEnumerable<Producto> SearchPageSorted(string query, int page, int pageSize, string sort);
@@ -21,7 +21,11 @@ namespace mi_ferreteria.Data
         IEnumerable<mi_ferreteria.Models.ProductoCodigoBarra> GetBarcodes(long productoId);
         void ReplaceBarcodes(long productoId, IEnumerable<mi_ferreteria.Models.ProductoCodigoBarra> codigos);
         bool BarcodeExists(string codigo, long? excludeProductId = null);
-        // Categorías múltiples por producto (hasta 3)
+        int CountInactive();
+        IEnumerable<Producto> GetLastCreated(int top);
+        IEnumerable<Producto> GetLastUpdated(int top);
+        IEnumerable<Producto> GetLastInactive(int top);
+        // CategorA-as mA§ltiples por producto (hasta 3)
         System.Collections.Generic.IEnumerable<long> GetCategorias(long productoId);
         void ReplaceCategorias(long productoId, System.Collections.Generic.IEnumerable<long> categoriaIds);
     }

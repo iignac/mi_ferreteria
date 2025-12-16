@@ -498,7 +498,121 @@ namespace mi_ferreteria.Data
                 throw;
             }
         }
+        public int CountInactive()
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureProductExtras(conn);
+                using var cmd = new NpgsqlCommand("SELECT COUNT(1) FROM producto WHERE activo = false", conn);
+                var obj = cmd.ExecuteScalar();
+                return obj is long l ? (int)l : Convert.ToInt32(obj);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al contar productos inactivos");
+                throw;
+            }
+        }
 
+        public IEnumerable<Producto> GetLastCreated(int top)
+        {
+            var list = new List<Producto>();
+            if (top < 1) top = 5;
+
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureProductExtras(conn);
+                using var cmd = new NpgsqlCommand(@"
+                    SELECT id, sku, nombre, descripcion, categoria_id,
+                           precio_venta_actual, stock_minimo, unidad_medida, activo,
+                           ubicacion_preferida_id, ubicacion_codigo, created_at, updated_at
+                    FROM producto
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT @top", conn);
+                cmd.Parameters.AddWithValue("@top", top);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    list.Add(MapProducto(reader));
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener ultimas altas de productos");
+                throw;
+            }
+        }
+
+        public IEnumerable<Producto> GetLastUpdated(int top)
+        {
+            var list = new List<Producto>();
+            if (top < 1) top = 5;
+
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureProductExtras(conn);
+                using var cmd = new NpgsqlCommand(@"
+                    SELECT id, sku, nombre, descripcion, categoria_id,
+                           precio_venta_actual, stock_minimo, unidad_medida, activo,
+                           ubicacion_preferida_id, ubicacion_codigo, created_at, updated_at
+                    FROM producto
+                    ORDER BY updated_at DESC, id DESC
+                    LIMIT @top", conn);
+                cmd.Parameters.AddWithValue("@top", top);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    list.Add(MapProducto(reader));
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener ultimas modificaciones de productos");
+                throw;
+            }
+        }
+
+        public IEnumerable<Producto> GetLastInactive(int top)
+        {
+            var list = new List<Producto>();
+            if (top < 1) top = 5;
+
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureProductExtras(conn);
+                using var cmd = new NpgsqlCommand(@"
+                    SELECT id, sku, nombre, descripcion, categoria_id,
+                           precio_venta_actual, stock_minimo, unidad_medida, activo,
+                           ubicacion_preferida_id, ubicacion_codigo, created_at, updated_at
+                    FROM producto
+                    WHERE activo = false
+                    ORDER BY updated_at DESC, id DESC
+                    LIMIT @top", conn);
+                cmd.Parameters.AddWithValue("@top", top);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    list.Add(MapProducto(reader));
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener productos dados de baja");
+                throw;
+            }
+        }
+        
         private static Producto MapProducto(NpgsqlDataReader reader)
         {
             return new Producto
@@ -573,4 +687,5 @@ namespace mi_ferreteria.Data
         }
     }
 }
+
 
