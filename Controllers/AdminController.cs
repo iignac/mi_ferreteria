@@ -16,6 +16,8 @@ namespace mi_ferreteria.Controllers
         private readonly IStockRepository _stockRepo;
         private readonly IProductoRepository _productoRepo;
         private readonly IUsuarioRepository _usuarioRepo;
+        private readonly IAuditoriaRepository _auditoriaRepo;
+        private readonly IReporteFinancieroRepository _finanzasRepo;
         private readonly ILogger<AdminController> _logger;
 
         public AdminController(
@@ -23,12 +25,16 @@ namespace mi_ferreteria.Controllers
             IStockRepository stockRepo,
             IProductoRepository productoRepo,
             IUsuarioRepository usuarioRepo,
+            IAuditoriaRepository auditoriaRepo,
+            IReporteFinancieroRepository finanzasRepo,
             ILogger<AdminController> logger)
         {
             _ventaRepo = ventaRepo;
             _stockRepo = stockRepo;
             _productoRepo = productoRepo;
             _usuarioRepo = usuarioRepo;
+            _auditoriaRepo = auditoriaRepo;
+            _finanzasRepo = finanzasRepo;
             _logger = logger;
         }
 
@@ -78,6 +84,55 @@ namespace mi_ferreteria.Controllers
             {
                 _logger.LogError(ex, "No se pudo construir el panel de administracion");
                 return Problem("No se pudo cargar el panel de administracion.");
+            }
+        }
+
+        public IActionResult Auditoria(int page = 1)
+        {
+            try
+            {
+                const int pageSize = 25;
+                if (page < 1) page = 1;
+                var (registros, total) = _auditoriaRepo.GetPage(page, pageSize);
+                var totalPages = (int)Math.Ceiling(total / (double)pageSize);
+                if (totalPages == 0) totalPages = 1;
+                if (page > totalPages)
+                {
+                    page = totalPages;
+                    (registros, total) = _auditoriaRepo.GetPage(page, pageSize);
+                }
+
+                var model = new AuditoriaListadoViewModel
+                {
+                    Registros = registros.ToList(),
+                    Page = page,
+                    TotalPages = totalPages,
+                    TotalCount = total
+                };
+
+                ViewData["Title"] = "Auditoria de usuarios";
+                return View("Auditoria", model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "No se pudo cargar la auditoria");
+                return Problem("No se pudo cargar la auditoria.");
+            }
+        }
+
+        public IActionResult Finanzas()
+        {
+            try
+            {
+                var resumen = _finanzasRepo.ObtenerResumen();
+                var vm = new FinanzasDashboardViewModel { Resumen = resumen };
+                ViewData["Title"] = "Tablero financiero";
+                return View("Finanzas", vm);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "No se pudo cargar el tablero financiero");
+                return Problem("No se pudo cargar el tablero financiero.");
             }
         }
     }

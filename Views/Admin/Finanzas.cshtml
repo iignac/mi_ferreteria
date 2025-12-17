@@ -1,0 +1,199 @@
+@model FinanzasDashboardViewModel
+@{
+    ViewData["Title"] = "Tablero financiero";
+    var r = Model.Resumen;
+    string Mon(decimal v) => v.ToString("C");
+    string Dia(double? d) => d.HasValue ? $"{d.Value:F1} dias" : "Sin datos";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+        <h1 class="h3 mb-0">Tablero financiero</h1>
+        <p class="text-muted mb-0">Ventas, margen y cobranzas.</p>
+    </div>
+    <span class="badge bg-warning text-dark align-self-start">Solo administradores</span>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted mb-1">Total vendido</p>
+                <h4 class="fw-bold mb-0">@Mon(r.TotalVendido)</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted mb-1">Margen bruto (estimado)</p>
+                <h4 class="fw-bold mb-0">@Mon(r.MargenBrutoEstimado)</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted mb-1">Deuda total</p>
+                <h4 class="fw-bold mb-0 text-danger">@Mon(r.DeudaTotal)</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted mb-1">Promedio de cobro</p>
+                <h4 class="fw-bold mb-0">@Dia(r.PromedioCobroDias)</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <p class="text-muted mb-1">Ventas del dia</p>
+                <h5 class="fw-bold mb-0">@Mon(r.VentasDia)</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <p class="text-muted mb-1">Ventas de la semana</p>
+                <h5 class="fw-bold mb-0">@Mon(r.VentasSemana)</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <p class="text-muted mb-1">Ventas del mes</p>
+                <h5 class="fw-bold mb-0">@Mon(r.VentasMes)</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-xl-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <p class="text-muted mb-1">Ventas del año</p>
+                <h5 class="fw-bold mb-0">@Mon(r.VentasAnio)</h5>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-12 col-xl-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Top 5 productos</h5>
+            </div>
+            <div class="card-body p-0">
+                @if (r.TopProductos.Count == 0)
+                {
+                    <div class="p-4 text-muted text-center">Sin datos de ventas.</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-end">Cantidad</th>
+                                    <th class="text-end">Importe</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var p in r.TopProductos)
+                                {
+                                    <tr>
+                                        <td>@p.Nombre</td>
+                                        <td class="text-end">@p.CantidadVendida</td>
+                                        <td class="text-end">@Mon(p.ImporteTotal)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-xl-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Clientes que más compran</h5>
+            </div>
+            <div class="card-body p-0">
+                @if (r.TopClientes.Count == 0)
+                {
+                    <div class="p-4 text-muted text-center">Sin compras registradas.</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th class="text-end">Compras</th>
+                                    <th class="text-end">Importe</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var c in r.TopClientes)
+                                {
+                                    <tr>
+                                        <td>@c.Nombre</td>
+                                        <td class="text-end">@c.CantidadCompras</td>
+                                        <td class="text-end">@Mon(c.ImporteTotal)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mt-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Clientes deudores</h5>
+        <small class="text-muted">Incluye saldo de cuenta corriente</small>
+    </div>
+    <div class="card-body p-0">
+        @if (r.Deudores.Count == 0)
+        {
+            <div class="p-4 text-muted text-center">Sin deudas pendientes.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Cliente</th>
+                            <th class="text-end">Deuda</th>
+                            <th class="text-end">Límite crédito</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in r.Deudores)
+                        {
+                            <tr>
+                                <td>@d.Nombre</td>
+                                <td class="text-end text-danger">@Mon(d.DeudaTotal)</td>
+                                <td class="text-end">@Mon(d.LimiteCredito)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

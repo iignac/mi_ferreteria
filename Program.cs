@@ -12,6 +12,7 @@ builder.Services.AddControllersWithViews(options =>
         .RequireAuthenticatedUser()
         .Build();
     options.Filters.Add(new AuthorizeFilter(policy));
+    options.Filters.Add<AuditoriaActionFilter>();
 });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -33,7 +34,10 @@ builder.Services.AddTransient<mi_ferreteria.Data.ICategoriaRepository, mi_ferret
 builder.Services.AddTransient<mi_ferreteria.Data.IStockRepository, mi_ferreteria.Data.StockRepository>();
 builder.Services.AddTransient<mi_ferreteria.Data.IClienteRepository, mi_ferreteria.Data.ClienteRepository>();
 builder.Services.AddTransient<mi_ferreteria.Data.IVentaRepository, mi_ferreteria.Data.VentaRepository>();
+builder.Services.AddTransient<mi_ferreteria.Data.IAuditoriaRepository, mi_ferreteria.Data.AuditoriaRepository>();
+builder.Services.AddTransient<mi_ferreteria.Data.IReporteFinancieroRepository, mi_ferreteria.Data.ReporteFinancieroRepository>();
 builder.Services.AddTransient<IAuthService, AuthService>();
+builder.Services.AddScoped<AuditoriaActionFilter>();
 
 var app = builder.Build();
 
@@ -63,4 +67,3 @@ app.MapControllerRoute(
     .WithStaticAssets();
 
 app.Run();
-
