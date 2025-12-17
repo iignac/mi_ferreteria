@@ -69,6 +69,14 @@
                                 {
                                     <span class="badge text-bg-warning text-dark ms-1">Admin</span>
                                 }
+                                @if (User.IsInRole("Vendedor"))
+                                {
+                                    <span class="badge bg-success ms-1">Venta</span>
+                                }
+                                @if (User.IsInRole("Stock"))
+                                {
+                                    <span class="badge bg-primary ms-1">Stock</span>
+                                }
                             </span>
                             <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
                                 <button type="submit" class="btn btn-outline-light btn-sm">Cerrar sesion</button>

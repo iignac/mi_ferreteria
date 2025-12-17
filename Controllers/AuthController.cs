@@ -59,6 +59,20 @@ namespace mi_ferreteria.Controllers
 
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, authResult.Principal, authProperties);
             _logger.LogInformation("Usuario {Email} inicio sesion", model.Email);
+
+            if (authResult.Principal?.IsInRole("Administrador") == true)
+            {
+                return RedirectToAction("Dashboard", "Admin");
+            }
+            if (authResult.Principal?.IsInRole("Vendedor") == true)
+            {
+                return RedirectToAction("Index", "Venta");
+            }
+            if (authResult.Principal?.IsInRole("Stock") == true)
+            {
+                return RedirectToAction("Index", "Stock");
+            }
+
             return RedirectToLocal(model.ReturnUrl);
         }
 
