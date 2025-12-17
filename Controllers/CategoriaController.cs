@@ -10,11 +10,13 @@ namespace mi_ferreteria.Controllers
     public class CategoriaController : Controller
     {
         private readonly ICategoriaRepository _repo;
+        private readonly IAuditoriaRepository _auditoriaRepo;
         private readonly ILogger<CategoriaController> _logger;
 
-        public CategoriaController(ICategoriaRepository repo, ILogger<CategoriaController> logger)
+        public CategoriaController(ICategoriaRepository repo, IAuditoriaRepository auditoriaRepo, ILogger<CategoriaController> logger)
         {
             _repo = repo;
+            _auditoriaRepo = auditoriaRepo;
             _logger = logger;
         }
 
@@ -103,7 +105,9 @@ namespace mi_ferreteria.Controllers
                     var c = new Categoria { Nombre = Nombre, IdPadre = IdPadre, Descripcion = Descripcion };
                     return View(c);
                 }
-                _repo.Add(new Categoria { Nombre = Nombre!, IdPadre = IdPadre, Descripcion = Descripcion, Activo = true });
+                var nueva = new Categoria { Nombre = Nombre!, IdPadre = IdPadre, Descripcion = Descripcion, Activo = true };
+                _repo.Add(nueva);
+                RegistrarAuditoria("CREADO", $"Categoria #{nueva.Id}: {nueva.Nombre}");
                 return RedirectToAction("Index");
             }
             catch (System.Exception ex)
@@ -131,6 +135,7 @@ namespace mi_ferreteria.Controllers
             ViewBag.Categorias = _repo.GetAll().Where(x => x.Id != Id && x.Activo);
             try
             {
+                var anterior = _repo.GetById(Id);
                 if (string.IsNullOrWhiteSpace(Nombre))
                 {
                     ModelState.AddModelError("Nombre", "El nombre es obligatorio");
@@ -156,7 +161,12 @@ namespace mi_ferreteria.Controllers
                     ModelState.AddModelError("Nombre", "La categoría ya existe");
                     return View(new Categoria { Id = Id, Nombre = Nombre, IdPadre = IdPadre, Descripcion = Descripcion, Activo = Activo });
                 }
-                _repo.Update(new Categoria { Id = Id, Nombre = Nombre!, IdPadre = IdPadre, Descripcion = Descripcion, Activo = Activo });
+                var nueva = new Categoria { Id = Id, Nombre = Nombre!, IdPadre = IdPadre, Descripcion = Descripcion, Activo = Activo };
+                _repo.Update(nueva);
+                if (anterior != null)
+                {
+                    RegistrarAuditoria("EDICION", $"Categoria #{Id}: nombre '{anterior.Nombre}' -> '{nueva.Nombre}', activo {anterior.Activo} -> {nueva.Activo}, descripcion '{anterior.Descripcion}' -> '{nueva.Descripcion}'");
+                }
                 return RedirectToAction("Index");
             }
             catch (System.Exception ex)
@@ -181,7 +191,12 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
+                var anterior = _repo.GetById(id);
                 _repo.Delete(id);
+                if (anterior != null)
+                {
+                    RegistrarAuditoria("ELIMINADO", $"Categoria #{id}: {anterior.Nombre}");
+                }
                 return RedirectToAction("Index");
             }
             catch (System.Exception ex)
@@ -197,7 +212,12 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
+                var anterior = _repo.GetById(id);
                 _repo.Activate(id);
+                if (anterior != null)
+                {
+                    RegistrarAuditoria("EDICION", $"Categoria #{id}: activada (antes activo={anterior.Activo})");
+                }
                 return RedirectToAction("Index");
             }
             catch (System.Exception ex)
@@ -213,13 +233,29 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
+                var anterior = _repo.GetById(id);
                 _repo.HardDelete(id);
+                if (anterior != null)
+                {
+                    RegistrarAuditoria("ELIMINADO", $"Categoria #{id}: {anterior.Nombre} (hard delete)");
+                }
                 return RedirectToAction("Index");
             }
             catch (System.Exception ex)
             {
                 _logger.LogError(ex, "Error al eliminar fA-sicamente categorA-a {CategoriaId}", id);
                 return Problem("OcurriA3 un error al eliminar fA-sicamente la categorA-a.");
+            }
+        }
+
+        private void RegistrarAuditoria(string accion, string detalle)
+        {
+            var userIdClaim = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var nombre = User?.Identity?.Name ?? "Usuario desconocido";
+            if (int.TryParse(userIdClaim, out var uid) && uid > 0)
+            {
+                _auditoriaRepo.Registrar(uid, nombre, accion.ToUpperInvariant(), detalle);
+                HttpContext.Items["AuditLogged"] = true;
             }
         }
     }

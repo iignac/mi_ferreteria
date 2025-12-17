@@ -341,6 +341,12 @@ namespace mi_ferreteria.Data
                 using var conn = new NpgsqlConnection(_connectionString);
                 conn.Open();
                 EnsureProductExtras(conn);
+                // Evitar duplicado de precio en el historial (trigger usa CURRENT_DATE)
+                using (var delHist = new NpgsqlCommand("DELETE FROM precio_producto_historial WHERE producto_id=@id AND fecha_vigencia_desde = CURRENT_DATE", conn))
+                {
+                    delHist.Parameters.AddWithValue("@id", p.Id);
+                    delHist.ExecuteNonQuery();
+                }
                 using var cmd = new NpgsqlCommand(@"UPDATE producto SET
                         sku=@sku, nombre=@nombre, descripcion=@descripcion, categoria_id=@categoria_id,
                         precio_venta_actual=@precio, stock_minimo=@stockmin, unidad_medida=@unidad, activo=@activo, ubicacion_preferida_id=@ubipref, ubicacion_codigo=@ubicod
@@ -687,5 +693,4 @@ namespace mi_ferreteria.Data
         }
     }
 }
-
 

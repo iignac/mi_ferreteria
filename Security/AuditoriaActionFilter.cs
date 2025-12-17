@@ -24,6 +24,11 @@ namespace mi_ferreteria.Security
 
             try
             {
+                if (context.HttpContext.Items.ContainsKey("AuditLogged"))
+                {
+                    return;
+                }
+
                 var method = context.HttpContext.Request.Method;
                 if (string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase))
                 {

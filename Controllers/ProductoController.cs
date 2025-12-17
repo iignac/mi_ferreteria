@@ -16,6 +16,7 @@ namespace mi_ferreteria.Controllers
         private readonly IProductoRepository _repo;
         private readonly ICategoriaRepository _catRepo;
         private readonly IStockRepository _stockRepo;
+        private readonly IAuditoriaRepository _auditoriaRepo;
         private readonly ILogger<ProductoController> _logger;
 
         private static readonly string[] UnidadesPermitidas = new[]
@@ -23,11 +24,12 @@ namespace mi_ferreteria.Controllers
             "unidad","gramos","kilos","metros cuadrados","juego","bolsa","placa","rollo","litro","mililitro","bidon","kit","par"
         };
 
-        public ProductoController(IProductoRepository repo, ICategoriaRepository catRepo, IStockRepository stockRepo, ILogger<ProductoController> logger)
+        public ProductoController(IProductoRepository repo, ICategoriaRepository catRepo, IStockRepository stockRepo, IAuditoriaRepository auditoriaRepo, ILogger<ProductoController> logger)
         {
             _repo = repo;
             _catRepo = catRepo;
             _stockRepo = stockRepo;
+            _auditoriaRepo = auditoriaRepo;
             _logger = logger;
         }
 
@@ -192,6 +194,7 @@ namespace mi_ferreteria.Controllers
                 }
 
                 _repo.ReplaceBarcodes(p.Id, barcodes);
+                RegistrarAuditoria("CREADO", $"Producto #{p.Id}: {p.Nombre} (SKU {p.Sku}, Precio {p.PrecioVentaActual}, Activo={p.Activo})");
                 TempData["Success"] = $"Producto '{p.Nombre}' creado correctamente.";
                 return RedirectToAction("Index", new { page = page ?? 1 });
             }
@@ -329,6 +332,11 @@ namespace mi_ferreteria.Controllers
                     return View(model);
                 }
                 _repo.ReplaceBarcodes(p.Id, barcodes);
+                if (actual != null)
+                {
+                    RegistrarAuditoria("EDICION",
+                        $"Producto #{p.Id}: nombre '{actual.Nombre}' -> '{p.Nombre}', precio {actual.PrecioVentaActual} -> {p.PrecioVentaActual}, activo {actual.Activo} -> {p.Activo}, stockMin {actual.StockMinimo} -> {p.StockMinimo}, unidad '{actual.UnidadMedida}' -> '{p.UnidadMedida}'");
+                }
                 TempData["Success"] = $"Producto '{p.Nombre}' actualizado correctamente.";
                 return RedirectToAction("Index", new { page = page ?? 1 });
             }
@@ -395,6 +403,10 @@ namespace mi_ferreteria.Controllers
                 var prod = _repo.GetById(id);
                 var nombre = prod?.Nombre ?? ("#" + id);
                 _repo.Delete(id);
+                if (prod != null)
+                {
+                    RegistrarAuditoria("ELIMINADO", $"Producto #{id}: {prod.Nombre} (SKU {prod.Sku})");
+                }
                 TempData["Success"] = $"Producto '{nombre}' eliminado correctamente.";
                 return RedirectToAction("Index", new { page = page ?? 1 });
             }
@@ -411,6 +423,17 @@ namespace mi_ferreteria.Controllers
             return UnidadesPermitidas
                 .Select(u => new SelectListItem { Value = u, Text = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase(u), Selected = string.Equals(u, sel, StringComparison.OrdinalIgnoreCase) })
                 .ToList();
+        }
+
+        private void RegistrarAuditoria(string accion, string detalle)
+        {
+            var userIdClaim = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var nombre = User?.Identity?.Name ?? "Usuario desconocido";
+            if (int.TryParse(userIdClaim, out var uid) && uid > 0)
+            {
+                _auditoriaRepo.Registrar(uid, nombre, accion.ToUpperInvariant(), detalle);
+                HttpContext.Items["AuditLogged"] = true;
+            }
         }
     }
 }
