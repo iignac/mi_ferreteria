@@ -9,7 +9,7 @@ namespace mi_ferreteria.Models
         public decimal VentasSemana { get; set; }
         public decimal VentasMes { get; set; }
         public decimal VentasAnio { get; set; }
-        public decimal MargenBrutoEstimado { get; set; }
+        public decimal MargenBrutoPorcentaje { get; set; }
         public double? PromedioCobroDias { get; set; }
         public List<ReporteFinancieroTopProducto> TopProductos { get; set; } = new List<ReporteFinancieroTopProducto>();
         public List<ReporteFinancieroTopCliente> TopClientes { get; set; } = new List<ReporteFinancieroTopCliente>();

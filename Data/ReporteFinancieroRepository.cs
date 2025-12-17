@@ -77,25 +77,33 @@ namespace mi_ferreteria.Data
                     WHERE tipo = 'INGRESO' AND precio_compra IS NOT NULL
                     GROUP BY producto_id
                 ),
-                venta_det AS (
+                ventas_costo AS (
                     SELECT vd.producto_id,
                            SUM(vd.cantidad) AS cantidad,
-                           SUM(vd.subtotal) AS total,
-                           COALESCE(ac.avg_precio, 0) AS avg_costo
+                           SUM(vd.subtotal) AS total_venta,
+                           ac.avg_precio AS avg_costo
                     FROM venta_detalle vd
                     JOIN venta v ON v.id = vd.venta_id
-                    LEFT JOIN avg_compra ac ON ac.producto_id = vd.producto_id
+                    JOIN avg_compra ac ON ac.producto_id = vd.producto_id
                     GROUP BY vd.producto_id, ac.avg_precio
                 )
-                SELECT COALESCE(SUM(total),0) AS total, COALESCE(SUM(cantidad * avg_costo),0) AS costo
-                FROM venta_det;", conn))
+                SELECT COALESCE(SUM(total_venta),0) AS total_venta,
+                       COALESCE(SUM(cantidad * avg_costo),0) AS costo_total
+                FROM ventas_costo;", conn))
             {
                 using var r = cmdMargen.ExecuteReader();
                 if (r.Read())
                 {
-                    var total = r.GetDecimal(0);
-                    var costo = r.GetDecimal(1);
-                    result.MargenBrutoEstimado = total - costo;
+                    var totalVentasConCosto = r.GetDecimal(0);
+                    var costoProductos = r.GetDecimal(1);
+                    if (totalVentasConCosto > 0)
+                    {
+                        result.MargenBrutoPorcentaje = Math.Round(((totalVentasConCosto - costoProductos) / totalVentasConCosto) * 100m, 2);
+                    }
+                    else
+                    {
+                        result.MargenBrutoPorcentaje = 0m;
+                    }
                 }
             }
         }

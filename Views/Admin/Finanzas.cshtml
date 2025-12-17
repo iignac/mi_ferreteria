@@ -3,6 +3,7 @@
     ViewData["Title"] = "Tablero financiero";
     var r = Model.Resumen;
     string Mon(decimal v) => v.ToString("C");
+    string Porc(decimal v) => $"{v:0.##}%";
     string Dia(double? d) => d.HasValue ? $"{d.Value:F1} dias" : "Sin datos";
 }
 
@@ -26,8 +27,8 @@
     <div class="col-12 col-md-6 col-xl-3">
         <div class="card shadow-sm h-100">
             <div class="card-body">
-                <p class="text-muted mb-1">Margen bruto (estimado)</p>
-                <h4 class="fw-bold mb-0">@Mon(r.MargenBrutoEstimado)</h4>
+                <p class="text-muted mb-1">Margen bruto (%)</p>
+                <h4 class="fw-bold mb-0">@Porc(r.MargenBrutoPorcentaje)</h4>
             </div>
         </div>
     </div>

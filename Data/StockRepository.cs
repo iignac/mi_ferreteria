@@ -365,5 +365,29 @@ namespace mi_ferreteria.Data
                 throw;
             }
         }
+
+        public decimal? GetUltimoPrecioCompra(long productoId)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_cs);
+                conn.Open();
+                EnsureSchema(conn);
+                using var cmd = new NpgsqlCommand(@"SELECT precio_compra
+                                                    FROM producto_stock_mov
+                                                    WHERE producto_id=@id AND tipo='INGRESO' AND precio_compra IS NOT NULL
+                                                    ORDER BY fecha DESC, id DESC
+                                                    LIMIT 1", conn);
+                cmd.Parameters.AddWithValue("@id", productoId);
+                var res = cmd.ExecuteScalar();
+                if (res == null || res == DBNull.Value) return null;
+                return Convert.ToDecimal(res);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo ultimo precio de compra {ProductoId}", productoId);
+                throw;
+            }
+        }
     }
 }

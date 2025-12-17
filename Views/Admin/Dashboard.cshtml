@@ -13,42 +13,61 @@
     <span class="badge bg-warning text-dark align-self-start">Solo administradores</span>
 </div>
 
+<style>
+    .hover-card {
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .hover-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.12);
+    }
+    .hover-card:active {
+        transform: translateY(-1px) scale(0.99);
+    }
+</style>
+
 <div class="row g-3 mb-4">
     <div class="col-12 col-md-6 col-lg-3">
-        <div class="card shadow-sm h-100">
+        <a class="text-decoration-none" asp-controller="Venta" asp-action="Historial">
+            <div class="card shadow-sm h-100 hover-card">
+                <div class="card-body">
+                    <p class="text-muted mb-1">Ventas registradas</p>
+                    <h4 class="mb-0 fw-bold">@Model.TotalVentas</h4>
+                    <small class="text-muted">Ir al historial</small>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-12 col-md-6 col-lg-3">
+        <a class="text-decoration-none" asp-controller="Stock" asp-action="Index">
+            <div class="card shadow-sm h-100 hover-card">
+                <div class="card-body">
+                    <p class="text-muted mb-1">Movimientos de stock</p>
+                    <h4 class="mb-0 fw-bold">@Model.TotalMovimientosStock</h4>
+                    <small class="text-muted">Ingresos: @Model.TotalMovimientosIngreso | Egresos: @Model.TotalMovimientosEgreso</small>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-12 col-md-6 col-lg-3">
+        <div class="card shadow-sm h-100 hover-card">
             <div class="card-body">
-                <p class="text-muted mb-1">Ventas registradas</p>
-                <h4 class="mb-0 fw-bold">@Model.TotalVentas</h4>
-                <small class="text-muted">Ultimas 5 en la tabla de abajo</small>
+                <p class="text-muted mb-1">Ventas del dia</p>
+                <h4 class="mb-0 fw-bold">@Model.UltimasVentas.Where(v => v.Fecha.Date == DateTimeOffset.UtcNow.Date).Sum(v => v.Total).ToString("C")</h4>
+                <small class="text-muted">Total del día</small>
             </div>
         </div>
     </div>
     <div class="col-12 col-md-6 col-lg-3">
-        <div class="card shadow-sm h-100">
-            <div class="card-body">
-                <p class="text-muted mb-1">Movimientos de stock</p>
-                <h4 class="mb-0 fw-bold">@Model.TotalMovimientosStock</h4>
-                <small class="text-muted">Ingresos: @Model.TotalMovimientosIngreso | Egresos: @Model.TotalMovimientosEgreso</small>
+        <a class="text-decoration-none" asp-controller="Usuario" asp-action="Index">
+            <div class="card shadow-sm h-100 hover-card">
+                <div class="card-body">
+                    <p class="text-muted mb-1">Admins monitoreando</p>
+                    <h4 class="mb-0 fw-bold">@Model.AdministradoresActivos.Count</h4>
+                    <small class="text-muted">Ir a usuarios</small>
+                </div>
             </div>
-        </div>
-    </div>
-    <div class="col-12 col-md-6 col-lg-3">
-        <div class="card shadow-sm h-100">
-            <div class="card-body">
-                <p class="text-muted mb-1">Productos activos</p>
-                <h4 class="mb-0 fw-bold">@Model.TotalProductos</h4>
-                <small class="text-muted">Inactivos/baja: @Model.ProductosInactivos</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-12 col-md-6 col-lg-3">
-        <div class="card shadow-sm h-100">
-            <div class="card-body">
-                <p class="text-muted mb-1">Admins monitoreando</p>
-                <h4 class="mb-0 fw-bold">@Model.AdministradoresActivos.Count</h4>
-                <small class="text-muted">Usuarios con rol Administrador</small>
-            </div>
-        </div>
+        </a>
     </div>
 </div>
 

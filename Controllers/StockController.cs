@@ -14,12 +14,14 @@ namespace mi_ferreteria.Controllers
         private readonly ILogger<StockController> _logger;
         private readonly IStockRepository _stockRepo;
         private readonly IProductoRepository _prodRepo;
+        private readonly IAuditoriaRepository _auditoriaRepo;
 
-        public StockController(ILogger<StockController> logger, IStockRepository stockRepo, IProductoRepository prodRepo)
+        public StockController(ILogger<StockController> logger, IStockRepository stockRepo, IProductoRepository prodRepo, IAuditoriaRepository auditoriaRepo)
         {
             _logger = logger;
             _stockRepo = stockRepo;
             _prodRepo = prodRepo;
+            _auditoriaRepo = auditoriaRepo;
         }
 
         [HttpGet]
@@ -102,6 +104,10 @@ namespace mi_ferreteria.Controllers
                         ModelState.AddModelError(string.Empty, $"El precio de compra de {prod.Nombre} no puede ser negativo.");
                         continue;
                     }
+                    if (esIngreso && linea.PrecioCompra.HasValue && linea.PrecioCompra.Value >= prod.PrecioVentaActual)
+                    {
+                        ModelState.AddModelError(string.Empty, $"Advertencia: el precio de compra para {prod.Nombre} ({linea.PrecioCompra:C}) es igual o mayor que el precio de venta actual ({prod.PrecioVentaActual:C}).");
+                    }
                     if (!esIngreso && linea.Cantidad > stockActual)
                     {
                         ModelState.AddModelError(string.Empty, $"No hay stock suficiente de {prod.Nombre} para egresar {linea.Cantidad}. Disponible: {stockActual}.");
@@ -127,10 +133,12 @@ namespace mi_ferreteria.Controllers
                     if (esIngreso)
                     {
                         _stockRepo.Ingresar(linea.ProductoId, linea.Cantidad, motivo, linea.PrecioCompra);
+                        RegistrarAuditoria("INGRESO_STOCK", $"Ingreso de {linea.Cantidad} {linea.UnidadMedida} de {linea.ProductoNombre} (ID {linea.ProductoId})");
                     }
                     else
                     {
                         _stockRepo.Egresar(linea.ProductoId, linea.Cantidad, motivo);
+                        RegistrarAuditoria("EGRESO_STOCK", $"Egreso de {linea.Cantidad} {linea.UnidadMedida} de {linea.ProductoNombre} (ID {linea.ProductoId})");
                     }
                 }
 
@@ -169,11 +177,14 @@ namespace mi_ferreteria.Controllers
                 var resultado = productos.Select(p =>
                 {
                     var stock = stocks.TryGetValue(p.Id, out var s) ? s : 0L;
+                    var pc = _stockRepo.GetUltimoPrecioCompra(p.Id);
                     return new
                     {
                         id = p.Id,
                         sku = p.Sku,
                         nombre = p.Nombre,
+                        precioVenta = p.PrecioVentaActual,
+                        precioCompra = pc,
                         unidad = p.UnidadMedida,
                         stock
                     };
@@ -279,8 +290,14 @@ namespace mi_ferreteria.Controllers
             }
 
             var stocks = _stockRepo.GetStocks(productos.Select(p => p.Id));
+            var preciosCompra = new Dictionary<long, decimal?>();
+            foreach (var p in productos)
+            {
+                preciosCompra[p.Id] = _stockRepo.GetUltimoPrecioCompra(p.Id);
+            }
             ViewBag.Productos = productos;
             ViewBag.Stocks = stocks;
+            ViewBag.PreciosCompra = preciosCompra;
             ViewBag.Page = page;
             ViewBag.PageSize = pageSize;
             ViewBag.TotalCount = total;
@@ -291,6 +308,17 @@ namespace mi_ferreteria.Controllers
         private bool PuedeGestionarStock()
         {
             return User.IsInRole("Administrador") || User.IsInRole("Stock");
+        }
+
+        private void RegistrarAuditoria(string accion, string detalle)
+        {
+            var userIdClaim = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var nombre = User?.Identity?.Name ?? "Usuario desconocido";
+            if (int.TryParse(userIdClaim, out var uid) && uid > 0)
+            {
+                _auditoriaRepo.Registrar(uid, nombre, accion.ToUpperInvariant(), detalle);
+                HttpContext.Items["AuditLogged"] = true;
+            }
         }
     }
 }

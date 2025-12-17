@@ -11,6 +11,7 @@
     var lineasJson = JsonSerializer.Serialize(lineasIniciales);
     var tipoMovimiento = (Model?.TipoMovimiento ?? "INGRESO").ToUpperInvariant();
     var esIngreso = tipoMovimiento == "INGRESO";
+    var preciosCompra = ViewBag.PreciosCompra as System.Collections.Generic.IDictionary<long, decimal?> ?? new System.Collections.Generic.Dictionary<long, decimal?>();
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -71,6 +72,8 @@
                             <th>Nombre</th>
                             <th>Unidad</th>
                             <th>Stock</th>
+                            <th>Precio venta</th>
+                            <th>Ult. compra</th>
                             <th class="text-end">Agregar</th>
                         </tr>
                     </thead>
@@ -84,6 +87,8 @@
                             <td>@p.Nombre</td>
                             <td>@p.UnidadMedida</td>
                             <td>@stock</td>
+                            <td>@p.PrecioVentaActual.ToString("0.00")</td>
+                            <td>@(preciosCompra.TryGetValue(p.Id, out var pc) && pc.HasValue ? pc.Value.ToString("0.00") : "-")</td>
                             <td class="text-end">
                                 <button type="button"
                                         class="btn btn-sm btn-success"
@@ -92,6 +97,8 @@
                                         data-nombre="@p.Nombre"
                                         data-unidad="@p.UnidadMedida"
                                         data-stock="@stock"
+                                        data-precioventa="@p.PrecioVentaActual"
+                                        data-preciocompra="@(preciosCompra.TryGetValue(p.Id, out var pc2) && pc2.HasValue ? pc2.Value.ToString() : string.Empty)"
                                         onclick="agregarProductoDesdeBoton(this)">
                                     Agregar
                                 </button>
@@ -158,6 +165,7 @@
                             <th>Producto</th>
                             <th>Unidad</th>
                             <th style="width: 120px;">Cantidad</th>
+                            <th>Precio venta</th>
                             <th style="width: 150px;">Precio compra</th>
                             <th>Stock actual</th>
                             <th style="width: 90px;"></th>
@@ -202,7 +210,7 @@
             if (!tbodyCargas) return;
             tbodyCargas.innerHTML = '';
             if (!lineas.length) {
-                tbodyCargas.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay productos seleccionados.</td></tr>';
+                tbodyCargas.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No hay productos seleccionados.</td></tr>';
                 if (btnConfirmar) btnConfirmar.disabled = true;
                 return;
             }
@@ -212,7 +220,9 @@
                 const nombre = l.ProductoNombre || ('#' + l.ProductoId);
                 const unidad = l.UnidadMedida || 'unidad';
                 const cantidad = (l.Cantidad && l.Cantidad > 0) ? l.Cantidad : 1;
-                const precio = typeof l.PrecioCompra === 'number' ? l.PrecioCompra : '';
+                const precioVenta = typeof l.PrecioVenta === 'number' ? l.PrecioVenta : 0;
+                const ultimoCompra = typeof l.UltimoPrecioCompra === 'number' ? l.UltimoPrecioCompra : null;
+                const precio = typeof l.PrecioCompra === 'number' ? l.PrecioCompra : (ultimoCompra !== null ? ultimoCompra : '');
                 const stockActual = typeof l.StockActual === 'number' ? l.StockActual : 0;
 
                 tr.innerHTML = `
@@ -231,12 +241,14 @@
                                data-idx="${idx}"
                                oninput="actualizarCantidad(this)" />
                     </td>
+                    <td>${precioVenta > 0 ? precioVenta.toFixed(2) : '-'}</td>
                     <td>
                         <input type="number" class="form-control" min="0" step="0.01"
                                name="Lineas[${idx}].PrecioCompra"
                                value="${precio !== '' ? precio : ''}"
                                data-idx="${idx}"
                                oninput="actualizarPrecio(this)" />
+                        ${ultimoCompra !== null ? `<div class="text-muted small">Ult. compra: ${ultimoCompra.toFixed(2)}</div>` : ''}
                     </td>
                     <td>${stockActual}</td>
                     <td class="text-end">
@@ -260,18 +272,23 @@
             }
             const nombre = btn.getAttribute('data-nombre') || '';
             const unidad = btn.getAttribute('data-unidad') || 'unidad';
-            const stock = parseInt(btn.getAttribute('data-stock') || '0', 10);
+                const stock = parseInt(btn.getAttribute('data-stock') || '0', 10);
+                const precioVenta = parseFloat(btn.getAttribute('data-precioventa') || '0');
+                const ultimoCompra = btn.getAttribute('data-preciocompra');
+                const precioCompraUlt = ultimoCompra === null || ultimoCompra === undefined || ultimoCompra === '' ? null : parseFloat(ultimoCompra);
 
-            lineas.push({
-                ProductoId: id,
-                ProductoNombre: nombre,
-                UnidadMedida: unidad,
-                Cantidad: 1,
-                PrecioCompra: null,
-                StockActual: isNaN(stock) ? 0 : stock
-            });
-            renderLineas();
-        }
+                lineas.push({
+                    ProductoId: id,
+                    ProductoNombre: nombre,
+                    UnidadMedida: unidad,
+                    Cantidad: 1,
+                    PrecioCompra: precioCompraUlt,
+                    UltimoPrecioCompra: precioCompraUlt,
+                    PrecioVenta: isNaN(precioVenta) ? 0 : precioVenta,
+                    StockActual: isNaN(stock) ? 0 : stock
+                });
+                renderLineas();
+            }
 
         function quitarLinea(productoId) {
             const idx = lineas.findIndex(x => x.ProductoId === productoId);
@@ -376,12 +393,16 @@
                                     const tr = document.createElement('tr');
                                     const unidad = p.unidad || 'unidad';
                                     const stock = p.stock ?? 0;
+                                    const precioVenta = p.precioVenta ?? 0;
+                                    const precioCompra = p.precioCompra ?? null;
                                     tr.innerHTML = `
                                         <td>${p.id}</td>
                                         <td>${p.sku || ''}</td>
                                         <td>${p.nombre || ''}</td>
                                         <td>${unidad}</td>
                                         <td>${stock}</td>
+                                        <td>${precioVenta ? precioVenta.toFixed(2) : '-'}</td>
+                                        <td>${(typeof precioCompra === 'number') ? precioCompra.toFixed(2) : '-'}</td>
                                         <td class="text-end">
                                             <button type="button"
                                                     class="btn btn-sm btn-success"
@@ -390,6 +411,8 @@
                                                     data-nombre="${p.nombre || ''}"
                                                     data-unidad="${unidad}"
                                                     data-stock="${stock}"
+                                                    data-precioventa="${precioVenta}"
+                                                    data-preciocompra="${(typeof precioCompra === 'number') ? precioCompra : ''}"
                                                     onclick="agregarProductoDesdeBoton(this)">
                                                 Agregar
                                             </button>
