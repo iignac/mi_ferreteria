@@ -9,6 +9,10 @@ namespace mi_ferreteria.ViewModels
 
         [StringLength(200)]
         public string? Motivo { get; set; }
+
+        [Required]
+        [RegularExpression("INGRESO|EGRESO", ErrorMessage = "Tipo de movimiento invalido.")]
+        public string TipoMovimiento { get; set; } = "INGRESO";
     }
 
     public class StockCargaLineaViewModel

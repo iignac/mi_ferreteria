@@ -51,11 +51,18 @@ namespace mi_ferreteria.Controllers
 
                 var lineasParaMostrar = new List<StockCargaLineaViewModel>();
                 var lineasValidas = new List<StockCargaLineaViewModel>();
-                var motivo = string.IsNullOrWhiteSpace(model.Motivo) ? "Carga masiva" : model.Motivo.Trim();
+                var tipo = string.IsNullOrWhiteSpace(model.TipoMovimiento)
+                    ? "INGRESO"
+                    : model.TipoMovimiento.Trim().ToUpperInvariant();
+                var esIngreso = tipo == "INGRESO";
+                var motivo = string.IsNullOrWhiteSpace(model.Motivo) ? (esIngreso ? "Carga masiva" : "Egreso manual") : model.Motivo.Trim();
+                model.TipoMovimiento = esIngreso ? "INGRESO" : "EGRESO";
 
                 if (model.Lineas == null || model.Lineas.Count == 0)
                 {
-                    ModelState.AddModelError(string.Empty, "Debe seleccionar al menos un producto para ingresar stock.");
+                    ModelState.AddModelError(string.Empty, esIngreso
+                        ? "Debe seleccionar al menos un producto para ingresar stock."
+                        : "Debe seleccionar al menos un producto para egresar stock.");
                 }
 
                 foreach (var linea in model.Lineas ?? new List<StockCargaLineaViewModel>())
@@ -90,10 +97,19 @@ namespace mi_ferreteria.Controllers
                         ModelState.AddModelError(string.Empty, $"La cantidad para {prod.Nombre} debe ser mayor a 0.");
                         continue;
                     }
-                    if (linea.PrecioCompra.HasValue && linea.PrecioCompra.Value < 0)
+                    if (esIngreso && linea.PrecioCompra.HasValue && linea.PrecioCompra.Value < 0)
                     {
                         ModelState.AddModelError(string.Empty, $"El precio de compra de {prod.Nombre} no puede ser negativo.");
                         continue;
+                    }
+                    if (!esIngreso && linea.Cantidad > stockActual)
+                    {
+                        ModelState.AddModelError(string.Empty, $"No hay stock suficiente de {prod.Nombre} para egresar {linea.Cantidad}. Disponible: {stockActual}.");
+                        continue;
+                    }
+                    if (!esIngreso)
+                    {
+                        normalizada.PrecioCompra = null;
                     }
 
                     lineasValidas.Add(normalizada);
@@ -108,10 +124,19 @@ namespace mi_ferreteria.Controllers
 
                 foreach (var linea in lineasValidas)
                 {
-                    _stockRepo.Ingresar(linea.ProductoId, linea.Cantidad, motivo, linea.PrecioCompra);
+                    if (esIngreso)
+                    {
+                        _stockRepo.Ingresar(linea.ProductoId, linea.Cantidad, motivo, linea.PrecioCompra);
+                    }
+                    else
+                    {
+                        _stockRepo.Egresar(linea.ProductoId, linea.Cantidad, motivo);
+                    }
                 }
 
-                TempData["StockOk"] = $"Se registraron {lineasValidas.Count} ingresos de stock.";
+                TempData["StockOk"] = esIngreso
+                    ? $"Se registraron {lineasValidas.Count} ingresos de stock."
+                    : $"Se registraron {lineasValidas.Count} egresos de stock.";
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)

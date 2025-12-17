@@ -9,12 +9,17 @@
     int totalPages = ViewBag.TotalPages is int tp ? tp : 1;
     var lineasIniciales = Model?.Lineas ?? new List<mi_ferreteria.ViewModels.StockCargaLineaViewModel>();
     var lineasJson = JsonSerializer.Serialize(lineasIniciales);
+    var tipoMovimiento = (Model?.TipoMovimiento ?? "INGRESO").ToUpperInvariant();
+    var esIngreso = tipoMovimiento == "INGRESO";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <div>
         <h2 class="mb-0">Gestion de Stock</h2>
-        <p class="text-muted mb-0">Selecciona productos desde el listado, indica cantidades y precios de compra para cargar stock en lote.</p>
+        <p class="text-muted mb-0">
+            Selecciona productos desde el listado, define las cantidades y registra ingresos o egresos.
+            El precio de compra solo aplica para los ingresos.
+        </p>
     </div>
     <div>
         <a asp-action="Movimientos" class="btn btn-outline-primary">Ver ultimos movimientos</a>
@@ -124,12 +129,28 @@
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
         <div>
             <h4 class="mb-0">Carga seleccionada</h4>
-            <small class="text-muted">Cada linea se registrara como un ingreso de stock.</small>
         </div>
     </div>
     <div class="card-body">
         <form asp-action="Cargar" method="post" id="formCargas">
             @Html.AntiForgeryToken()
+            <div class="row g-3 align-items-end mb-3">
+                <div class="col-md-4">
+                    <label asp-for="TipoMovimiento" class="form-label">Tipo de movimiento</label>
+                    <select asp-for="TipoMovimiento" class="form-select" id="tipoMovimientoSelect">
+                        <option value="INGRESO">Ingreso</option>
+                        <option value="EGRESO">Egreso</option>
+                    </select>
+                    <span asp-validation-for="TipoMovimiento" class="text-danger"></span>
+                </div>
+                <div class="col-md-8">
+                    <small id="tipoMovimientoInfo" class="text-muted">
+                        @(esIngreso
+                            ? "Cada linea se registrara como un ingreso de stock."
+                            : "Cada linea se registrara como un egreso de stock.")
+                    </small>
+                </div>
+            </div>
             <div class="table-responsive">
                 <table class="table table-striped align-middle">
                     <thead>
@@ -158,7 +179,9 @@
                     <div class="mb-2 text-danger">
                         @Html.ValidationSummary()
                     </div>
-                    <button type="submit" class="btn btn-primary" id="btnConfirmar" disabled>Registrar ingresos</button>
+                    <button type="submit" class="btn btn-primary" id="btnConfirmar" disabled>
+                        @(esIngreso ? "Registrar ingresos" : "Registrar egresos")
+                    </button>
                 </div>
             </div>
         </form>
@@ -169,8 +192,11 @@
     <script>
         const lineasSeed = @Html.Raw(lineasJson);
         const lineas = Array.isArray(lineasSeed) ? [...lineasSeed] : [];
+        const tipoMovimientoInicial = '@tipoMovimiento';
         const tbodyCargas = document.getElementById('cargasBody');
         const btnConfirmar = document.getElementById('btnConfirmar');
+        const tipoMovimientoSelect = document.getElementById('tipoMovimientoSelect');
+        const tipoMovimientoInfo = document.getElementById('tipoMovimientoInfo');
 
         function renderLineas() {
             if (!tbodyCargas) return;
@@ -220,6 +246,7 @@
                 tbodyCargas.appendChild(tr);
             });
             if (btnConfirmar) btnConfirmar.disabled = false;
+            aplicarTipoMovimientoEnUI();
         }
 
         function agregarProductoDesdeBoton(btn) {
@@ -275,8 +302,46 @@
             lineas[idx].PrecioCompra = val;
         }
 
+        function esIngresoActivo() {
+            if (!tipoMovimientoSelect) return true;
+            return (tipoMovimientoSelect.value || 'INGRESO').toUpperCase() === 'INGRESO';
+        }
+
+        function aplicarTipoMovimientoEnUI() {
+            const esIngreso = esIngresoActivo();
+            const precioInputs = tbodyCargas ? tbodyCargas.querySelectorAll('input[name$=".PrecioCompra"]') : [];
+            precioInputs.forEach(input => {
+                input.disabled = !esIngreso;
+                if (!esIngreso) {
+                    const idx = parseInt(input.getAttribute('data-idx') || '-1', 10);
+                    if (!isNaN(idx) && idx >= 0 && idx < lineas.length) {
+                        lineas[idx].PrecioCompra = null;
+                    }
+                    input.value = '';
+                }
+            });
+            if (btnConfirmar) {
+                btnConfirmar.textContent = esIngreso ? 'Registrar ingresos' : 'Registrar egresos';
+            }
+            if (tipoMovimientoInfo) {
+                tipoMovimientoInfo.textContent = esIngreso
+                    ? 'Cada linea se registrara como un ingreso de stock.'
+                    : 'Cada linea se registrara como un egreso de stock.';
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             renderLineas();
+            aplicarTipoMovimientoEnUI();
+            if (tipoMovimientoSelect) {
+                if (tipoMovimientoInicial) {
+                    tipoMovimientoSelect.value = tipoMovimientoInicial;
+                }
+                aplicarTipoMovimientoEnUI();
+                tipoMovimientoSelect.addEventListener('change', () => {
+                    aplicarTipoMovimientoEnUI();
+                });
+            }
 
             const inputBusqueda = document.getElementById('buscadorProductos');
             const tbodyProductos = document.getElementById('productosBody');
