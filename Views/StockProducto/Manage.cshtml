@@ -58,6 +58,7 @@
                         <th class="text-center">Fecha</th>
                         <th class="text-center">Tipo</th>
                         <th class="text-center">Cantidad (@unidad)</th>
+                        <th class="text-center">Precio compra</th>
                         <th class="text-center">Motivo</th>
                     </tr>
                 </thead>
@@ -67,7 +68,7 @@
                     }
                     @if (movimientos == null || !movimientos.Any())
                     {
-                        <tr><td colspan="4" class="text-center text-muted">Sin movimientos</td></tr>
+                        <tr><td colspan="5" class="text-center text-muted">Sin movimientos</td></tr>
                     }
                     else
                     {
@@ -76,10 +77,12 @@
                             var esIngreso = string.Equals(m.Tipo, "INGRESO", System.StringComparison.OrdinalIgnoreCase);
                             var claseCant = esIngreso ? "text-success" : "text-danger";
                             var signo = esIngreso ? "+" : "-";
+                            var precio = m.PrecioCompra.HasValue ? $"$ {m.PrecioCompra.Value:0.##}" : "-";
                             <tr>
                                 <td class="text-center">@m.Fecha.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</td>
                                 <td class="text-center">@(esIngreso ? "Ingreso" : "Egreso")</td>
                                 <td class="text-center @claseCant">@signo@m.Cantidad</td>
+                                <td class="text-center">@precio</td>
                                 <td class="text-center">@(string.IsNullOrWhiteSpace(m.Motivo) ? "-" : m.Motivo)</td>
                             </tr>
                         }

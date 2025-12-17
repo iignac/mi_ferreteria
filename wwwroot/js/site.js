@@ -1,9 +1,9 @@
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
+// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
 // for details on configuring this project to bundle and minify static web assets.
 
 // Write your JavaScript code.
 
-// Marca como activo el enlace del menú según la URL actual
+// Marca como activo el enlace del menu segun la URL actual
 document.addEventListener('DOMContentLoaded', function () {
   var links = document.querySelectorAll('.app-navbar .nav-link');
   if (!links.length) return;
@@ -30,30 +30,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   } catch(e) { /* noop */ }
 
-  // Barra de búsqueda en Stock: anclada bajo el header y estilo similar a productos
-  try {
-    var path = location.pathname.toLowerCase();
-    if (path.startsWith('/stock')) {
-      var main = document.querySelector('.container > main');
-      if (main) {
-        var bar = document.createElement('div');
-        bar.className = 'stock-search-bar position-sticky top-0';
-        bar.innerHTML = "<form method='get' action='/Stock/Buscar' class='mb-2'><div class='input-group'><input type='search' name='q' class='form-control' placeholder='Buscar producto para ver movimientos (nombre, SKU, etc.)' aria-label='Buscar movimientos por producto' autocomplete='off' /><button class='btn btn-primary' type='submit'>Buscar</button></div></form>";
-        main.insertBefore(bar, main.firstChild);
-        // Mensaje (si viene ?smsg=...)
-        var params = new URLSearchParams(location.search);
-        var smsg = params.get('smsg');
-        if (smsg) {
-          var alert = document.createElement('div');
-          alert.className = 'alert alert-warning mt-2';
-          alert.textContent = smsg;
-          bar.appendChild(alert);
-        }
-      }
-    }
-  } catch(e) { /* noop */ }
-
-  // Advertencia de cambios sin guardar (genérica para formularios)
+  // Advertencia de cambios sin guardar (generica para formularios)
   try {
     var forms = Array.prototype.slice.call(document.querySelectorAll('form[data-unsaved-warning="true"]'));
     if (forms.length) {
@@ -78,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
         if (a.dataset.skipUnsavedWarning === 'true') return;
         if (!dirty) return;
-        var ok = confirm('Hay cambios sin guardar. Si sales, se perderán. ¿Deseas salir igualmente?');
+        var ok = confirm('Hay cambios sin guardar. Si sales, se perderan. Deseas salir igualmente?');
         if (!ok) {
           e.preventDefault();
           e.stopPropagation();

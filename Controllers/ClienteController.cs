@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Authorization;
 using mi_ferreteria.Data;
 using mi_ferreteria.Models;
 using mi_ferreteria.ViewModels;
@@ -10,6 +11,7 @@ using System.Security.Claims;
 
 namespace mi_ferreteria.Controllers
 {
+    [Authorize(Roles = "Administrador,Vendedor")]
     public class ClienteController : Controller
     {
         private readonly IClienteRepository _repo;

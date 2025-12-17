@@ -19,6 +19,8 @@ namespace mi_ferreteria.Data
         {
             using var set = new NpgsqlCommand("SET search_path TO venta, public", conn);
             set.ExecuteNonQuery();
+            using var alt = new NpgsqlCommand("ALTER TABLE IF EXISTS producto_stock_mov ADD COLUMN IF NOT EXISTS precio_compra NUMERIC(18,2)", conn);
+            alt.ExecuteNonQuery();
         }
 
         public long GetStock(long productoId)
@@ -41,7 +43,7 @@ namespace mi_ferreteria.Data
             }
         }
 
-        public void Ingresar(long productoId, long cantidad, string motivo)
+        public void Ingresar(long productoId, long cantidad, string motivo, decimal? precioCompra = null)
         {
             try
             {
@@ -55,11 +57,15 @@ namespace mi_ferreteria.Data
                     up.Parameters.AddWithValue("@cant", cantidad);
                     up.ExecuteNonQuery();
                 }
-                using (var mov = new NpgsqlCommand("INSERT INTO producto_stock_mov (producto_id, tipo, cantidad, motivo) VALUES (@id,'INGRESO',@cant,@mot)", conn))
+                using (var mov = new NpgsqlCommand("INSERT INTO producto_stock_mov (producto_id, tipo, cantidad, motivo, precio_compra) VALUES (@id,'INGRESO',@cant,@mot,@precio)", conn))
                 {
                     mov.Parameters.AddWithValue("@id", productoId);
                     mov.Parameters.AddWithValue("@cant", cantidad);
                     mov.Parameters.AddWithValue("@mot", motivo);
+                    if (precioCompra.HasValue)
+                        mov.Parameters.AddWithValue("@precio", precioCompra.Value);
+                    else
+                        mov.Parameters.AddWithValue("@precio", DBNull.Value);
                     mov.ExecuteNonQuery();
                 }
             }
@@ -149,7 +155,7 @@ namespace mi_ferreteria.Data
                 using var conn = new NpgsqlConnection(_cs);
                 conn.Open();
                 EnsureSchema(conn);
-                var sql = "SELECT id, fecha, producto_id, tipo, cantidad, motivo FROM producto_stock_mov WHERE producto_id=@id" + (string.IsNullOrWhiteSpace(tipo) ? "" : " AND tipo=@tipo") + " ORDER BY fecha DESC, id DESC LIMIT @top";
+                var sql = "SELECT id, fecha, producto_id, tipo, cantidad, motivo, precio_compra FROM producto_stock_mov WHERE producto_id=@id" + (string.IsNullOrWhiteSpace(tipo) ? "" : " AND tipo=@tipo") + " ORDER BY fecha DESC, id DESC LIMIT @top";
                 using var cmd = new NpgsqlCommand(sql, conn);
                 cmd.Parameters.AddWithValue("@id", productoId);
                 if (!string.IsNullOrWhiteSpace(tipo)) cmd.Parameters.AddWithValue("@tipo", tipo);
@@ -164,7 +170,8 @@ namespace mi_ferreteria.Data
                         ProductoId = r.GetInt64(2),
                         Tipo = r.GetString(3),
                         Cantidad = r.GetInt64(4),
-                        Motivo = r.IsDBNull(5) ? null : r.GetString(5)
+                        Motivo = r.IsDBNull(5) ? null : r.GetString(5),
+                        PrecioCompra = r.IsDBNull(6) ? (decimal?)null : r.GetDecimal(6)
                     });
                 }
                 return list;
@@ -184,7 +191,7 @@ namespace mi_ferreteria.Data
                 using var conn = new NpgsqlConnection(_cs);
                 conn.Open();
                 EnsureSchema(conn);
-                var sql = "SELECT id, fecha, producto_id, tipo, cantidad, motivo FROM producto_stock_mov" + (string.IsNullOrWhiteSpace(tipo) ? "" : " WHERE tipo=@tipo") + " ORDER BY fecha DESC, id DESC LIMIT @top";
+                var sql = "SELECT id, fecha, producto_id, tipo, cantidad, motivo, precio_compra FROM producto_stock_mov" + (string.IsNullOrWhiteSpace(tipo) ? "" : " WHERE tipo=@tipo") + " ORDER BY fecha DESC, id DESC LIMIT @top";
                 using var cmd = new NpgsqlCommand(sql, conn);
                 if (!string.IsNullOrWhiteSpace(tipo)) cmd.Parameters.AddWithValue("@tipo", tipo);
                 cmd.Parameters.AddWithValue("@top", top);
@@ -198,7 +205,8 @@ namespace mi_ferreteria.Data
                         ProductoId = r.GetInt64(2),
                         Tipo = r.GetString(3),
                         Cantidad = r.GetInt64(4),
-                        Motivo = r.IsDBNull(5) ? null : r.GetString(5)
+                        Motivo = r.IsDBNull(5) ? null : r.GetString(5),
+                        PrecioCompra = r.IsDBNull(6) ? (decimal?)null : r.GetDecimal(6)
                     });
                 }
                 return list;
@@ -241,7 +249,7 @@ namespace mi_ferreteria.Data
                 using var conn = new NpgsqlConnection(_cs);
                 conn.Open();
                 EnsureSchema(conn);
-                var sql = "SELECT id, fecha, producto_id, tipo, cantidad, motivo FROM producto_stock_mov WHERE producto_id=@id" + (string.IsNullOrWhiteSpace(tipo) ? "" : " AND tipo=@tipo") + " ORDER BY fecha DESC, id DESC LIMIT @limit OFFSET @offset";
+                var sql = "SELECT id, fecha, producto_id, tipo, cantidad, motivo, precio_compra FROM producto_stock_mov WHERE producto_id=@id" + (string.IsNullOrWhiteSpace(tipo) ? "" : " AND tipo=@tipo") + " ORDER BY fecha DESC, id DESC LIMIT @limit OFFSET @offset";
                 using var cmd = new NpgsqlCommand(sql, conn);
                 cmd.Parameters.AddWithValue("@id", productoId);
                 if (!string.IsNullOrWhiteSpace(tipo)) cmd.Parameters.AddWithValue("@tipo", tipo);
@@ -257,7 +265,8 @@ namespace mi_ferreteria.Data
                         ProductoId = r.GetInt64(2),
                         Tipo = r.GetString(3),
                         Cantidad = r.GetInt64(4),
-                        Motivo = r.IsDBNull(5) ? null : r.GetString(5)
+                        Motivo = r.IsDBNull(5) ? null : r.GetString(5),
+                        PrecioCompra = r.IsDBNull(6) ? (decimal?)null : r.GetDecimal(6)
                     });
                 }
                 return list;
@@ -329,7 +338,7 @@ namespace mi_ferreteria.Data
                 using var conn = new NpgsqlConnection(_cs);
                 conn.Open();
                 EnsureSchema(conn);
-                var sql = "SELECT id, fecha, producto_id, tipo, cantidad, motivo FROM producto_stock_mov" + (string.IsNullOrWhiteSpace(tipo) ? "" : " WHERE tipo=@tipo") + " ORDER BY fecha DESC, id DESC LIMIT @limit OFFSET @offset";
+                var sql = "SELECT id, fecha, producto_id, tipo, cantidad, motivo, precio_compra FROM producto_stock_mov" + (string.IsNullOrWhiteSpace(tipo) ? "" : " WHERE tipo=@tipo") + " ORDER BY fecha DESC, id DESC LIMIT @limit OFFSET @offset";
                 using var cmd = new NpgsqlCommand(sql, conn);
                 if (!string.IsNullOrWhiteSpace(tipo)) cmd.Parameters.AddWithValue("@tipo", tipo);
                 cmd.Parameters.AddWithValue("@limit", pageSize);
@@ -344,7 +353,8 @@ namespace mi_ferreteria.Data
                         ProductoId = r.GetInt64(2),
                         Tipo = r.GetString(3),
                         Cantidad = r.GetInt64(4),
-                        Motivo = r.IsDBNull(5) ? null : r.GetString(5)
+                        Motivo = r.IsDBNull(5) ? null : r.GetString(5),
+                        PrecioCompra = r.IsDBNull(6) ? (decimal?)null : r.GetDecimal(6)
                     });
                 }
                 return list;

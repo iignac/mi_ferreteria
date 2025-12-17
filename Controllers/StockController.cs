@@ -1,7 +1,12 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using mi_ferreteria.Data;
-// holahola
+using mi_ferreteria.Models;
+using mi_ferreteria.ViewModels;
+
 namespace mi_ferreteria.Controllers
 {
     public class StockController : Controller
@@ -17,40 +22,144 @@ namespace mi_ferreteria.Controllers
             _prodRepo = prodRepo;
         }
 
-        public IActionResult Index(int page = 1)
+        [HttpGet]
+        public IActionResult Index(string? q = null, int page = 1)
         {
             try
             {
-                _logger.LogInformation("Cargando vista de Stock");
-                const int pageSize = 5;
-                // Movimientos combinados (ingresos y egresos)
-                var total = _stockRepo.CountMovimientosGlobal(null);
-                var totalPages = (int)System.Math.Ceiling(total / (double)pageSize);
-                if (totalPages == 0) totalPages = 1;
-                if (page < 1) page = 1;
-                if (page > totalPages) page = totalPages;
-                var movimientos = _stockRepo.GetMovimientosGlobalPage(null, page, pageSize).ToList();
-                // Construir diccionario de nombres de productos
-                var ids = movimientos.Select(x => x.ProductoId).Distinct().ToList();
-                var names = new System.Collections.Generic.Dictionary<long, string>();
-                foreach (var pid in ids)
-                {
-                    var p = _prodRepo.GetById(pid);
-                    names[pid] = p?.Nombre ?? ("#" + pid);
-                }
-                ViewBag.Movimientos = movimientos;
-                ViewBag.ProductNames = names;
-                // Info de paginación combinada
-                ViewBag.Page = page;
-                ViewBag.PageSize = pageSize;
-                ViewBag.TotalCount = total;
-                ViewBag.TotalPages = totalPages;
-                return View();
+                if (!PuedeGestionarStock()) return Forbid();
+
+                ViewData["Title"] = "Gestion de Stock";
+                PrepararListadoProductos(q, page);
+                return View(new StockCargaViewModel());
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error en vista Stock");
-                return Problem("Ocurrió un error al cargar la vista de stock.");
+                return Problem("Ocurrio un error al cargar la vista de stock.");
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Cargar(StockCargaViewModel model, string? q = null, int page = 1)
+        {
+            try
+            {
+                if (!PuedeGestionarStock()) return Forbid();
+                model ??= new StockCargaViewModel();
+
+                var lineasParaMostrar = new List<StockCargaLineaViewModel>();
+                var lineasValidas = new List<StockCargaLineaViewModel>();
+                var motivo = string.IsNullOrWhiteSpace(model.Motivo) ? "Carga masiva" : model.Motivo.Trim();
+
+                if (model.Lineas == null || model.Lineas.Count == 0)
+                {
+                    ModelState.AddModelError(string.Empty, "Debe seleccionar al menos un producto para ingresar stock.");
+                }
+
+                foreach (var linea in model.Lineas ?? new List<StockCargaLineaViewModel>())
+                {
+                    if (linea.ProductoId <= 0)
+                    {
+                        ModelState.AddModelError(string.Empty, "Hay un producto invalido en la lista.");
+                        continue;
+                    }
+
+                    var prod = _prodRepo.GetById(linea.ProductoId);
+                    if (prod == null)
+                    {
+                        ModelState.AddModelError(string.Empty, $"El producto con ID {linea.ProductoId} no existe.");
+                        continue;
+                    }
+
+                    var stockActual = _stockRepo.GetStock(prod.Id);
+                    var normalizada = new StockCargaLineaViewModel
+                    {
+                        ProductoId = prod.Id,
+                        ProductoNombre = prod.Nombre,
+                        UnidadMedida = prod.UnidadMedida,
+                        Cantidad = linea.Cantidad,
+                        PrecioCompra = linea.PrecioCompra,
+                        StockActual = stockActual
+                    };
+                    lineasParaMostrar.Add(normalizada);
+
+                    if (linea.Cantidad <= 0)
+                    {
+                        ModelState.AddModelError(string.Empty, $"La cantidad para {prod.Nombre} debe ser mayor a 0.");
+                        continue;
+                    }
+                    if (linea.PrecioCompra.HasValue && linea.PrecioCompra.Value < 0)
+                    {
+                        ModelState.AddModelError(string.Empty, $"El precio de compra de {prod.Nombre} no puede ser negativo.");
+                        continue;
+                    }
+
+                    lineasValidas.Add(normalizada);
+                }
+
+                if (!ModelState.IsValid)
+                {
+                    model.Lineas = lineasParaMostrar;
+                    PrepararListadoProductos(q, page);
+                    return View("Index", model);
+                }
+
+                foreach (var linea in lineasValidas)
+                {
+                    _stockRepo.Ingresar(linea.ProductoId, linea.Cantidad, motivo, linea.PrecioCompra);
+                }
+
+                TempData["StockOk"] = $"Se registraron {lineasValidas.Count} ingresos de stock.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al cargar stock masivo");
+                TempData["StockError"] = "Ocurrio un error al registrar el stock.";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        [HttpGet]
+        public IActionResult BuscarProductos(string? q)
+        {
+            try
+            {
+                if (!PuedeGestionarStock()) return Forbid();
+                if (string.IsNullOrWhiteSpace(q))
+                {
+                    return Json(Array.Empty<object>());
+                }
+
+                const int pageSize = 10;
+                var productos = _prodRepo
+                    .SearchPageSorted(q, 1, pageSize, "nombre_asc")
+                    .ToList();
+
+                var stocks = _stockRepo.GetStocks(productos.Select(p => p.Id))
+                             ?? new Dictionary<long, long>();
+
+                var resultado = productos.Select(p =>
+                {
+                    var stock = stocks.TryGetValue(p.Id, out var s) ? s : 0L;
+                    return new
+                    {
+                        id = p.Id,
+                        sku = p.Sku,
+                        nombre = p.Nombre,
+                        unidad = p.UnidadMedida,
+                        stock
+                    };
+                });
+
+                return Json(resultado);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error en busqueda rapida de productos para stock");
+                return Json(Array.Empty<object>());
             }
         }
 
@@ -61,26 +170,102 @@ namespace mi_ferreteria.Controllers
                 return RedirectToAction(nameof(Index));
             try
             {
-                // Buscar productos parecidos por nombre/sku/etc. y elegir el primero
                 var matches = _prodRepo.SearchPageSorted(q, 1, 20, "nombre_asc").ToList();
                 if (matches == null || matches.Count == 0)
                 {
-                    // Volver al índice con mensaje para mostrar vía JS
                     var enc = System.Net.WebUtility.UrlEncode($"No se encontraron productos para '{q}'.");
                     return Redirect(Url.Action("Index", "Stock") + "?smsg=" + enc);
                 }
                 var prod = matches.First();
                 return RedirectToAction("Manage", "StockProducto", new { id = prod.Id });
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                _logger.LogError(ex, "Error en búsqueda de stock por producto: {Query}", q);
-                var enc = System.Net.WebUtility.UrlEncode("Ocurrió un error al buscar el producto.");
+                _logger.LogError(ex, "Error en busqueda de stock por producto: {Query}", q);
+                var enc = System.Net.WebUtility.UrlEncode("Ocurrio un error al buscar el producto.");
                 return Redirect(Url.Action("Index", "Stock") + "?smsg=" + enc);
             }
         }
+
+        [HttpGet]
+        public IActionResult Movimientos(int page = 1)
+        {
+            try
+            {
+                if (!PuedeGestionarStock()) return Forbid();
+                const int pageSize = 10;
+                if (page < 1) page = 1;
+
+                var total = _stockRepo.CountMovimientosGlobal(null);
+                var totalPages = (int)Math.Ceiling(total / (double)pageSize);
+                if (totalPages == 0) totalPages = 1;
+                if (page > totalPages) page = totalPages;
+
+                var movimientos = _stockRepo.GetMovimientosGlobalPage(null, page, pageSize).ToList();
+                var ids = movimientos.Select(x => x.ProductoId).Distinct().ToList();
+                var names = new Dictionary<long, string>();
+                var units = new Dictionary<long, string>();
+                foreach (var pid in ids)
+                {
+                    var p = _prodRepo.GetById(pid);
+                    names[pid] = p?.Nombre ?? ("#" + pid);
+                    units[pid] = p?.UnidadMedida ?? "unidad";
+                }
+
+                ViewBag.Movimientos = movimientos;
+                ViewBag.ProductNames = names;
+                ViewBag.ProductUnits = units;
+                ViewBag.Page = page;
+                ViewBag.TotalPages = totalPages;
+                ViewBag.TotalCount = total;
+                return View("Movimientos");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al listar movimientos de stock");
+                return Problem("Ocurrio un error al cargar los movimientos de stock.");
+            }
+        }
+
+        private void PrepararListadoProductos(string? q, int page)
+        {
+            const int pageSize = 10;
+            if (page < 1) page = 1;
+
+            int total;
+            int totalPages;
+            IEnumerable<Producto> productos;
+
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                total = _prodRepo.CountSearch(q);
+                totalPages = (int)Math.Ceiling(total / (double)pageSize);
+                if (totalPages == 0) totalPages = 1;
+                if (page > totalPages) page = totalPages;
+                productos = _prodRepo.SearchPageSorted(q, page, pageSize, "nombre_asc").ToList();
+            }
+            else
+            {
+                total = _prodRepo.CountAll();
+                totalPages = (int)Math.Ceiling(total / (double)pageSize);
+                if (totalPages == 0) totalPages = 1;
+                if (page > totalPages) page = totalPages;
+                productos = _prodRepo.GetPageSorted(page, pageSize, "nombre_asc").ToList();
+            }
+
+            var stocks = _stockRepo.GetStocks(productos.Select(p => p.Id));
+            ViewBag.Productos = productos;
+            ViewBag.Stocks = stocks;
+            ViewBag.Page = page;
+            ViewBag.PageSize = pageSize;
+            ViewBag.TotalCount = total;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.Query = q ?? string.Empty;
+        }
+
+        private bool PuedeGestionarStock()
+        {
+            return User.IsInRole("Administrador") || User.IsInRole("Stock");
+        }
     }
 }
-
-
-

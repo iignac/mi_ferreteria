@@ -10,6 +10,6 @@ namespace mi_ferreteria.Models
         public string Tipo { get; set; } = ""; // INGRESO | EGRESO
         public long Cantidad { get; set; }
         public string? Motivo { get; set; }
+        public decimal? PrecioCompra { get; set; }
     }
 }
-

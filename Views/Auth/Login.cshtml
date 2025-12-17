@@ -24,11 +24,17 @@
 
                     <div class="mb-3">
                         <label asp-for="Password" class="form-label"></label>
-                        <input asp-for="Password" class="form-control" autocomplete="current-password" />
-                        <span asp-validation-for="Password" class="text-danger"></span>
-                        <div class="form-text">
-                            Reglas: minimo 10 caracteres, mayuscula, minuscula, numero y simbolo.
+                        <div class="input-group password-hold-toggle">
+                            <input asp-for="Password" class="form-control" autocomplete="current-password" id="login-password" />
+                            <button type="button" class="btn btn-outline-secondary" id="btn-hold-show" aria-label="Mantener presionado para ver la contraseña">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" aria-hidden="true" viewBox="0 0 16 16">
+                                    <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8z"/>
+                                    <path d="M8 5.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/>
+                                </svg>
+                            </button>
                         </div>
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                        
                     </div>
 
                     <div class="form-check mb-3">
@@ -47,4 +53,16 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function() {
+            const input = document.getElementById('login-password');
+            const btn = document.getElementById('btn-hold-show');
+            if (!input || !btn) return;
+            const show = () => { input.setAttribute('type', 'text'); };
+            const hide = () => { input.setAttribute('type', 'password'); };
+            btn.addEventListener('mousedown', show);
+            btn.addEventListener('touchstart', function(e){ e.preventDefault(); show(); }, { passive: false });
+            ['mouseup','mouseleave','touchend','touchcancel'].forEach(evt => btn.addEventListener(evt, hide));
+        })();
+    </script>
 }

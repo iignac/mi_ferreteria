@@ -4,7 +4,7 @@ namespace mi_ferreteria.Data
     {
         long GetStock(long productoId);
         System.Collections.Generic.IDictionary<long, long> GetStocks(System.Collections.Generic.IEnumerable<long> productoIds);
-        void Ingresar(long productoId, long cantidad, string motivo);
+        void Ingresar(long productoId, long cantidad, string motivo, decimal? precioCompra = null);
         void Egresar(long productoId, long cantidad, string motivo);
         // Egreso que permite que el stock quede negativo (por ejemplo, ventas permitidas sin stock)
         void EgresarPermitiendoNegativo(long productoId, long cantidad, string motivo);

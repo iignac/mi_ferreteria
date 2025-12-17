@@ -55,9 +55,12 @@
                             <li class="nav-item">
                                 <a class="nav-link" asp-area="" asp-controller="Stock" asp-action="Index">Stock</a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-area="" asp-controller="Cliente" asp-action="Index">Clientes</a>
-                            </li>
+                            @if (!User.IsInRole("Stock"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="" asp-controller="Cliente" asp-action="Index">Clientes</a>
+                                </li>
+                            }
                         </ul>
                         <div class="d-flex align-items-center gap-2">
                             <span class="navbar-text text-white small">
