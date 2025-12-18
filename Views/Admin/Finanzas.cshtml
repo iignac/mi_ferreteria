@@ -2,6 +2,8 @@
 @{
     ViewData["Title"] = "Tablero financiero";
     var r = Model.Resumen;
+    var diasTop = Model.DiasTopProductos;
+    var diasTopClientes = Model.DiasTopClientes;
     string Mon(decimal v) => v.ToString("C");
     string Porc(decimal v) => $"{v:0.##}%";
     string Dia(double? d) => d.HasValue ? $"{d.Value:F1} dias" : "Sin datos";
@@ -88,8 +90,33 @@
 <div class="row g-4">
     <div class="col-12 col-xl-6">
         <div class="card shadow-sm h-100">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <h5 class="mb-0">Top 5 productos</h5>
+                <form method="get" asp-controller="Admin" asp-action="Finanzas" class="d-flex align-items-center gap-2">
+                    <input type="hidden" name="diasTopClientes" value="@diasTopClientes" />
+                    <label for="topProductosRango" class="form-label mb-0 small text-muted">Periodo</label>
+                    <select id="topProductosRango" name="diasTopProductos" class="form-select form-select-sm" onchange="this.form.submit()">
+                        @if (diasTop == 30)
+                        {
+                            <option value="30" selected>Ultimos 30 dias</option>
+                        }
+                        else
+                        {
+                            <option value="30">Ultimos 30 dias</option>
+                        }
+                        @if (diasTop == 90)
+                        {
+                            <option value="90" selected>Ultimos 90 dias</option>
+                        }
+                        else
+                        {
+                            <option value="90">Ultimos 90 dias</option>
+                        }
+                    </select>
+                    <noscript>
+                        <button type="submit" class="btn btn-sm btn-outline-primary">Aplicar</button>
+                    </noscript>
+                </form>
             </div>
             <div class="card-body p-0">
                 @if (r.TopProductos.Count == 0)
@@ -125,8 +152,33 @@
     </div>
     <div class="col-12 col-xl-6">
         <div class="card shadow-sm h-100">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <h5 class="mb-0">Clientes que más compran</h5>
+                <form method="get" asp-controller="Admin" asp-action="Finanzas" class="d-flex align-items-center gap-2">
+                    <input type="hidden" name="diasTopProductos" value="@diasTop" />
+                    <label for="topClientesRango" class="form-label mb-0 small text-muted">Periodo</label>
+                    <select id="topClientesRango" name="diasTopClientes" class="form-select form-select-sm" onchange="this.form.submit()">
+                        @if (diasTopClientes == 30)
+                        {
+                            <option value="30" selected>Ultimos 30 dias</option>
+                        }
+                        else
+                        {
+                            <option value="30">Ultimos 30 dias</option>
+                        }
+                        @if (diasTopClientes == 90)
+                        {
+                            <option value="90" selected>Ultimos 90 dias</option>
+                        }
+                        else
+                        {
+                            <option value="90">Ultimos 90 dias</option>
+                        }
+                    </select>
+                    <noscript>
+                        <button type="submit" class="btn btn-sm btn-outline-primary">Aplicar</button>
+                    </noscript>
+                </form>
             </div>
             <div class="card-body p-0">
                 @if (r.TopClientes.Count == 0)

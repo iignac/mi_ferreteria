@@ -120,12 +120,26 @@ namespace mi_ferreteria.Controllers
             }
         }
 
-        public IActionResult Finanzas()
+        public IActionResult Finanzas(int diasTopProductos = 30, int diasTopClientes = 30)
         {
             try
             {
-                var resumen = _finanzasRepo.ObtenerResumen();
-                var vm = new FinanzasDashboardViewModel { Resumen = resumen };
+                if (diasTopProductos != 30 && diasTopProductos != 90)
+                {
+                    diasTopProductos = 30;
+                }
+                if (diasTopClientes != 30 && diasTopClientes != 90)
+                {
+                    diasTopClientes = 30;
+                }
+
+                var resumen = _finanzasRepo.ObtenerResumen(diasTopProductos, diasTopClientes);
+                var vm = new FinanzasDashboardViewModel
+                {
+                    Resumen = resumen,
+                    DiasTopProductos = diasTopProductos,
+                    DiasTopClientes = diasTopClientes
+                };
                 ViewData["Title"] = "Tablero financiero";
                 return View("Finanzas", vm);
             }

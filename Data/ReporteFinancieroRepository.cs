@@ -24,7 +24,7 @@ namespace mi_ferreteria.Data
             set.ExecuteNonQuery();
         }
 
-        public ReporteFinancieroResumen ObtenerResumen()
+        public ReporteFinancieroResumen ObtenerResumen(int? diasTopProductos = null, int? diasTopClientes = null)
         {
             var result = new ReporteFinancieroResumen();
             try
@@ -34,8 +34,8 @@ namespace mi_ferreteria.Data
                 SetSearchPath(conn);
 
                 CargarTotalesYMargen(conn, result);
-                CargarTopProductos(conn, result);
-                CargarTopClientes(conn, result);
+                CargarTopProductos(conn, result, diasTopProductos);
+                CargarTopClientes(conn, result, diasTopClientes);
                 CargarDeudores(conn, result);
                 result.PromedioCobroDias = CalcularPromedioCobroDias(conn);
 
@@ -108,19 +108,35 @@ namespace mi_ferreteria.Data
             }
         }
 
-        private void CargarTopProductos(NpgsqlConnection conn, ReporteFinancieroResumen result)
+        private void CargarTopProductos(NpgsqlConnection conn, ReporteFinancieroResumen result, int? diasTopProductos)
         {
-            using var cmd = new NpgsqlCommand(@"
+            // Top productos se calculan por cantidad vendida para priorizar rotacion
+            var restringirPorFecha = diasTopProductos.HasValue && diasTopProductos.Value > 0;
+            var sql = @"
                 SELECT vd.producto_id,
                        COALESCE(p.nombre, '#' || vd.producto_id::text) AS nombre,
                        SUM(vd.cantidad) AS cantidad,
                        SUM(vd.subtotal) AS total
                 FROM venta_detalle vd
                 JOIN venta v ON v.id = vd.venta_id
-                LEFT JOIN producto p ON p.id = vd.producto_id
+                LEFT JOIN producto p ON p.id = vd.producto_id";
+
+            if (restringirPorFecha)
+            {
+                sql += "\n                WHERE v.fecha >= @fechaDesde";
+            }
+
+            sql += @"
                 GROUP BY vd.producto_id, nombre
                 ORDER BY cantidad DESC
-                LIMIT 5;", conn);
+                LIMIT 5;";
+
+            using var cmd = new NpgsqlCommand(sql, conn);
+            if (restringirPorFecha)
+            {
+                var fechaDesde = DateTime.Now.Date.AddDays(-diasTopProductos!.Value);
+                cmd.Parameters.AddWithValue("@fechaDesde", fechaDesde);
+            }
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
@@ -135,19 +151,35 @@ namespace mi_ferreteria.Data
             }
         }
 
-        private void CargarTopClientes(NpgsqlConnection conn, ReporteFinancieroResumen result)
+        private void CargarTopClientes(NpgsqlConnection conn, ReporteFinancieroResumen result, int? diasTopClientes)
         {
-            using var cmd = new NpgsqlCommand(@"
+            // Clientes destacados se ordenan por importe total facturado
+            var restringirPorFecha = diasTopClientes.HasValue && diasTopClientes.Value > 0;
+            var sql = @"
                 SELECT v.cliente_id,
                        COALESCE(NULLIF(TRIM(COALESCE(c.nombre,'') || ' ' || COALESCE(c.apellido,'')), ''), 'Consumidor Final') AS nombre,
                        COUNT(*) AS compras,
                        SUM(v.total) AS total
                 FROM venta v
                 LEFT JOIN cliente c ON c.id = v.cliente_id
-                WHERE v.cliente_id IS NOT NULL
+                WHERE v.cliente_id IS NOT NULL";
+
+            if (restringirPorFecha)
+            {
+                sql += "\n                AND v.fecha >= @fechaDesdeClientes";
+            }
+
+            sql += @"
                 GROUP BY v.cliente_id, COALESCE(NULLIF(TRIM(COALESCE(c.nombre,'') || ' ' || COALESCE(c.apellido,'')), ''), 'Consumidor Final')
                 ORDER BY total DESC
-                LIMIT 5;", conn);
+                LIMIT 5;";
+
+            using var cmd = new NpgsqlCommand(sql, conn);
+            if (restringirPorFecha)
+            {
+                var fechaDesde = DateTime.Now.Date.AddDays(-diasTopClientes!.Value);
+                cmd.Parameters.AddWithValue("@fechaDesdeClientes", fechaDesde);
+            }
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())

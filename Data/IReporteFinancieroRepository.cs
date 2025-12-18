@@ -4,6 +4,6 @@ namespace mi_ferreteria.Data
 {
     public interface IReporteFinancieroRepository
     {
-        ReporteFinancieroResumen ObtenerResumen();
+        ReporteFinancieroResumen ObtenerResumen(int? diasTopProductos = null, int? diasTopClientes = null);
     }
 }
