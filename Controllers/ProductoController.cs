@@ -133,6 +133,10 @@ namespace mi_ferreteria.Controllers
                 {
                     ModelState.AddModelError("UnidadMedida", "Seleccione una unidad de medida válida.");
                 }
+                if (model.CategoriaIds == null || model.CategoriaIds.Count == 0)
+                {
+                    ModelState.AddModelError("CategoriaIds", "Debes seleccionar al menos una categoria.");
+                }
                 if (!ModelState.IsValid)
                 {
                     model.Categorias = _catRepo.GetAll().Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Nombre }).ToList();
@@ -259,6 +263,10 @@ namespace mi_ferreteria.Controllers
                 if (string.IsNullOrWhiteSpace(model.UnidadMedida) || !UnidadesPermitidas.Contains(model.UnidadMedida))
                 {
                     ModelState.AddModelError("UnidadMedida", "Seleccione una unidad de medida válida.");
+                }
+                if (model.CategoriaIds == null || model.CategoriaIds.Count == 0)
+                {
+                    ModelState.AddModelError("CategoriaIds", "Debes seleccionar al menos una categoria.");
                 }
                 if (!ModelState.IsValid)
                 {

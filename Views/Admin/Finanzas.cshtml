@@ -1,9 +1,12 @@
 @model FinanzasDashboardViewModel
+@using System.Collections.Generic
 @{
     ViewData["Title"] = "Tablero financiero";
     var r = Model.Resumen;
     var diasTop = Model.DiasTopProductos;
     var diasTopClientes = Model.DiasTopClientes;
+    var categoriaSeleccionada = Model.CategoriaTopProductosId;
+    var categorias = Model.Categorias ?? new List<Categoria>();
     string Mon(decimal v) => v.ToString("C");
     string Porc(decimal v) => $"{v:0.##}%";
     string Dia(double? d) => d.HasValue ? $"{d.Value:F1} dias" : "Sin datos";
@@ -94,8 +97,30 @@
                 <h5 class="mb-0">Top 5 productos</h5>
                 <form method="get" asp-controller="Admin" asp-action="Finanzas" class="d-flex align-items-center gap-2">
                     <input type="hidden" name="diasTopClientes" value="@diasTopClientes" />
+                    <label for="topProductosCategoria" class="form-label mb-0 small text-muted">Categoria</label>
+                    <select id="topProductosCategoria" name="categoriaTopProductosId" class="form-select form-select-sm">
+                        @if (categoriaSeleccionada == null)
+                        {
+                            <option value="" selected>Todas las categorias</option>
+                        }
+                        else
+                        {
+                            <option value="">Todas las categorias</option>
+                        }
+                        @foreach (var cat in categorias)
+                        {
+                            @if (categoriaSeleccionada == cat.Id)
+                            {
+                                <option value="@cat.Id" selected>@cat.Nombre</option>
+                            }
+                            else
+                            {
+                                <option value="@cat.Id">@cat.Nombre</option>
+                            }
+                        }
+                    </select>
                     <label for="topProductosRango" class="form-label mb-0 small text-muted">Periodo</label>
-                    <select id="topProductosRango" name="diasTopProductos" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <select id="topProductosRango" name="diasTopProductos" class="form-select form-select-sm">
                         @if (diasTop == 30)
                         {
                             <option value="30" selected>Ultimos 30 dias</option>
@@ -113,9 +138,7 @@
                             <option value="90">Ultimos 90 dias</option>
                         }
                     </select>
-                    <noscript>
-                        <button type="submit" class="btn btn-sm btn-outline-primary">Aplicar</button>
-                    </noscript>
+                    <button type="submit" class="btn btn-sm btn-outline-primary">Aplicar</button>
                 </form>
             </div>
             <div class="card-body p-0">
@@ -156,6 +179,7 @@
                 <h5 class="mb-0">Clientes que más compran</h5>
                 <form method="get" asp-controller="Admin" asp-action="Finanzas" class="d-flex align-items-center gap-2">
                     <input type="hidden" name="diasTopProductos" value="@diasTop" />
+                    <input type="hidden" name="categoriaTopProductosId" value="@(categoriaSeleccionada?.ToString() ?? string.Empty)" />
                     <label for="topClientesRango" class="form-label mb-0 small text-muted">Periodo</label>
                     <select id="topClientesRango" name="diasTopClientes" class="form-select form-select-sm" onchange="this.form.submit()">
                         @if (diasTopClientes == 30)

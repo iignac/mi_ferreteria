@@ -24,7 +24,7 @@ namespace mi_ferreteria.Data
             set.ExecuteNonQuery();
         }
 
-        public ReporteFinancieroResumen ObtenerResumen(int? diasTopProductos = null, int? diasTopClientes = null)
+        public ReporteFinancieroResumen ObtenerResumen(int? diasTopProductos = null, int? diasTopClientes = null, long? categoriaTopProductosId = null)
         {
             var result = new ReporteFinancieroResumen();
             try
@@ -34,7 +34,7 @@ namespace mi_ferreteria.Data
                 SetSearchPath(conn);
 
                 CargarTotalesYMargen(conn, result);
-                CargarTopProductos(conn, result, diasTopProductos);
+                CargarTopProductos(conn, result, diasTopProductos, categoriaTopProductosId);
                 CargarTopClientes(conn, result, diasTopClientes);
                 CargarDeudores(conn, result);
                 result.PromedioCobroDias = CalcularPromedioCobroDias(conn);
@@ -108,10 +108,21 @@ namespace mi_ferreteria.Data
             }
         }
 
-        private void CargarTopProductos(NpgsqlConnection conn, ReporteFinancieroResumen result, int? diasTopProductos)
+        private void CargarTopProductos(NpgsqlConnection conn, ReporteFinancieroResumen result, int? diasTopProductos, long? categoriaTopProductosId)
         {
             // Top productos se calculan por cantidad vendida para priorizar rotacion
             var restringirPorFecha = diasTopProductos.HasValue && diasTopProductos.Value > 0;
+            var restringirPorCategoria = categoriaTopProductosId.HasValue && categoriaTopProductosId.Value > 0;
+            var condiciones = new List<string>();
+            if (restringirPorFecha)
+            {
+                condiciones.Add("v.fecha >= @fechaDesde");
+            }
+            if (restringirPorCategoria)
+            {
+                condiciones.Add("p.categoria_id = @categoriaId");
+            }
+
             var sql = @"
                 SELECT vd.producto_id,
                        COALESCE(p.nombre, '#' || vd.producto_id::text) AS nombre,
@@ -121,9 +132,9 @@ namespace mi_ferreteria.Data
                 JOIN venta v ON v.id = vd.venta_id
                 LEFT JOIN producto p ON p.id = vd.producto_id";
 
-            if (restringirPorFecha)
+            if (condiciones.Count > 0)
             {
-                sql += "\n                WHERE v.fecha >= @fechaDesde";
+                sql += "\n                WHERE " + string.Join("\n                AND ", condiciones);
             }
 
             sql += @"
@@ -136,6 +147,10 @@ namespace mi_ferreteria.Data
             {
                 var fechaDesde = DateTime.Now.Date.AddDays(-diasTopProductos!.Value);
                 cmd.Parameters.AddWithValue("@fechaDesde", fechaDesde);
+            }
+            if (restringirPorCategoria)
+            {
+                cmd.Parameters.AddWithValue("@categoriaId", categoriaTopProductosId!.Value);
             }
 
             using var reader = cmd.ExecuteReader();

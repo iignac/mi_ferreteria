@@ -18,6 +18,7 @@ namespace mi_ferreteria.Controllers
         private readonly IUsuarioRepository _usuarioRepo;
         private readonly IAuditoriaRepository _auditoriaRepo;
         private readonly IReporteFinancieroRepository _finanzasRepo;
+        private readonly ICategoriaRepository _categoriaRepo;
         private readonly ILogger<AdminController> _logger;
 
         public AdminController(
@@ -27,6 +28,7 @@ namespace mi_ferreteria.Controllers
             IUsuarioRepository usuarioRepo,
             IAuditoriaRepository auditoriaRepo,
             IReporteFinancieroRepository finanzasRepo,
+            ICategoriaRepository categoriaRepo,
             ILogger<AdminController> logger)
         {
             _ventaRepo = ventaRepo;
@@ -35,6 +37,7 @@ namespace mi_ferreteria.Controllers
             _usuarioRepo = usuarioRepo;
             _auditoriaRepo = auditoriaRepo;
             _finanzasRepo = finanzasRepo;
+            _categoriaRepo = categoriaRepo;
             _logger = logger;
         }
 
@@ -120,7 +123,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
-        public IActionResult Finanzas(int diasTopProductos = 30, int diasTopClientes = 30)
+        public IActionResult Finanzas(int diasTopProductos = 30, int diasTopClientes = 30, long? categoriaTopProductosId = null)
         {
             try
             {
@@ -133,12 +136,30 @@ namespace mi_ferreteria.Controllers
                     diasTopClientes = 30;
                 }
 
-                var resumen = _finanzasRepo.ObtenerResumen(diasTopProductos, diasTopClientes);
+                if (categoriaTopProductosId.HasValue && categoriaTopProductosId.Value <= 0)
+                {
+                    categoriaTopProductosId = null;
+                }
+
+                var categorias = _categoriaRepo
+                    .GetAll()
+                    .Where(c => c.Activo)
+                    .OrderBy(c => c.Nombre)
+                    .ToList();
+
+                if (categoriaTopProductosId.HasValue && categorias.All(c => c.Id != categoriaTopProductosId.Value))
+                {
+                    categoriaTopProductosId = null;
+                }
+
+                var resumen = _finanzasRepo.ObtenerResumen(diasTopProductos, diasTopClientes, categoriaTopProductosId);
                 var vm = new FinanzasDashboardViewModel
                 {
                     Resumen = resumen,
                     DiasTopProductos = diasTopProductos,
-                    DiasTopClientes = diasTopClientes
+                    DiasTopClientes = diasTopClientes,
+                    CategoriaTopProductosId = categoriaTopProductosId,
+                    Categorias = categorias
                 };
                 ViewData["Title"] = "Tablero financiero";
                 return View("Finanzas", vm);

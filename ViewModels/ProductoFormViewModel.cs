@@ -20,6 +20,7 @@ namespace mi_ferreteria.ViewModels
         public string? Descripcion { get; set; }
 
         // Permite hasta 3 categorias seleccionadas
+        [MinLength(1, ErrorMessage = "Debes seleccionar al menos una categoria.")]
         public List<long> CategoriaIds { get; set; } = new();
         public List<SelectListItem> Categorias { get; set; } = new();
         public List<SelectListItem> UnidadesMedida { get; set; } = new();
