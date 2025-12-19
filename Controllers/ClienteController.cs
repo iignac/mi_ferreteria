@@ -15,11 +15,13 @@ namespace mi_ferreteria.Controllers
     public class ClienteController : Controller
     {
         private readonly IClienteRepository _repo;
+        private readonly IAuditoriaRepository _auditoriaRepo;
         private readonly ILogger<ClienteController> _logger;
 
-        public ClienteController(IClienteRepository repo, ILogger<ClienteController> logger)
+        public ClienteController(IClienteRepository repo, IAuditoriaRepository auditoriaRepo, ILogger<ClienteController> logger)
         {
             _repo = repo;
+            _auditoriaRepo = auditoriaRepo;
             _logger = logger;
         }
 
@@ -291,7 +293,10 @@ namespace mi_ferreteria.Controllers
                     ? $"Nota de dИbito por factura vencida {(facturaObjetivo.Comprobante ?? $"Venta {facturaObjetivo.VentaId}")}"
                     : descripcion.Trim();
 
+                var usuarioNombre = User?.Identity?.Name ?? $"Usuario {userId}";
                 _repo.RegistrarNotaDebito(clienteId, monto, userId, descripcionFinal, movimiento.VentaId, movimiento.Id);
+                RegistrarAuditoria(userId, usuarioNombre, "NOTA_DEBITO_CC",
+                    $"Nota de debito por ${monto:N2} para cliente {cliente.Nombre} (ID {cliente.Id}).");
                 TempData["CuentaCorrienteOk"] = "La nota de dИbito se gener籀 con Иxito.";
                 return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
             }
@@ -303,6 +308,92 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult GenerarNotaCuentaCorriente(long clienteId, string tipoNota, decimal monto, string? descripcion)
+        {
+            try
+            {
+                var cliente = _repo.GetById(clienteId);
+                if (cliente == null) return NotFound();
+                if (!cliente.CuentaCorrienteHabilitada)
+                {
+                    TempData["NotaError"] = "La cuenta corriente no esta habilitada para este cliente.";
+                    return RedirectToAction(nameof(Details), new { id = clienteId });
+                }
+
+                var tipo = (tipoNota ?? string.Empty).Trim().ToUpperInvariant();
+                if (tipo != "CREDITO" && tipo != "DEBITO")
+                {
+                    TempData["NotaError"] = "Debe seleccionar el tipo de nota.";
+                    return RedirectToAction(nameof(Details), new { id = clienteId });
+                }
+
+                if (monto <= 0)
+                {
+                    TempData["NotaError"] = "El monto de la nota debe ser mayor a cero.";
+                    return RedirectToAction(nameof(Details), new { id = clienteId });
+                }
+
+                var saldoActual = _repo.GetSaldoCuentaCorriente(clienteId);
+                var saldoDisponible = cliente.LimiteCredito - saldoActual;
+
+                if (!TryGetAuditoriaUsuario(out var userId, out var usuarioNombre))
+                {
+                    TempData["NotaError"] = "No se pudo identificar al usuario actual.";
+                    return RedirectToAction(nameof(Details), new { id = clienteId });
+                }
+
+                if (tipo == "CREDITO")
+                {
+                    if (saldoActual <= 0)
+                    {
+                        TempData["NotaError"] = "El cliente no tiene deuda para generar una nota de credito.";
+                        return RedirectToAction(nameof(Details), new { id = clienteId });
+                    }
+                    if (monto > saldoActual)
+                    {
+                        TempData["NotaError"] = "El monto supera la deuda actual del cliente.";
+                        return RedirectToAction(nameof(Details), new { id = clienteId });
+                    }
+
+                    var descripcionFinal = string.IsNullOrWhiteSpace(descripcion)
+                        ? "Nota de credito en cuenta corriente"
+                        : descripcion.Trim();
+                    _repo.RegistrarNotaCredito(clienteId, monto, userId, descripcionFinal, null, null);
+                    RegistrarAuditoria(userId, usuarioNombre, "NOTA_CREDITO_CC",
+                        $"Nota de credito por ${monto:N2} para cliente {cliente.Nombre} (ID {cliente.Id}).");
+                    TempData["NotaOk"] = "La nota de credito se genero con exito.";
+                    return RedirectToAction(nameof(Details), new { id = clienteId });
+                }
+
+                if (saldoDisponible <= 0)
+                {
+                    TempData["NotaError"] = "El cliente no tiene saldo disponible para generar una nota de debito.";
+                    return RedirectToAction(nameof(Details), new { id = clienteId });
+                }
+                if (monto > saldoDisponible)
+                {
+                    TempData["NotaError"] = "El monto supera el saldo disponible del cliente.";
+                    return RedirectToAction(nameof(Details), new { id = clienteId });
+                }
+
+                var descripcionDebito = string.IsNullOrWhiteSpace(descripcion)
+                    ? "Nota de debito en cuenta corriente"
+                    : descripcion.Trim();
+                _repo.RegistrarNotaDebito(clienteId, monto, userId, descripcionDebito, null, null);
+                RegistrarAuditoria(userId, usuarioNombre, "NOTA_DEBITO_CC",
+                    $"Nota de debito por ${monto:N2} para cliente {cliente.Nombre} (ID {cliente.Id}).");
+                TempData["NotaOk"] = "La nota de debito se genero con exito.";
+                return RedirectToAction(nameof(Details), new { id = clienteId });
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error al registrar nota en cuenta corriente para cliente {ClienteId}", clienteId);
+                TempData["NotaError"] = "Ocurrio un error al registrar la nota.";
+                return RedirectToAction(nameof(Details), new { id = clienteId });
+            }
+        }
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult RegistrarPagoCuentaCorriente(long clienteId, decimal monto, string? descripcion, long? movimientoDeudaId = null)
@@ -533,6 +624,26 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        private bool TryGetAuditoriaUsuario(out int userId, out string usuarioNombre)
+        {
+            usuarioNombre = User?.Identity?.Name ?? "Usuario desconocido";
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdClaim, out userId) || userId <= 0)
+            {
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(usuarioNombre))
+            {
+                usuarioNombre = $"Usuario {userId}";
+            }
+            return true;
+        }
+
+        private void RegistrarAuditoria(int userId, string usuarioNombre, string accion, string detalle)
+        {
+            _auditoriaRepo.Registrar(userId, usuarioNombre, accion.ToUpperInvariant(), detalle);
+            HttpContext.Items["AuditLogged"] = true;
+        }
         private static string? BuildDireccion(string? calle, string? numero, string? localidad)
         {
             calle = calle?.Trim();
@@ -561,3 +672,9 @@ namespace mi_ferreteria.Controllers
         }
     }
 }
+
+
+
+
+
+

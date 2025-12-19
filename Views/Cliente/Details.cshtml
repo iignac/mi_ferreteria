@@ -3,9 +3,19 @@
     ViewData["Title"] = "Detalle de cliente";
     decimal? saldoActual = ViewBag.SaldoActual as decimal?;
     decimal? saldoDisponible = ViewBag.SaldoDisponible as decimal?;
+    string? notaOk = TempData["NotaOk"] as string;
+    string? notaError = TempData["NotaError"] as string;
 }
 
 <h2>Detalle de cliente</h2>
+@if (!string.IsNullOrWhiteSpace(notaOk))
+{
+    <div class="alert alert-success">@notaOk</div>
+}
+@if (!string.IsNullOrWhiteSpace(notaError))
+{
+    <div class="alert alert-danger">@notaError</div>
+}
 
 <div class="card mt-3">
     <div class="card-header">
@@ -121,7 +131,114 @@
     </div>
 </div>
 
+<div class="card mt-3">
+    <div class="card-header">
+        Notas en cuenta corriente
+    </div>
+    <div class="card-body">
+        @if (!Model.CuentaCorrienteHabilitada)
+        {
+            <p class="mb-0 text-muted">La cuenta corriente no esta habilitada para este cliente.</p>
+        }
+        else
+        {
+            var puedeCredito = saldoActual.HasValue && saldoActual.Value > 0;
+            var puedeDebito = saldoDisponible.HasValue && saldoDisponible.Value > 0;
+            var maxCredito = puedeCredito ? saldoActual!.Value.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : "0";
+            var maxDebito = puedeDebito ? saldoDisponible!.Value.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : "0";
+            if (!puedeCredito && !puedeDebito)
+            {
+                <p class="mb-0 text-muted">No hay saldo disponible ni deuda para generar notas.</p>
+            }
+            else
+            {
+                <form asp-action="GenerarNotaCuentaCorriente" method="post" class="row g-2">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="clienteId" value="@Model.Id" />
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo de nota</label>
+                        <select class="form-select" id="tipoNotaSelect" name="tipoNota" required>
+                            <option value="">Seleccione...</option>
+                            @if (puedeCredito)
+                            {
+                                <option value="CREDITO" data-max="@maxCredito">Nota de credito</option>
+                            }
+                            else
+                            {
+                                <option value="CREDITO" data-max="@maxCredito" disabled>Nota de credito</option>
+                            }
+                            @if (puedeDebito)
+                            {
+                                <option value="DEBITO" data-max="@maxDebito">Nota de debito</option>
+                            }
+                            else
+                            {
+                                <option value="DEBITO" data-max="@maxDebito" disabled>Nota de debito</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Monto</label>
+                        <input class="form-control" type="number" step="0.01" min="0.01"
+                               name="monto" id="notaMontoInput" required />
+                        <small class="text-muted" id="notaMaxHelp"></small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Descripcion</label>
+                        <input class="form-control" type="text" name="descripcion" placeholder="Opcional" />
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary" id="notaSubmitBtn">Generar nota</button>
+                    </div>
+                </form>
+            }
+        }
+    </div>
+</div>
 <div class="mt-4">
     <a asp-action="Index" class="btn btn-outline-secondary">Volver al listado</a>
     <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Editar cliente</a>
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const select = document.getElementById('tipoNotaSelect');
+            const montoInput = document.getElementById('notaMontoInput');
+            const help = document.getElementById('notaMaxHelp');
+            const submitBtn = document.getElementById('notaSubmitBtn');
+
+            if (!select || !montoInput || !help || !submitBtn) {
+                return;
+            }
+
+            function actualizarNotaUI() {
+                const option = select.options[select.selectedIndex];
+                if (!option || !option.value) {
+                    montoInput.removeAttribute('max');
+                    help.textContent = '';
+                    submitBtn.textContent = 'Generar nota';
+                    return;
+                }
+
+                const max = option.getAttribute('data-max');
+                if (max && parseFloat(max) > 0) {
+                    montoInput.setAttribute('max', max);
+                    help.textContent = 'Maximo: $ ' + Number(max).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                } else {
+                    montoInput.removeAttribute('max');
+                    help.textContent = '';
+                }
+
+                submitBtn.textContent = option.value === 'CREDITO' ? 'Generar nota de credito' : 'Generar nota de debito';
+            }
+
+            select.addEventListener('change', actualizarNotaUI);
+            actualizarNotaUI();
+        })();
+    </script>
+}
+
+
+
+

@@ -51,7 +51,7 @@ else
             <tbody>
             @foreach (var c in Model)
             {
-                <tr>
+                <tr class="cliente-row" data-href="@Url.Action("Details", new { id = c.Id })" style="cursor:pointer;">
                     <td>@c.Id</td>
                     <td>@c.Nombre</td>
                     <td>@(string.IsNullOrWhiteSpace(c.Apellido) ? "-" : c.Apellido)</td>
@@ -128,4 +128,24 @@ else
             </ul>
         </nav>
     }
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            const rows = document.querySelectorAll('tr[data-href]');
+            rows.forEach((row) => {
+                row.addEventListener('click', (event) => {
+                    const target = event.target;
+                    if (target.closest('a, button, input, select, textarea, label, form')) {
+                        return;
+                    }
+                    const href = row.getAttribute('data-href');
+                    if (href) {
+                        window.location.href = href;
+                    }
+                });
+            });
+        })();
+    </script>
 }

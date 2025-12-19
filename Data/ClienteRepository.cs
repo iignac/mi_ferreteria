@@ -414,6 +414,32 @@ namespace mi_ferreteria.Data
             }
         }
 
+        public void RegistrarNotaCredito(long clienteId, decimal monto, int usuarioId, string descripcion, long? ventaId = null, long? movimientoRelacionadoId = null)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureSchema(conn);
+                using var cmd = new NpgsqlCommand(@"
+                    INSERT INTO cliente_cuenta_corriente_mov
+                        (cliente_id, venta_id, movimiento_relacionado_id, tipo, monto, descripcion, usuario_id)
+                    VALUES (@cid, @vid, @rel, 'NOTA_CREDITO', @monto, @desc, @uid)", conn);
+                cmd.Parameters.AddWithValue("@cid", clienteId);
+                cmd.Parameters.AddWithValue("@vid", (object?)ventaId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@rel", (object?)movimientoRelacionadoId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@monto", monto);
+                cmd.Parameters.AddWithValue("@desc", (object?)descripcion ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@uid", usuarioId);
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al registrar nota de credito para cliente {ClienteId}", clienteId);
+                throw;
+            }
+        }
+
         public ClienteCuentaCorrienteMovimiento? GetMovimiento(long movimientoId)
         {
             try
