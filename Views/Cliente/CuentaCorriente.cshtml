@@ -24,7 +24,7 @@
 @if (!Model.Cliente.CuentaCorrienteHabilitada)
 {
     <div class="alert alert-warning">
-        La cuenta corriente no estケ habilitada para este cliente.
+        La cuenta corriente no esta habilitada para este cliente.
     </div>
 }
 else
@@ -39,7 +39,7 @@ else
                             $ @Model.SaldoActual.ToString("N2")
                         </span>
                     </p>
-                    <p class="mb-1"><strong>Lヴmite de crゼdito:</strong> $ @Model.Cliente.LimiteCredito.ToString("N2")</p>
+                    <p class="mb-1"><strong>Limite de credito:</strong> $ @Model.Cliente.LimiteCredito.ToString("N2")</p>
                     <p class="mb-0"><strong>Saldo disponible:</strong>
                         @{
                             var disponible = Model.Cliente.LimiteCredito - Model.SaldoActual;
@@ -55,7 +55,7 @@ else
                     <h5 class="card-title">Facturas vencidas</h5>
                     @if (Model.FacturasVencidas.Any())
                     {
-                        <p class="text-muted small">Seleccione una factura vencida e ingrese el monto para generar una nota de dИbito (recargo o interИs).</p>
+                        <p class="text-muted small">Seleccione una factura vencida e ingrese el monto para generar una nota de debito (recargo o interes).</p>
                         <form asp-action="GenerarNotaDebito" method="post" class="row g-2 align-items-end">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="clienteId" value="@Model.Cliente.Id" />
@@ -79,11 +79,11 @@ else
                                 <input class="form-control" type="number" step="0.01" min="0.01" name="monto" id="notaDebitoMonto" required />
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">DescripciИn</label>
+                                <label class="form-label">Descripcion</label>
                                 <input class="form-control" type="text" name="descripcion" placeholder="Opcional" />
                             </div>
                             <div class="col-12">
-                                <button type="submit" class="btn btn-primary">Generar nota de dИbito</button>
+                                <button type="submit" class="btn btn-primary">Generar nota de debito</button>
                             </div>
                         </form>
                     }

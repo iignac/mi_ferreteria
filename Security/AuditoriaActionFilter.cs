@@ -1,7 +1,9 @@
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.Logging;
 using mi_ferreteria.Data;
 
@@ -35,7 +37,23 @@ namespace mi_ferreteria.Security
                     return;
                 }
 
+                if (context.Controller is Controller mvcController && !mvcController.ModelState.IsValid)
+                {
+                    return;
+                }
+
                 if (resultContext.Exception != null && !resultContext.ExceptionHandled)
+                {
+                    return;
+                }
+
+                if (resultContext.Result is IStatusCodeActionResult statusResult &&
+                    statusResult.StatusCode.HasValue && statusResult.StatusCode.Value >= 400)
+                {
+                    return;
+                }
+
+                if (resultContext.HttpContext.Response?.StatusCode >= 400)
                 {
                     return;
                 }
@@ -52,9 +70,9 @@ namespace mi_ferreteria.Security
                     return;
                 }
 
-                var controller = context.ActionDescriptor.RouteValues.TryGetValue("controller", out var c) ? c : context.Controller.GetType().Name;
+                var controllerName = context.ActionDescriptor.RouteValues.TryGetValue("controller", out var c) ? c : context.Controller.GetType().Name;
                 var action = context.ActionDescriptor.RouteValues.TryGetValue("action", out var a) ? a : "Accion";
-                var accion = $"{controller}.{action}".ToUpperInvariant();
+                var accion = $"{controllerName}.{action}".ToUpperInvariant();
                 var nombre = user.Identity?.Name ?? user.FindFirst(ClaimTypes.Email)?.Value ?? $"Usuario {uid}";
                 var detalle = $"{method.ToUpperInvariant()} {context.HttpContext.Request.Path}";
 
