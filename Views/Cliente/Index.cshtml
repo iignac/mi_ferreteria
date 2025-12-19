@@ -43,7 +43,6 @@ else
                     <th>Dirección</th>
                     <th>Teléfono</th>
                     <th>Email</th>
-                    <th>Cuenta corriente</th>
                     <th>Límite crédito</th>
                     <th>Activo</th>
                     <th class="text-end">Acciones</th>
@@ -71,9 +70,6 @@ else
                     <td>@(string.IsNullOrWhiteSpace(c.Telefono) ? "-" : c.Telefono)</td>
                     <td>@(string.IsNullOrWhiteSpace(c.Email) ? "-" : c.Email)</td>
                     <td>
-                        @(c.CuentaCorrienteHabilitada ? "Sí" : "No")
-                    </td>
-                    <td>
                         @(c.CuentaCorrienteHabilitada ? c.LimiteCredito.ToString("N2") : "-")
                     </td>
                     <td>
@@ -87,21 +83,23 @@ else
                         }
                     </td>
                     <td class="text-end">
-                        <a asp-action="Details" asp-route-id="@c.Id" class="btn btn-sm btn-outline-info me-1">Ver</a>
-                        <a asp-action="Edit" asp-route-id="@c.Id" class="btn btn-sm btn-outline-primary me-1">Editar</a>
-                        @if (c.Activo)
-                        {
-                            <form asp-action="Delete" asp-route-id="@c.Id" method="post" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-outline-danger"
-                                        onclick="return confirm('¿Dar de baja este cliente?');">Baja</button>
-                            </form>
-                        }
-                        else
-                        {
-                            <form asp-action="Activate" asp-route-id="@c.Id" method="post" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-outline-success">Activar</button>
-                            </form>
-                        }
+                        <div class="d-flex justify-content-end flex-wrap gap-2">
+                            <a asp-action="Details" asp-route-id="@c.Id" class="btn btn-sm btn-outline-info flex-shrink-0">Ver</a>
+                            <a asp-action="Edit" asp-route-id="@c.Id" class="btn btn-sm btn-outline-primary flex-shrink-0">Editar</a>
+                            @if (c.Activo)
+                            {
+                                <form asp-action="Delete" asp-route-id="@c.Id" method="post" class="m-0">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger flex-shrink-0"
+                                            onclick="return confirm('¿Dar de baja este cliente?');">Baja</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form asp-action="Activate" asp-route-id="@c.Id" method="post" class="m-0">
+                                    <button type="submit" class="btn btn-sm btn-outline-success flex-shrink-0">Activar</button>
+                                </form>
+                            }
+                        </div>
                     </td>
                 </tr>
             }

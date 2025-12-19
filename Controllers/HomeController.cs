@@ -17,13 +17,21 @@ public class HomeController : Controller
     {
         try
         {
-            _logger.LogInformation("Cargando Home/Index");
-            return View();
+            _logger.LogInformation("Redirigiendo desde Home/Index");
+
+            if (User?.Identity?.IsAuthenticated == true)
+            {
+                if (User.IsInRole("Administrador")) return RedirectToAction("Dashboard", "Admin");
+                if (User.IsInRole("Vendedor")) return RedirectToAction("Index", "Venta");
+                if (User.IsInRole("Stock")) return RedirectToAction("Index", "Stock");
+            }
+
+            return RedirectToAction("Login", "Auth");
         }
         catch (System.Exception ex)
         {
             _logger.LogError(ex, "Error en Home/Index");
-            return Problem("Ocurrió un error al cargar la página principal.");
+            return Problem("Ocurrio un error al cargar la pagina principal.");
         }
     }
 
@@ -37,7 +45,7 @@ public class HomeController : Controller
         catch (System.Exception ex)
         {
             _logger.LogError(ex, "Error en Home/Privacy");
-            return Problem("Ocurrió un error al cargar la página de privacidad.");
+            return Problem("Ocurrio un error al cargar la pagina de privacidad.");
         }
     }
 
@@ -47,3 +55,4 @@ public class HomeController : Controller
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
 }
+

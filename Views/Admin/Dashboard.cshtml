@@ -15,14 +15,58 @@
 
 <style>
     .hover-card {
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
     }
     .hover-card:hover {
         transform: translateY(-4px);
-        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.12);
+        box-shadow: 0 0.85rem 1.35rem rgba(13, 110, 253, 0.25);
+        background-color: #f8f9ff;
     }
     .hover-card:active {
         transform: translateY(-1px) scale(0.99);
+    }
+    .dashboard-table-wrapper {
+        border: 1px solid #e5e7eb;
+        border-radius: 0.65rem;
+        overflow: hidden;
+        box-shadow: 0 0.35rem 0.8rem rgba(15, 23, 42, 0.08);
+        background: #fff;
+    }
+    .dashboard-table {
+        margin-bottom: 0;
+    }
+    .dashboard-table thead th {
+        background: linear-gradient(90deg, #0d6efd, #0b5ed7);
+        color: #fff;
+        border-color: #0b5ed7 !important;
+        letter-spacing: 0.01em;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+    }
+    .dashboard-table tbody tr:nth-child(odd) td {
+        background-color: #f5f8ff;
+    }
+    .dashboard-table tbody tr:nth-child(even) td {
+        background-color: #ffffff;
+    }
+    .dashboard-table tbody tr:hover td {
+        background-color: #e3edff;
+    }
+    .dashboard-table tbody td {
+        border-color: #e5e7eb;
+    }
+    .dashboard-table thead th,
+    .dashboard-table tbody td {
+        padding: 0.9rem 0.75rem;
+    }
+    .dashboard-table tbody tr {
+        height: 3.25rem;
+    }
+    .table-row-link {
+        cursor: pointer;
+    }
+    .table-row-link:active td {
+        opacity: 0.92;
     }
 </style>
 
@@ -85,7 +129,7 @@
 }
 
 <div class="row g-4">
-    <div class="col-12 col-lg-7">
+    <div class="col-12 col-lg-6">
         <div class="card shadow-sm h-100">
             <div class="card-header bg-white">
                 <div class="d-flex justify-content-between align-items-center">
@@ -94,9 +138,9 @@
                 </div>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0 align-middle">
-                        <thead class="table-light">
+                <div class="table-responsive dashboard-table-wrapper">
+                    <table class="table table-hover mb-0 align-middle dashboard-table">
+                        <thead>
                             <tr>
                                 <th>ID</th>
                                 <th>Fecha</th>
@@ -110,7 +154,8 @@
                             {
                                 foreach (var v in Model.UltimasVentas)
                                 {
-                                    <tr>
+                                    var detalleUrl = Url.Action("Comprobante", "Venta", new { id = v.Id });
+                                    <tr class="table-row-link" role="button" onclick="window.location.href='@detalleUrl'">
                                         <td>#@v.Id</td>
                                         <td>@FechaCorta(v.Fecha)</td>
                                         <td>@v.TipoPago</td>
@@ -131,16 +176,16 @@
             </div>
         </div>
     </div>
-    <div class="col-12 col-lg-5">
+    <div class="col-12 col-lg-6">
         <div class="card shadow-sm h-100">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Movimientos de stock</h5>
                 <a asp-controller="Stock" asp-action="Index" class="btn btn-outline-primary btn-sm">Ver todos</a>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-sm mb-0 align-middle">
-                        <thead class="table-light">
+                <div class="table-responsive dashboard-table-wrapper">
+                    <table class="table table-sm mb-0 align-middle dashboard-table">
+                        <thead>
                             <tr>
                                 <th>Fecha</th>
                                 <th>Tipo</th>
@@ -154,13 +199,17 @@
                             {
                                 foreach (var m in Model.UltimosMovimientosStock)
                                 {
-                                    <tr>
+                                    var nombreProducto = (Model.ProductosPorId != null && Model.ProductosPorId.TryGetValue(m.ProductoId, out var nombre))
+                                        ? nombre
+                                        : $"ID #{m.ProductoId}";
+                                    var movimientosUrl = Url.Action("Manage", "StockProducto", new { id = m.ProductoId });
+                                    <tr class="table-row-link" role="button" onclick="window.location.href='@movimientosUrl'">
                                         <td>@FechaCorta(m.Fecha)</td>
                                         <td>
                                             <span class="@($"badge {(m.Tipo == "INGRESO" ? "bg-success" : "bg-danger")}")">@m.Tipo</span>
                                         </td>
                                         <td>@m.Cantidad</td>
-                                        <td>#@m.ProductoId</td>
+                                        <td>@nombreProducto</td>
                                         <td class="text-muted">@(!string.IsNullOrWhiteSpace(m.Motivo) ? m.Motivo : "-")</td>
                                     </tr>
                                 }

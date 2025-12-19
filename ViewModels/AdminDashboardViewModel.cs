@@ -19,5 +19,6 @@ namespace mi_ferreteria.ViewModels
         public IReadOnlyCollection<Producto> UltimasEdiciones { get; set; } = new List<Producto>();
         public IReadOnlyCollection<Usuario> AdministradoresActivos { get; set; } = new List<Usuario>();
         public IReadOnlyCollection<string> AlertasSeguridad { get; set; } = new List<string>();
+        public IDictionary<long, string> ProductosPorId { get; set; } = new Dictionary<long, string>();
     }
 }

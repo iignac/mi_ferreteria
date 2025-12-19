@@ -45,6 +45,7 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
+                const int topDashboardRows = 5;
                 var model = new AdminDashboardViewModel
                 {
                     TotalVentas = _ventaRepo.CountAll(),
@@ -53,12 +54,23 @@ namespace mi_ferreteria.Controllers
                     TotalMovimientosEgreso = _stockRepo.CountMovimientosGlobal("EGRESO"),
                     TotalProductos = _productoRepo.CountAll(),
                     ProductosInactivos = _productoRepo.CountInactive(),
-                    UltimasVentas = _ventaRepo.GetPage(1, 5).ToList(),
-                    UltimosMovimientosStock = _stockRepo.GetUltimosMovimientos(null, 8).ToList(),
-                    UltimasAltas = _productoRepo.GetLastCreated(5).ToList(),
-                    UltimasBajas = _productoRepo.GetLastInactive(5).ToList(),
-                    UltimasEdiciones = _productoRepo.GetLastUpdated(5).ToList()
+                    UltimasVentas = _ventaRepo.GetPage(1, topDashboardRows).ToList(),
+                    UltimosMovimientosStock = _stockRepo.GetUltimosMovimientos(null, topDashboardRows).ToList(),
+                    UltimasAltas = _productoRepo.GetLastCreated(topDashboardRows).ToList(),
+                    UltimasBajas = _productoRepo.GetLastInactive(topDashboardRows).ToList(),
+                    UltimasEdiciones = _productoRepo.GetLastUpdated(topDashboardRows).ToList()
                 };
+
+                var productosMapa = new Dictionary<long, string>();
+                foreach (var pid in model.UltimosMovimientosStock.Select(m => m.ProductoId).Distinct())
+                {
+                    var prod = _productoRepo.GetById(pid);
+                    if (prod != null)
+                    {
+                        productosMapa[pid] = prod.Nombre;
+                    }
+                }
+                model.ProductosPorId = productosMapa;
 
                 var usuarios = _usuarioRepo.GetAll();
                 model.AdministradoresActivos = usuarios
@@ -94,7 +106,7 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
-                const int pageSize = 25;
+                const int pageSize = 10;
                 if (page < 1) page = 1;
                 var (registros, total) = _auditoriaRepo.GetPage(page, pageSize);
                 var totalPages = (int)Math.Ceiling(total / (double)pageSize);
