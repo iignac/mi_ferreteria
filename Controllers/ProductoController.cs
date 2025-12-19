@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authorization;
 using mi_ferreteria.Data;
+using mi_ferreteria.Helpers;
 using mi_ferreteria.Models;
 using mi_ferreteria.ViewModels;
 using System;
@@ -68,7 +69,11 @@ namespace mi_ferreteria.Controllers
                 }
 
                 var stocks = _stockRepo.GetStocks(productos.Select(p => p.Id));
+                var alertas = StockAlertHelper.Build(productos, stocks);
                 ViewBag.Stocks = stocks;
+                ViewBag.StockCriticos = alertas.Criticos;
+                ViewBag.StockCriticosDetalle = alertas.Detalles;
+                ViewBag.StockCriticosCount = alertas.TotalCriticos;
                 ViewBag.Page = page;
                 ViewBag.PageSize = pageSize;
                 ViewBag.TotalCount = total;
@@ -81,6 +86,9 @@ namespace mi_ferreteria.Controllers
             {
                 _logger.LogError(ex, "Error al listar productos");
                 ViewBag.LoadError = true;
+                ViewBag.StockCriticos = new HashSet<long>();
+                ViewBag.StockCriticosDetalle = new List<StockCriticoViewModel>();
+                ViewBag.StockCriticosCount = 0;
                 ViewBag.Page = 1; ViewBag.PageSize = 10; ViewBag.TotalCount = 0; ViewBag.TotalPages = 1; ViewBag.Query = q;
                 return View(Enumerable.Empty<Producto>());
             }

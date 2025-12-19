@@ -15,12 +15,14 @@ namespace mi_ferreteria.Controllers
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IRolRepository _rolRepository;
         private readonly ILogger<UsuarioController> _logger;
+        private readonly IAuditoriaRepository _auditoriaRepository;
 
-        public UsuarioController(IUsuarioRepository usuarioRepository, IRolRepository rolRepository, ILogger<UsuarioController> logger)
+        public UsuarioController(IUsuarioRepository usuarioRepository, IRolRepository rolRepository, ILogger<UsuarioController> logger, IAuditoriaRepository auditoriaRepository)
         {
             _usuarioRepository = usuarioRepository;
             _rolRepository = rolRepository;
             _logger = logger;
+            _auditoriaRepository = auditoriaRepository;
         }
 
         public IActionResult Index()
@@ -97,14 +99,16 @@ namespace mi_ferreteria.Controllers
                         return View(model);
                     }
 
+                    var rolesSeleccionados = _rolRepository.GetAll().Where(r => model.RolesIds.Contains(r.Id)).ToList();
                     var usuario = new Usuario
                     {
                         Nombre = model.Nombre,
                         Email = model.Email,
                         Activo = model.Activo,
-                        Roles = _rolRepository.GetAll().Where(r => model.RolesIds.Contains(r.Id)).ToList()
+                        Roles = rolesSeleccionados
                     };
                     _usuarioRepository.Add(usuario, model.Password);
+                    RegistrarAuditoria("USUARIO_CREADO", $"Usuario #{usuario.Id}: {usuario.Nombre} ({usuario.Email}), Activo={usuario.Activo}, Roles=[{FormatearRoles(rolesSeleccionados)}]");
                     TempData["Success"] = "Usuario creado correctamente.";
                     return RedirectToAction("Index");
                 }
@@ -178,13 +182,14 @@ namespace mi_ferreteria.Controllers
                         ModelState.AddModelError("Email", "El email ya esta registrado por otro usuario");
                         return View(model);
                     }
+                    var rolesSeleccionados = _rolRepository.GetAll().Where(r => model.RolesIds.Contains(r.Id)).ToList();
                     var usuario = new Usuario
                     {
                         Id = model.Id,
                         Nombre = model.Nombre,
                         Email = model.Email,
                         Activo = model.Activo,
-                        Roles = _rolRepository.GetAll().Where(r => model.RolesIds.Contains(r.Id)).ToList()
+                        Roles = rolesSeleccionados
                     };
                     string? newPwd = null;
                     if (!string.IsNullOrWhiteSpace(model.Password) || !string.IsNullOrWhiteSpace(model.ConfirmPassword))
@@ -207,6 +212,11 @@ namespace mi_ferreteria.Controllers
                         newPwd = model.Password;
                     }
                     _usuarioRepository.Update(usuario, newPwd);
+                    var rolesAntes = FormatearRoles(dbUsuario.Roles);
+                    var rolesDespues = FormatearRoles(rolesSeleccionados);
+                    var pwdDetalle = string.IsNullOrWhiteSpace(newPwd) ? "clave sin cambios" : "clave actualizada";
+                    RegistrarAuditoria("USUARIO_EDITADO",
+                        $"Usuario #{usuario.Id}: nombre '{dbUsuario.Nombre}' -> '{usuario.Nombre}', email '{dbUsuario.Email}' -> '{usuario.Email}', activo {dbUsuario.Activo} -> {usuario.Activo}, roles [{rolesAntes}] -> [{rolesDespues}], {pwdDetalle}");
                     TempData["Success"] = "Usuario actualizado correctamente.";
                     return RedirectToAction("Index");
                 }
@@ -258,6 +268,7 @@ namespace mi_ferreteria.Controllers
                 var usuario = _usuarioRepository.GetAll().FirstOrDefault(u => u.Id == id);
                 var nombre = usuario?.Nombre ?? ("#" + id);
                 _usuarioRepository.Delete(id);
+                RegistrarAuditoria("USUARIO_ELIMINADO", $"Usuario #{id}: {nombre} ({usuario?.Email ?? "sin email"})");
                 TempData["Success"] = $"Usuario '{nombre}' eliminado correctamente.";
                 return RedirectToAction("Index");
             }
@@ -266,6 +277,23 @@ namespace mi_ferreteria.Controllers
                 _logger.LogError(ex, "Error al eliminar usuario {UsuarioId}", id);
                 return Problem("Ocurrio un error al eliminar el usuario.");
             }
+        }
+
+        private void RegistrarAuditoria(string accion, string detalle)
+        {
+            var userIdClaim = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var nombre = User?.Identity?.Name ?? "Usuario desconocido";
+            if (int.TryParse(userIdClaim, out var uid) && uid > 0)
+            {
+                _auditoriaRepository.Registrar(uid, nombre, accion.ToUpperInvariant(), detalle);
+                HttpContext.Items["AuditLogged"] = true;
+            }
+        }
+
+        private static string FormatearRoles(IEnumerable<Rol>? roles)
+        {
+            if (roles == null || !roles.Any()) return "Sin roles";
+            return string.Join(", ", roles.Select(r => r.Nombre));
         }
     }
 }

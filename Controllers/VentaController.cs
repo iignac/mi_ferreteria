@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using mi_ferreteria.Data;
+using mi_ferreteria.Helpers;
 using mi_ferreteria.Models;
 using mi_ferreteria.ViewModels;
 
@@ -67,8 +68,12 @@ namespace mi_ferreteria.Controllers
                 }
 
                 var stocks = _stockRepo.GetStocks(productos.Select(p => p.Id));
+                var alertas = StockAlertHelper.Build(productos, stocks);
                 ViewBag.Productos = productos;
                 ViewBag.Stocks = stocks;
+                ViewBag.StockCriticos = alertas.Criticos;
+                ViewBag.StockCriticosDetalle = alertas.Detalles;
+                ViewBag.StockCriticosCount = alertas.TotalCriticos;
                 ViewBag.Page = page;
                 ViewBag.PageSize = pageSize;
                 ViewBag.TotalCount = total;
@@ -301,13 +306,17 @@ namespace mi_ferreteria.Controllers
                 var resultado = productos.Select(p =>
                 {
                     var stock = stocks.TryGetValue(p.Id, out var s) ? s : 0L;
+                    var stockMin = p.StockMinimo;
+                    var esCritico = stockMin > 0 && stock <= stockMin;
                     return new
                     {
                         id = p.Id,
                         sku = p.Sku,
                         nombre = p.Nombre,
                         precio = p.PrecioVentaActual,
-                        stock
+                        stock,
+                        stockMinimo = stockMin,
+                        stockCritico = esCritico
                     };
                 });
 
@@ -347,8 +356,12 @@ namespace mi_ferreteria.Controllers
             }
 
             var stocks = productos.ToDictionary(p => p.Id, p => _stockRepo.GetStock(p.Id));
+            var alertas = StockAlertHelper.Build(productos, stocks);
             ViewBag.Productos = productos;
             ViewBag.Stocks = stocks;
+            ViewBag.StockCriticos = alertas.Criticos;
+            ViewBag.StockCriticosDetalle = alertas.Detalles;
+            ViewBag.StockCriticosCount = alertas.TotalCriticos;
             ViewBag.Page = page;
             ViewBag.PageSize = pageSize;
             ViewBag.TotalCount = total;

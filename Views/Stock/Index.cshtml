@@ -1,6 +1,8 @@
 @model mi_ferreteria.ViewModels.StockCargaViewModel
 @using mi_ferreteria.Models
+@using mi_ferreteria.ViewModels
 @using System.Text.Json
+@using System.Linq
 @{
     var productos = ViewBag.Productos as IEnumerable<Producto> ?? Enumerable.Empty<Producto>();
     var stocks = ViewBag.Stocks as System.Collections.Generic.IDictionary<long, long> ?? new System.Collections.Generic.Dictionary<long, long>();
@@ -12,6 +14,9 @@
     var tipoMovimiento = (Model?.TipoMovimiento ?? "INGRESO").ToUpperInvariant();
     var esIngreso = tipoMovimiento == "INGRESO";
     var preciosCompra = ViewBag.PreciosCompra as System.Collections.Generic.IDictionary<long, decimal?> ?? new System.Collections.Generic.Dictionary<long, decimal?>();
+    var stockCriticos = ViewBag.StockCriticos as System.Collections.Generic.HashSet<long> ?? new System.Collections.Generic.HashSet<long>();
+    var detalleCriticos = ViewBag.StockCriticosDetalle as System.Collections.Generic.List<StockCriticoViewModel> ?? new System.Collections.Generic.List<StockCriticoViewModel>();
+    var totalCriticos = ViewBag.StockCriticosCount is int sc ? sc : detalleCriticos.Count;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -23,7 +28,10 @@
         </p>
     </div>
     <div>
-        <a asp-action="Movimientos" class="btn btn-outline-primary">Ver ultimos movimientos</a>
+        <div class="btn-group">
+            <a asp-action="Movimientos" class="btn btn-outline-primary">Ver ultimos movimientos</a>
+            <a asp-action="Criticos" class="btn btn-outline-danger">Stock crítico</a>
+        </div>
     </div>
 </div>
 
@@ -34,6 +42,18 @@
 @if (TempData["StockError"] != null)
 {
     <div class="alert alert-danger">@TempData["StockError"]</div>
+}
+@if (totalCriticos > 0)
+{
+    var resumenCriticos = string.Join(", ", detalleCriticos.Take(5).Select(d => d.Nombre));
+    if (detalleCriticos.Count > 5)
+    {
+        resumenCriticos += $" y {detalleCriticos.Count - 5} más";
+    }
+    <div class="alert alert-warning">
+        <strong>Prioridad:</strong> @totalCriticos producto@(totalCriticos == 1 ? "" : "s") están en stock crítico. Revisa los niveles mínimos antes de registrar movimientos.
+        <span class="d-block small text-muted">@resumenCriticos</span>
+    </div>
 }
 
 <div class="card mb-3">
@@ -81,12 +101,20 @@
                     @foreach (var p in productos)
                     {
                         var stock = stocks != null && stocks.TryGetValue(p.Id, out var s) ? s : 0;
-                        <tr>
+                        var esCritico = stockCriticos.Contains(p.Id);
+                        var rowClass = esCritico ? "table-warning" : string.Empty;
+                        <tr class="@rowClass">
                             <td>@p.Id</td>
                             <td>@p.Sku</td>
                             <td>@p.Nombre</td>
                             <td>@p.UnidadMedida</td>
-                            <td>@stock</td>
+                            <td>
+                                @stock
+                                @if (esCritico)
+                                {
+                                    <span class="badge bg-danger ms-1">Stock crítico</span>
+                                }
+                            </td>
                             <td>@p.PrecioVentaActual.ToString("0.00")</td>
                             <td>@(preciosCompra.TryGetValue(p.Id, out var pc) && pc.HasValue ? pc.Value.ToString("0.00") : "-")</td>
                             <td class="text-end">
@@ -97,6 +125,7 @@
                                         data-nombre="@p.Nombre"
                                         data-unidad="@p.UnidadMedida"
                                         data-stock="@stock"
+                                        data-critico="@(esCritico ? "true" : "false")"
                                         data-precioventa="@p.PrecioVentaActual"
                                         data-preciocompra="@(preciosCompra.TryGetValue(p.Id, out var pc2) && pc2.HasValue ? pc2.Value.ToString() : string.Empty)"
                                         onclick="agregarProductoDesdeBoton(this)">
@@ -392,15 +421,18 @@
                                 data.forEach(p => {
                                     const tr = document.createElement('tr');
                                     const unidad = p.unidad || 'unidad';
-                                    const stock = p.stock ?? 0;
-                                    const precioVenta = p.precioVenta ?? 0;
-                                    const precioCompra = p.precioCompra ?? null;
+                                    const stock = typeof p.stock === 'number' ? p.stock : 0;
+                                    const stockMinimo = typeof p.stockMinimo === 'number' ? p.stockMinimo : 0;
+                                    const esCritico = p.stockCritico === true || (stockMinimo > 0 && stock <= stockMinimo);
+                                    const precioVenta = typeof p.precioVenta === 'number' ? p.precioVenta : 0;
+                                    const precioCompra = typeof p.precioCompra === 'number' ? p.precioCompra : null;
+                                    tr.className = esCritico ? 'table-warning' : '';
                                     tr.innerHTML = `
                                         <td>${p.id}</td>
                                         <td>${p.sku || ''}</td>
                                         <td>${p.nombre || ''}</td>
                                         <td>${unidad}</td>
-                                        <td>${stock}</td>
+                                        <td>${stock}${esCritico ? ' <span class="badge bg-danger ms-1">Stock crítico</span>' : ''}</td>
                                         <td>${precioVenta ? precioVenta.toFixed(2) : '-'}</td>
                                         <td>${(typeof precioCompra === 'number') ? precioCompra.toFixed(2) : '-'}</td>
                                         <td class="text-end">
@@ -411,6 +443,7 @@
                                                     data-nombre="${p.nombre || ''}"
                                                     data-unidad="${unidad}"
                                                     data-stock="${stock}"
+                                                    data-critico="${esCritico}"
                                                     data-precioventa="${precioVenta}"
                                                     data-preciocompra="${(typeof precioCompra === 'number') ? precioCompra : ''}"
                                                     onclick="agregarProductoDesdeBoton(this)">

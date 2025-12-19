@@ -60,6 +60,9 @@ namespace mi_ferreteria.Controllers
                     UltimasBajas = _productoRepo.GetLastInactive(topDashboardRows).ToList(),
                     UltimasEdiciones = _productoRepo.GetLastUpdated(topDashboardRows).ToList()
                 };
+                var criticosDestacados = _stockRepo.GetProductosStockCritico(null, 1, topDashboardRows, out var totalCriticos).ToList();
+                model.ProductosStockCritico = totalCriticos;
+                model.ProductosCriticosDestacados = criticosDestacados;
 
                 var productosMapa = new Dictionary<long, string>();
                 foreach (var pid in model.UltimosMovimientosStock.Select(m => m.ProductoId).Distinct())

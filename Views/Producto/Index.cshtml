@@ -1,4 +1,6 @@
 ﻿@model IEnumerable<mi_ferreteria.Models.Producto>
+@using mi_ferreteria.ViewModels
+@using System.Linq
 @{
     ViewData["Title"] = "Productos";
 }
@@ -56,6 +58,9 @@
 @* dropdown removed *@
 @{
     var stocks = ViewBag.Stocks as System.Collections.Generic.IDictionary<long, long>;
+    var stockCriticos = ViewBag.StockCriticos as System.Collections.Generic.HashSet<long> ?? new System.Collections.Generic.HashSet<long>();
+    var detalleCriticos = ViewBag.StockCriticosDetalle as System.Collections.Generic.List<StockCriticoViewModel> ?? new System.Collections.Generic.List<StockCriticoViewModel>();
+    var totalCriticos = ViewBag.StockCriticosCount is int sc ? sc : detalleCriticos.Count;
 }
 @* stocks: diccionario (ProductoId -> Stock actual) calculado en el controlador *@@{
     int page = ViewBag.Page is int ? (int)ViewBag.Page : 1;
@@ -65,6 +70,21 @@
 @if (ViewBag.LoadError == true)
 {
     <div class="alert alert-danger">No pudimos cargar los productos. Por favor, intenta nuevamente mas tarde.</div>
+}
+else if (totalCriticos > 0)
+{
+    var resumen = string.Join(", ", detalleCriticos.Take(4).Select(d => d.Nombre));
+    if (detalleCriticos.Count > 4)
+    {
+        resumen += $" y {detalleCriticos.Count - 4} más";
+    }
+    <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <strong>Atención:</strong> @totalCriticos producto@(totalCriticos == 1 ? "" : "s") están en stock crítico (igual o por debajo del mínimo).
+            <span class="d-block small text-muted">@resumen</span>
+        </div>
+        <span class="badge bg-danger text-uppercase">Prioridad stock</span>
+    </div>
 }
 
 @if (canManageProductos)
@@ -98,13 +118,22 @@ else
             @* Renderiza filas de productos. Cada fila es "clickeable" para ir a Detalle *@
             @foreach (var p in Model)
             {
-                <tr class="clickable-row" data-href="@Url.Action("Details","Producto", new { id = p.Id, page = page, q = q, sort = sort })">
+                var stockActual = (stocks != null && stocks.ContainsKey(p.Id)) ? stocks[p.Id] : 0;
+                var esCritico = stockCriticos.Contains(p.Id);
+                var rowClasses = "clickable-row" + (esCritico ? " table-warning" : string.Empty);
+                <tr class="@rowClasses" data-href="@Url.Action("Details","Producto", new { id = p.Id, page = page, q = q, sort = sort })">
                     <td>@p.Id</td>
                     <td>@p.Sku</td>
                     <td>@p.Nombre</td>
                     <td>$ @p.PrecioVentaActual</td>
                     <td>@(string.IsNullOrWhiteSpace(p.UbicacionCodigo) ? "-" : p.UbicacionCodigo)</td>
-                    <td>@(stocks != null && stocks.ContainsKey(p.Id) ? stocks[p.Id] : 0)</td>
+                    <td>
+                        @stockActual
+                        @if (esCritico)
+                        {
+                            <span class="badge bg-danger ms-1">Stock crítico</span>
+                        }
+                    </td>
                     <td class="text-center">
                         @if (p.Activo) { <span class="badge bg-success">Sí</span>; } else { <span class="badge bg-secondary">No</span>; }
                     </td>

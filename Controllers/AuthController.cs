@@ -1,10 +1,12 @@
 using System;
 using System.Threading.Tasks;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using mi_ferreteria.Data;
 using mi_ferreteria.Security;
 using mi_ferreteria.ViewModels;
 
@@ -14,11 +16,13 @@ namespace mi_ferreteria.Controllers
     {
         private readonly IAuthService _authService;
         private readonly ILogger<AuthController> _logger;
+        private readonly IAuditoriaRepository _auditoriaRepository;
 
-        public AuthController(IAuthService authService, ILogger<AuthController> logger)
+        public AuthController(IAuthService authService, ILogger<AuthController> logger, IAuditoriaRepository auditoriaRepository)
         {
             _authService = authService;
             _logger = logger;
+            _auditoriaRepository = auditoriaRepository;
         }
 
         [AllowAnonymous]
@@ -59,6 +63,7 @@ namespace mi_ferreteria.Controllers
 
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, authResult.Principal, authProperties);
             _logger.LogInformation("Usuario {Email} inicio sesion", model.Email);
+            RegistrarAuditoria(authResult.Principal, "LOGIN", $"Inicio de sesion de {GetNombre(authResult.Principal)} (ID {GetUserId(authResult.Principal)}, Email {model.Email}).");
 
             if (authResult.Principal?.IsInRole("Administrador") == true)
             {
@@ -81,6 +86,7 @@ namespace mi_ferreteria.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
+            RegistrarAuditoria(HttpContext.User, "LOGOUT", $"Cierre de sesion de {GetNombre(HttpContext.User)} (ID {GetUserId(HttpContext.User)}).");
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return RedirectToAction(nameof(Login));
         }
@@ -93,6 +99,27 @@ namespace mi_ferreteria.Controllers
             }
 
             return RedirectToAction("Index", "Home");
+        }
+
+        private void RegistrarAuditoria(ClaimsPrincipal? principal, string accion, string detalle)
+        {
+            if (principal == null) return;
+            var uid = GetUserId(principal);
+            if (uid <= 0) return;
+            var nombre = GetNombre(principal);
+            _auditoriaRepository.Registrar(uid, nombre, accion.ToUpperInvariant(), detalle);
+            HttpContext.Items["AuditLogged"] = true;
+        }
+
+        private static int GetUserId(ClaimsPrincipal? principal)
+        {
+            var uidClaim = principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return int.TryParse(uidClaim, out var uid) ? uid : 0;
+        }
+
+        private static string GetNombre(ClaimsPrincipal? principal)
+        {
+            return principal?.Identity?.Name ?? principal?.FindFirst(ClaimTypes.Email)?.Value ?? "Usuario desconocido";
         }
     }
 }

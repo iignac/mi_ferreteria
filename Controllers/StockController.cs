@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using mi_ferreteria.Helpers;
 using mi_ferreteria.Data;
 using mi_ferreteria.Models;
 using mi_ferreteria.ViewModels;
@@ -178,6 +179,8 @@ namespace mi_ferreteria.Controllers
                 {
                     var stock = stocks.TryGetValue(p.Id, out var s) ? s : 0L;
                     var pc = _stockRepo.GetUltimoPrecioCompra(p.Id);
+                    var stockMin = p.StockMinimo;
+                    var esCritico = stockMin > 0 && stock <= stockMin;
                     return new
                     {
                         id = p.Id,
@@ -186,7 +189,9 @@ namespace mi_ferreteria.Controllers
                         precioVenta = p.PrecioVentaActual,
                         precioCompra = pc,
                         unidad = p.UnidadMedida,
-                        stock
+                        stock,
+                        stockMinimo = stockMin,
+                        stockCritico = esCritico
                     };
                 });
 
@@ -263,6 +268,40 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        [HttpGet]
+        public IActionResult Criticos(string? q = null, int page = 1)
+        {
+            try
+            {
+                if (!PuedeGestionarStock()) return Forbid();
+                const int pageSize = 20;
+                if (page < 1) page = 1;
+                var productos = _stockRepo.GetProductosStockCritico(q, page, pageSize, out var total).ToList();
+                var totalPages = (int)Math.Ceiling(total / (double)pageSize);
+                if (totalPages == 0) totalPages = 1;
+                if (page > totalPages)
+                {
+                    page = totalPages;
+                    productos = _stockRepo.GetProductosStockCritico(q, page, pageSize, out total).ToList();
+                }
+                var model = new StockCriticosViewModel
+                {
+                    Productos = productos,
+                    Query = q ?? string.Empty,
+                    Page = page,
+                    TotalPages = totalPages,
+                    TotalCount = total
+                };
+                ViewData["Title"] = "Productos con stock crítico";
+                return View("Criticos", model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al listar productos con stock crítico");
+                return Problem("Ocurrió un error al cargar los productos críticos.");
+            }
+        }
+
         private void PrepararListadoProductos(string? q, int page)
         {
             const int pageSize = 10;
@@ -295,9 +334,13 @@ namespace mi_ferreteria.Controllers
             {
                 preciosCompra[p.Id] = _stockRepo.GetUltimoPrecioCompra(p.Id);
             }
+            var alertas = StockAlertHelper.Build(productos, stocks);
             ViewBag.Productos = productos;
             ViewBag.Stocks = stocks;
             ViewBag.PreciosCompra = preciosCompra;
+            ViewBag.StockCriticos = alertas.Criticos;
+            ViewBag.StockCriticosDetalle = alertas.Detalles;
+            ViewBag.StockCriticosCount = alertas.TotalCriticos;
             ViewBag.Page = page;
             ViewBag.PageSize = pageSize;
             ViewBag.TotalCount = total;

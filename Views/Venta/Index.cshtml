@@ -1,11 +1,16 @@
 @model mi_ferreteria.ViewModels.VentaCrearViewModel
 @using mi_ferreteria.Models
+@using mi_ferreteria.ViewModels
+@using System.Linq
 @{
     ViewData["Title"] = "Gestion de Ventas";
 
     string q = ViewBag.Query as string ?? string.Empty;
     var productos = ViewBag.Productos as IEnumerable<Producto> ?? Enumerable.Empty<Producto>();
-    var stocks = ViewBag.Stocks as System.Collections.Generic.IDictionary<long, long>;
+    var stocks = ViewBag.Stocks as System.Collections.Generic.IDictionary<long, long> ?? new System.Collections.Generic.Dictionary<long, long>();
+    var stockCriticos = ViewBag.StockCriticos as System.Collections.Generic.HashSet<long> ?? new System.Collections.Generic.HashSet<long>();
+    var detalleCriticos = ViewBag.StockCriticosDetalle as System.Collections.Generic.List<StockCriticoViewModel> ?? new System.Collections.Generic.List<StockCriticoViewModel>();
+    var totalCriticos = ViewBag.StockCriticosCount is int sc ? sc : detalleCriticos.Count;
     int page = ViewBag.Page is int pageValue ? pageValue : 1;
     int totalPages = ViewBag.TotalPages is int tp ? tp : 1;
 }
@@ -21,6 +26,18 @@
 {
     <div class="alert alert-success">
         @TempData["VentaOk"]
+    </div>
+}
+@if (totalCriticos > 0)
+{
+    var resumenCriticos = string.Join(", ", detalleCriticos.Take(4).Select(d => d.Nombre));
+    if (detalleCriticos.Count > 4)
+    {
+        resumenCriticos += $" y {detalleCriticos.Count - 4} más";
+    }
+    <div class="alert alert-warning" id="alertaStockCriticoVenta">
+        <strong>Atención:</strong> @totalCriticos producto@(totalCriticos == 1 ? "" : "s") están en stock crítico (igual o por debajo del mínimo).
+        <span class="d-block small text-muted">@resumenCriticos</span>
     </div>
 }
 
@@ -65,12 +82,20 @@ else
             @foreach (var p in productos)
             {
                 var stock = stocks != null && stocks.TryGetValue(p.Id, out var s) ? s : 0;
-                <tr>
+                var esCritico = stockCriticos.Contains(p.Id);
+                var rowClass = esCritico ? "table-warning" : string.Empty;
+                <tr class="@rowClass">
                     <td>@p.Id</td>
                     <td>@p.Sku</td>
                     <td>@p.Nombre</td>
                     <td>$ @p.PrecioVentaActual</td>
-                    <td>@stock</td>
+                    <td>
+                        @stock
+                        @if (esCritico)
+                        {
+                            <span class="badge bg-danger ms-1">Stock crítico</span>
+                        }
+                    </td>
                     <td class="text-end">
                             <button type="button"
                                     class="btn btn-sm btn-success"
@@ -79,6 +104,7 @@ else
                                     data-nombre="@p.Nombre"
                                     data-precio="@p.PrecioVentaActual.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                     data-stock="@stock"
+                                    data-critico="@(esCritico ? "true" : "false")"
                                     onclick="agregarAlCarritoDesdeBoton(this)">
                                 Agregar
                             </button>
@@ -294,15 +320,18 @@ else
                                     const tr = document.createElement('tr');
                                     const sku = p.sku || '';
                                     const nombre = p.nombre || '';
-                                    const precio = p.precio ?? 0;
-                                    const stock = p.stock ?? 0;
+                                    const precio = typeof p.precio === 'number' ? p.precio : 0;
+                                    const stock = typeof p.stock === 'number' ? p.stock : 0;
+                                    const stockMinimo = typeof p.stockMinimo === 'number' ? p.stockMinimo : 0;
+                                    const esCritico = p.stockCritico === true || (stockMinimo > 0 && stock <= stockMinimo);
 
+                                    tr.className = esCritico ? 'table-warning' : '';
                                     tr.innerHTML = `
                                         <td>${p.id}</td>
                                         <td>${sku}</td>
                                         <td>${nombre}</td>
-                                        <td>$ ${precio}</td>
-                                        <td>${stock}</td>
+                                        <td>$ ${precio.toFixed(2)}</td>
+                                        <td>${stock}${esCritico ? ' <span class="badge bg-danger ms-1">Stock crítico</span>' : ''}</td>
                                         <td class="text-end">
                                             <button type="button"
                                                     class="btn btn-sm btn-success"
@@ -311,6 +340,7 @@ else
                                                     data-nombre="${nombre}"
                                                     data-precio="${precio}"
                                                     data-stock="${stock}"
+                                                    data-critico="${esCritico}"
                                                     onclick="agregarAlCarritoDesdeBoton(this)">
                                                 Agregar
                                             </button>

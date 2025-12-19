@@ -389,5 +389,78 @@ namespace mi_ferreteria.Data
                 throw;
             }
         }
+
+        public System.Collections.Generic.IEnumerable<mi_ferreteria.Models.ProductoStockCritico> GetProductosStockCritico(string? query, int page, int pageSize, out int totalCount)
+        {
+            var result = new System.Collections.Generic.List<mi_ferreteria.Models.ProductoStockCritico>();
+            totalCount = 0;
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 10;
+                var offset = (page - 1) * pageSize;
+                using var conn = new NpgsqlConnection(_cs);
+                conn.Open();
+                EnsureSchema(conn);
+                var filtros = "p.activo = true AND p.stock_minimo > 0 AND COALESCE(ps.cantidad,0) <= p.stock_minimo";
+                var tieneFiltro = !string.IsNullOrWhiteSpace(query);
+                if (tieneFiltro)
+                {
+                    filtros += " AND (p.sku ILIKE @q OR p.nombre ILIKE @q OR COALESCE(p.descripcion,'') ILIKE @q OR COALESCE(p.ubicacion_codigo,'') ILIKE @q)";
+                }
+                using (var countCmd = new NpgsqlCommand($@"SELECT COUNT(1)
+                                                           FROM producto p
+                                                           LEFT JOIN producto_stock ps ON ps.producto_id = p.id
+                                                           WHERE {filtros}", conn))
+                {
+                    if (tieneFiltro)
+                    {
+                        countCmd.Parameters.AddWithValue("@q", $"%{query!.Trim()}%");
+                    }
+                    var scalar = countCmd.ExecuteScalar();
+                    totalCount = scalar is long l ? (int)l : Convert.ToInt32(scalar);
+                }
+
+                using var cmd = new NpgsqlCommand($@"
+                    SELECT p.id, p.sku, p.nombre,
+                           COALESCE(ps.cantidad,0) AS stock_actual,
+                           p.stock_minimo,
+                           COALESCE(p.unidad_medida,'unidad') AS unidad,
+                           p.ubicacion_codigo,
+                           p.precio_venta_actual
+                    FROM producto p
+                    LEFT JOIN producto_stock ps ON ps.producto_id = p.id
+                    WHERE {filtros}
+                    ORDER BY COALESCE(ps.cantidad,0) ASC, p.nombre ASC
+                    LIMIT @limit OFFSET @offset", conn);
+                if (tieneFiltro)
+                {
+                    cmd.Parameters.AddWithValue("@q", $"%{query!.Trim()}%");
+                }
+                cmd.Parameters.AddWithValue("@limit", pageSize);
+                cmd.Parameters.AddWithValue("@offset", offset);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    result.Add(new mi_ferreteria.Models.ProductoStockCritico
+                    {
+                        Id = reader.GetInt64(0),
+                        Sku = reader.IsDBNull(1) ? string.Empty : reader.GetString(1),
+                        Nombre = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
+                        StockActual = reader.IsDBNull(3) ? 0 : reader.GetInt64(3),
+                        StockMinimo = reader.IsDBNull(4) ? 0 : reader.GetInt32(4),
+                        UnidadMedida = reader.IsDBNull(5) ? "unidad" : reader.GetString(5),
+                        UbicacionCodigo = reader.IsDBNull(6) ? null : reader.GetString(6),
+                        PrecioVentaActual = reader.IsDBNull(7) ? 0 : reader.GetDecimal(7)
+                    });
+                }
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener productos con stock crítico");
+                throw;
+            }
+        }
     }
 }
