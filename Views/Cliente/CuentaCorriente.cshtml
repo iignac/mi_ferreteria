@@ -52,57 +52,14 @@ else
         <div class="col-md-8">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Facturas vencidas</h5>
-                    @if (Model.FacturasVencidas.Any())
-                    {
-                        <p class="text-muted small">Seleccione una factura vencida e ingrese el monto para generar una nota de debito (recargo o interes).</p>
-                        <form asp-action="GenerarNotaDebito" method="post" class="row g-2 align-items-end">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="clienteId" value="@Model.Cliente.Id" />
-                            <div class="col-md-6">
-                                <label class="form-label">Factura vencida</label>
-                                <select class="form-select" name="movimientoDeudaId" id="facturaVencidaSelect" required>
-                                    <option value="">Seleccione...</option>
-                                    @foreach (var f in Model.FacturasVencidas)
-                                    {
-                                        var label = string.IsNullOrWhiteSpace(f.Comprobante)
-                                            ? $"Venta {f.VentaId}"
-                                            : f.Comprobante;
-                                        <option value="@f.MovimientoDeudaId" data-saldo="@f.SaldoPendiente.ToString("F2")">
-                                            @label - Vto: @f.FechaVencimiento.ToString("yyyy-MM-dd") - Saldo $ @f.SaldoPendiente.ToString("N2")
-                                        </option>
-                                    }
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Monto</label>
-                                <input class="form-control" type="number" step="0.01" min="0.01" name="monto" id="notaDebitoMonto" required />
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Descripcion</label>
-                                <input class="form-control" type="text" name="descripcion" placeholder="Opcional" />
-                            </div>
-                            <div class="col-12">
-                                <button type="submit" class="btn btn-primary">Generar nota de debito</button>
-                            </div>
-                        </form>
-                    }
-                    else
-                    {
-                        <p class="mb-0 text-muted">No hay facturas vencidas con saldo pendiente.</p>
-                    }
-                </div>
-            </div>
-            <div class="card mt-3">
-                <div class="card-body">
-                    <h5 class="card-title">Registrar pago de cuenta corriente</h5>
+                    <h5 class="card-title">Registrar pago</h5>
                     @if (Model.SaldoActual <= 0)
                     {
                         <p class="mb-0 text-muted">El cliente no registra deuda. No es posible registrar pagos.</p>
                     }
                     else
                     {
-                        <p class="text-muted small">Si lo desea puede asociar el pago a una factura con saldo pendiente.</p>
+                        <p class="text-muted small">Puede asociar el pago al saldo general o a una factura con saldo pendiente.</p>
                         <form asp-action="RegistrarPagoCuentaCorriente" method="post" class="row g-2 align-items-end">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="clienteId" value="@Model.Cliente.Id" />
@@ -155,7 +112,7 @@ else
                                 <th>Fecha</th>
                                 <th>Tipo</th>
                                 <th>Comprobante</th>
-                                <th>DescripciИn</th>
+                                <th>Descripción</th>
                                 <th>Vencimiento</th>
                                 <th class="text-end">Importe</th>
                                 <th class="text-end">Saldo</th>
@@ -177,10 +134,10 @@ else
                                         tipo = "Ajuste";
                                         break;
                                     case "NOTA_DEBITO":
-                                        tipo = "Nota de dИbito";
+                                        tipo = "Nota de débito";
                                         break;
                                     case "NOTA_CREDITO":
-                                        tipo = "Nota de crゼdito";
+                                        tipo = "Nota de crédito";
                                         break;
                                     default:
                                         tipo = mov.Tipo;
