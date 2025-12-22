@@ -206,7 +206,7 @@ namespace mi_ferreteria.Controllers
                 }
 
                 _repo.ReplaceBarcodes(p.Id, barcodes);
-                RegistrarAuditoria("CREADO", $"Producto #{p.Id}: {p.Nombre} (SKU {p.Sku}, Precio {p.PrecioVentaActual}, Activo={p.Activo})");
+                RegistrarAuditoria(nameof(Create), $"Alta de producto #{p.Id}: {p.Nombre} (SKU {p.Sku}, Precio {p.PrecioVentaActual}, Activo={p.Activo})");
                 TempData["Success"] = $"Producto '{p.Nombre}' creado correctamente.";
                 return RedirectToAction("Index", new { page = page ?? 1 });
             }
@@ -350,8 +350,8 @@ namespace mi_ferreteria.Controllers
                 _repo.ReplaceBarcodes(p.Id, barcodes);
                 if (actual != null)
                 {
-                    RegistrarAuditoria("EDICION",
-                        $"Producto #{p.Id}: nombre '{actual.Nombre}' -> '{p.Nombre}', precio {actual.PrecioVentaActual} -> {p.PrecioVentaActual}, activo {actual.Activo} -> {p.Activo}, stockMin {actual.StockMinimo} -> {p.StockMinimo}, unidad '{actual.UnidadMedida}' -> '{p.UnidadMedida}'");
+                    RegistrarAuditoria(nameof(Edit),
+                        $"Actualizacion de producto #{p.Id}: nombre '{actual.Nombre}' -> '{p.Nombre}', precio {actual.PrecioVentaActual} -> {p.PrecioVentaActual}, activo {actual.Activo} -> {p.Activo}, stockMin {actual.StockMinimo} -> {p.StockMinimo}, unidad '{actual.UnidadMedida}' -> '{p.UnidadMedida}'");
                 }
                 TempData["Success"] = $"Producto '{p.Nombre}' actualizado correctamente.";
                 return RedirectToAction("Index", new { page = page ?? 1 });
@@ -421,7 +421,7 @@ namespace mi_ferreteria.Controllers
                 _repo.Delete(id);
                 if (prod != null)
                 {
-                    RegistrarAuditoria("ELIMINADO", $"Producto #{id}: {prod.Nombre} (SKU {prod.Sku})");
+                    RegistrarAuditoria("Delete", $"Eliminacion de producto #{id}: {prod.Nombre} (SKU {prod.Sku})");
                 }
                 TempData["Success"] = $"Producto '{nombre}' eliminado correctamente.";
                 return RedirectToAction("Index", new { page = page ?? 1 });
@@ -447,9 +447,24 @@ namespace mi_ferreteria.Controllers
             var nombre = User?.Identity?.Name ?? "Usuario desconocido";
             if (int.TryParse(userIdClaim, out var uid) && uid > 0)
             {
-                _auditoriaRepo.Registrar(uid, nombre, accion.ToUpperInvariant(), detalle);
+                var finalAccion = BuildAccionNombre(accion);
+                _auditoriaRepo.Registrar(uid, nombre, finalAccion, detalle);
                 HttpContext.Items["AuditLogged"] = true;
             }
+        }
+
+        private static string BuildAccionNombre(string accion)
+        {
+            var controller = nameof(ProductoController).Replace("Controller", string.Empty).ToUpperInvariant();
+            if (string.IsNullOrWhiteSpace(accion))
+            {
+                return controller;
+            }
+
+            var normalized = accion.Contains('.')
+                ? accion
+                : $"{controller}.{accion}";
+            return normalized.ToUpperInvariant();
         }
     }
 }

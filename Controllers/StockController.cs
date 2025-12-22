@@ -134,12 +134,12 @@ namespace mi_ferreteria.Controllers
                     if (esIngreso)
                     {
                         _stockRepo.Ingresar(linea.ProductoId, linea.Cantidad, motivo, linea.PrecioCompra);
-                        RegistrarAuditoria("INGRESO_STOCK", $"Ingreso de {linea.Cantidad} {linea.UnidadMedida} de {linea.ProductoNombre} (ID {linea.ProductoId})");
+                        RegistrarAuditoria(nameof(Index), $"Registro de ingreso de stock: {linea.Cantidad} {linea.UnidadMedida} de {linea.ProductoNombre} (ID {linea.ProductoId})");
                     }
                     else
                     {
                         _stockRepo.Egresar(linea.ProductoId, linea.Cantidad, motivo);
-                        RegistrarAuditoria("EGRESO_STOCK", $"Egreso de {linea.Cantidad} {linea.UnidadMedida} de {linea.ProductoNombre} (ID {linea.ProductoId})");
+                        RegistrarAuditoria(nameof(Index), $"Registro de egreso de stock: {linea.Cantidad} {linea.UnidadMedida} de {linea.ProductoNombre} (ID {linea.ProductoId})");
                     }
                 }
 
@@ -359,9 +359,24 @@ namespace mi_ferreteria.Controllers
             var nombre = User?.Identity?.Name ?? "Usuario desconocido";
             if (int.TryParse(userIdClaim, out var uid) && uid > 0)
             {
-                _auditoriaRepo.Registrar(uid, nombre, accion.ToUpperInvariant(), detalle);
+                var finalAccion = BuildAccionNombre(accion);
+                _auditoriaRepo.Registrar(uid, nombre, finalAccion, detalle);
                 HttpContext.Items["AuditLogged"] = true;
             }
+        }
+
+        private static string BuildAccionNombre(string accion)
+        {
+            var controller = nameof(StockController).Replace("Controller", string.Empty).ToUpperInvariant();
+            if (string.IsNullOrWhiteSpace(accion))
+            {
+                return controller;
+            }
+
+            var normalized = accion.Contains('.')
+                ? accion
+                : $"{controller}.{accion}";
+            return normalized.ToUpperInvariant();
         }
     }
 }

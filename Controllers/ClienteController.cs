@@ -153,6 +153,12 @@ namespace mi_ferreteria.Controllers
 
                 _repo.Add(cliente);
 
+                if (TryGetAuditoriaUsuario(out var userId, out var usuarioNombre))
+                {
+                    RegistrarAuditoria(userId, usuarioNombre, nameof(Create),
+                        $"Alta de cliente #{cliente.Id}: {ResumenCliente(cliente)}");
+                }
+
                 // Saldo inicial de cuenta corriente como ajuste, si corresponde
                 if (CuentaCorrienteHabilitada && SaldoInicialCuentaCorriente != 0)
                 {
@@ -290,20 +296,20 @@ namespace mi_ferreteria.Controllers
                 }
 
                 var descripcionFinal = string.IsNullOrWhiteSpace(descripcion)
-                    ? $"Nota de dИbito por factura vencida {(facturaObjetivo.Comprobante ?? $"Venta {facturaObjetivo.VentaId}")}"
+                    ? $"Nota de débito por factura vencida {(facturaObjetivo.Comprobante ?? $"Venta {facturaObjetivo.VentaId}")}"
                     : descripcion.Trim();
 
                 var usuarioNombre = User?.Identity?.Name ?? $"Usuario {userId}";
                 _repo.RegistrarNotaDebito(clienteId, monto, userId, descripcionFinal, movimiento.VentaId, movimiento.Id);
-                RegistrarAuditoria(userId, usuarioNombre, "NOTA_DEBITO_CC",
+                RegistrarAuditoria(userId, usuarioNombre, nameof(GenerarNotaDebito),
                     $"Nota de debito por ${monto:N2} para cliente {cliente.Nombre} (ID {cliente.Id}).");
-                TempData["CuentaCorrienteOk"] = "La nota de dИbito se gener籀 con Иxito.";
+                TempData["CuentaCorrienteOk"] = "La nota de débito se generó con éxito.";
                 return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Error al registrar nota de dИbito para cliente {ClienteId}", clienteId);
-                TempData["CuentaCorrienteError"] = "OcurriИ un error al registrar la nota de dИbito.";
+                _logger.LogError(ex, "Error al registrar nota de débito para cliente {ClienteId}", clienteId);
+                TempData["CuentaCorrienteError"] = "Ocurrió un error al registrar la nota de dИbito.";
                 return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
             }
         }
@@ -361,7 +367,7 @@ namespace mi_ferreteria.Controllers
                         ? "Nota de credito en cuenta corriente"
                         : descripcion.Trim();
                     _repo.RegistrarNotaCredito(clienteId, monto, userId, descripcionFinal, null, null);
-                    RegistrarAuditoria(userId, usuarioNombre, "NOTA_CREDITO_CC",
+                    RegistrarAuditoria(userId, usuarioNombre, nameof(GenerarNotaCuentaCorriente),
                         $"Nota de credito por ${monto:N2} para cliente {cliente.Nombre} (ID {cliente.Id}).");
                     TempData["NotaOk"] = "La nota de credito se genero con exito.";
                     return RedirectToAction(nameof(Details), new { id = clienteId });
@@ -382,7 +388,7 @@ namespace mi_ferreteria.Controllers
                     ? "Nota de debito en cuenta corriente"
                     : descripcion.Trim();
                 _repo.RegistrarNotaDebito(clienteId, monto, userId, descripcionDebito, null, null);
-                RegistrarAuditoria(userId, usuarioNombre, "NOTA_DEBITO_CC",
+                RegistrarAuditoria(userId, usuarioNombre, nameof(GenerarNotaCuentaCorriente),
                     $"Nota de debito por ${monto:N2} para cliente {cliente.Nombre} (ID {cliente.Id}).");
                 TempData["NotaOk"] = "La nota de debito se genero con exito.";
                 return RedirectToAction(nameof(Details), new { id = clienteId });
@@ -460,7 +466,10 @@ namespace mi_ferreteria.Controllers
                     : descripcion.Trim();
 
                 _repo.RegistrarPagoCuentaCorriente(clienteId, monto, userId, descripcionFinal, ventaId, movRelacionadoId);
-                TempData["CuentaCorrienteOk"] = "El pago se registr籀 correctamente.";
+                var usuarioNombre = User?.Identity?.Name ?? $"Usuario {userId}";
+                RegistrarAuditoria(userId, usuarioNombre, nameof(RegistrarPagoCuentaCorriente),
+                    $"Pago por ${monto:N2} en cuenta corriente de cliente {cliente.Nombre} (ID {cliente.Id}){(ventaId.HasValue ? $" aplicado a venta #{ventaId}" : string.Empty)}.");
+                TempData["CuentaCorrienteOk"] = "El pago se registro correctamente.";
                 return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
             }
             catch (System.Exception ex)
@@ -555,7 +564,15 @@ namespace mi_ferreteria.Controllers
                     return View(cliente);
                 }
 
+                var anterior = _repo.GetById(Id);
+                if (anterior == null) return NotFound();
+
                 _repo.Update(cliente);
+                if (TryGetAuditoriaUsuario(out var userId, out var usuarioNombre))
+                {
+                    RegistrarAuditoria(userId, usuarioNombre, nameof(Edit),
+                        $"Actualizacion cliente #{cliente.Id}: nombre '{anterior.Nombre}' -> '{cliente.Nombre}', tipo '{anterior.TipoCliente}' -> '{cliente.TipoCliente}', activo {anterior.Activo} -> {cliente.Activo}, CC {(anterior.CuentaCorrienteHabilitada ? $"SI (limite {anterior.LimiteCredito:N2})" : "NO")} -> {(cliente.CuentaCorrienteHabilitada ? $"SI (limite {cliente.LimiteCredito:N2})" : "NO")}.");
+                }
                 return RedirectToAction("Index");
             }
             catch (System.Exception ex)
@@ -597,6 +614,10 @@ namespace mi_ferreteria.Controllers
                 if (c == null) return NotFound();
                 c.Activo = false;
                 _repo.Update(c);
+                if (TryGetAuditoriaUsuario(out var userId, out var usuarioNombre))
+                {
+                    RegistrarAuditoria(userId, usuarioNombre, "Delete", $"Cliente #{c.Id}: dado de baja ({c.Nombre} {c.Apellido}).");
+                }
                 return RedirectToAction("Index");
             }
             catch (System.Exception ex)
@@ -615,6 +636,10 @@ namespace mi_ferreteria.Controllers
                 if (c == null) return NotFound();
                 c.Activo = true;
                 _repo.Update(c);
+                if (TryGetAuditoriaUsuario(out var userId, out var usuarioNombre))
+                {
+                    RegistrarAuditoria(userId, usuarioNombre, nameof(Activate), $"Cliente #{c.Id}: reactivado ({c.Nombre} {c.Apellido}).");
+                }
                 return RedirectToAction("Index");
             }
             catch (System.Exception ex)
@@ -641,8 +666,36 @@ namespace mi_ferreteria.Controllers
 
         private void RegistrarAuditoria(int userId, string usuarioNombre, string accion, string detalle)
         {
-            _auditoriaRepo.Registrar(userId, usuarioNombre, accion.ToUpperInvariant(), detalle);
+            var finalAccion = BuildAccionNombre(accion);
+            _auditoriaRepo.Registrar(userId, usuarioNombre, finalAccion, detalle);
             HttpContext.Items["AuditLogged"] = true;
+        }
+
+        private static string BuildAccionNombre(string accion)
+        {
+            var controller = nameof(ClienteController).Replace("Controller", string.Empty).ToUpperInvariant();
+            if (string.IsNullOrWhiteSpace(accion))
+            {
+                return controller;
+            }
+            var normalized = accion.Contains('.')
+                ? accion
+                : $"{controller}.{accion}";
+            return normalized.ToUpperInvariant();
+        }
+
+        private static string ResumenCliente(Cliente cliente)
+        {
+            var nombre = cliente.Nombre?.Trim() ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(cliente.Apellido))
+            {
+                nombre = string.IsNullOrWhiteSpace(nombre) ? cliente.Apellido.Trim() : $"{nombre} {cliente.Apellido.Trim()}";
+            }
+            var email = string.IsNullOrWhiteSpace(cliente.Email) ? "sin email" : cliente.Email.Trim();
+            var cuenta = cliente.CuentaCorrienteHabilitada
+                ? $"CC habilitada (limite {cliente.LimiteCredito:N2})"
+                : "CC deshabilitada";
+            return $"{nombre} - Tipo {cliente.TipoCliente}, {cuenta}, Email {email}, Activo={cliente.Activo}";
         }
         private static string? BuildDireccion(string? calle, string? numero, string? localidad)
         {

@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "Auditoria de usuarios";
     string FechaLocal(DateTimeOffset fecha) => fecha.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+    bool HayFiltro() => !string.IsNullOrWhiteSpace(Model?.SearchTerm);
 }
 
 <div class="d-flex align-items-center justify-content-between mb-3">
@@ -13,16 +14,37 @@
     </div>
 
 <div class="card shadow-sm">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <div class="card-header bg-white d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
         <div>
             <h5 class="mb-0">Ultimos movimientos</h5>
             <small class="text-muted">@Model.TotalCount registros en total</small>
+            @if (HayFiltro())
+            {
+                <div class="text-muted small">Filtro aplicado: @Model.SearchTerm</div>
+            }
         </div>
+        <form asp-controller="Admin" asp-action="Auditoria" method="get" class="d-flex flex-column flex-sm-row gap-2 w-100 w-md-auto">
+            <input type="text"
+                   class="form-control form-control-sm"
+                   placeholder="Buscar por tipo de accion"
+                   name="search"
+                   value="@(Model.SearchTerm ?? string.Empty)" />
+            <div class="d-flex gap-2">
+                @if (HayFiltro())
+                {
+                    <a class="btn btn-outline-secondary btn-sm" asp-controller="Admin" asp-action="Auditoria">Limpiar</a>
+                }
+                <button type="submit" class="btn btn-primary btn-sm">Buscar</button>
+            </div>
+        </form>
     </div>
     <div class="card-body p-0">
         @if (Model.Registros == null || Model.Registros.Count == 0)
         {
-            <div class="p-4 text-center text-muted">Aun no hay eventos registrados.</div>
+            var mensaje = HayFiltro()
+                ? "No se encontraron registros que coincidan con el filtro aplicado."
+                : "Aun no hay eventos registrados.";
+            <div class="p-4 text-center text-muted">@mensaje</div>
         }
         else
         {
@@ -61,13 +83,21 @@
     <nav class="mt-3">
         <ul class="pagination justify-content-center">
             <li class="page-item @(Model.Page <= 1 ? "disabled" : string.Empty)">
-                <a class="page-link" asp-controller="Admin" asp-action="Auditoria" asp-route-page="@(Model.Page - 1)">Anterior</a>
+                <a class="page-link"
+                   asp-controller="Admin"
+                   asp-action="Auditoria"
+                   asp-route-page="@(Model.Page - 1)"
+                   asp-route-search="@Model.SearchTerm">Anterior</a>
             </li>
             <li class="page-item disabled">
                 <span class="page-link">Pagina @Model.Page de @Model.TotalPages</span>
             </li>
             <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : string.Empty)">
-                <a class="page-link" asp-controller="Admin" asp-action="Auditoria" asp-route-page="@(Model.Page + 1)">Siguiente</a>
+                <a class="page-link"
+                   asp-controller="Admin"
+                   asp-action="Auditoria"
+                   asp-route-page="@(Model.Page + 1)"
+                   asp-route-search="@Model.SearchTerm">Siguiente</a>
             </li>
         </ul>
     </nav>

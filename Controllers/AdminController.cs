@@ -105,19 +105,20 @@ namespace mi_ferreteria.Controllers
             }
         }
 
-        public IActionResult Auditoria(int page = 1)
+        public IActionResult Auditoria(int page = 1, string? search = null)
         {
             try
             {
                 const int pageSize = 10;
                 if (page < 1) page = 1;
-                var (registros, total) = _auditoriaRepo.GetPage(page, pageSize);
+                var filtro = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
+                var (registros, total) = _auditoriaRepo.GetPage(page, pageSize, filtro);
                 var totalPages = (int)Math.Ceiling(total / (double)pageSize);
                 if (totalPages == 0) totalPages = 1;
                 if (page > totalPages)
                 {
                     page = totalPages;
-                    (registros, total) = _auditoriaRepo.GetPage(page, pageSize);
+                    (registros, total) = _auditoriaRepo.GetPage(page, pageSize, filtro);
                 }
 
                 var model = new AuditoriaListadoViewModel
@@ -125,7 +126,8 @@ namespace mi_ferreteria.Controllers
                     Registros = registros.ToList(),
                     Page = page,
                     TotalPages = totalPages,
-                    TotalCount = total
+                    TotalCount = total,
+                    SearchTerm = filtro
                 };
 
                 ViewData["Title"] = "Auditoria de usuarios";

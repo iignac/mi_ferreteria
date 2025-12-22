@@ -107,7 +107,7 @@ namespace mi_ferreteria.Controllers
                 }
                 var nueva = new Categoria { Nombre = Nombre!, IdPadre = IdPadre, Descripcion = Descripcion, Activo = true };
                 _repo.Add(nueva);
-                RegistrarAuditoria("CREADO", $"Categoria #{nueva.Id}: {nueva.Nombre}");
+                RegistrarAuditoria(nameof(Create), $"Alta de categoria #{nueva.Id}: {nueva.Nombre}");
                 return RedirectToAction("Index");
             }
             catch (System.Exception ex)
@@ -165,7 +165,7 @@ namespace mi_ferreteria.Controllers
                 _repo.Update(nueva);
                 if (anterior != null)
                 {
-                    RegistrarAuditoria("EDICION", $"Categoria #{Id}: nombre '{anterior.Nombre}' -> '{nueva.Nombre}', activo {anterior.Activo} -> {nueva.Activo}, descripcion '{anterior.Descripcion}' -> '{nueva.Descripcion}'");
+                    RegistrarAuditoria(nameof(Edit), $"Actualizacion de categoria #{Id}: nombre '{anterior.Nombre}' -> '{nueva.Nombre}', activo {anterior.Activo} -> {nueva.Activo}, descripcion '{anterior.Descripcion}' -> '{nueva.Descripcion}'");
                 }
                 return RedirectToAction("Index");
             }
@@ -195,7 +195,7 @@ namespace mi_ferreteria.Controllers
                 _repo.Delete(id);
                 if (anterior != null)
                 {
-                    RegistrarAuditoria("ELIMINADO", $"Categoria #{id}: {anterior.Nombre}");
+                    RegistrarAuditoria("Delete", $"Eliminacion de categoria #{id}: {anterior.Nombre}");
                 }
                 return RedirectToAction("Index");
             }
@@ -216,7 +216,7 @@ namespace mi_ferreteria.Controllers
                 _repo.Activate(id);
                 if (anterior != null)
                 {
-                    RegistrarAuditoria("EDICION", $"Categoria #{id}: activada (antes activo={anterior.Activo})");
+                    RegistrarAuditoria(nameof(Activate), $"Reactivacion de categoria #{id}: estado previo activo={anterior.Activo}");
                 }
                 return RedirectToAction("Index");
             }
@@ -237,7 +237,7 @@ namespace mi_ferreteria.Controllers
                 _repo.HardDelete(id);
                 if (anterior != null)
                 {
-                    RegistrarAuditoria("ELIMINADO", $"Categoria #{id}: {anterior.Nombre} (hard delete)");
+                    RegistrarAuditoria(nameof(HardDelete), $"Eliminacion definitiva de categoria #{id}: {anterior.Nombre}");
                 }
                 return RedirectToAction("Index");
             }
@@ -254,9 +254,24 @@ namespace mi_ferreteria.Controllers
             var nombre = User?.Identity?.Name ?? "Usuario desconocido";
             if (int.TryParse(userIdClaim, out var uid) && uid > 0)
             {
-                _auditoriaRepo.Registrar(uid, nombre, accion.ToUpperInvariant(), detalle);
+                var finalAccion = BuildAccionNombre(accion);
+                _auditoriaRepo.Registrar(uid, nombre, finalAccion, detalle);
                 HttpContext.Items["AuditLogged"] = true;
             }
+        }
+
+        private static string BuildAccionNombre(string accion)
+        {
+            var controller = nameof(CategoriaController).Replace("Controller", string.Empty).ToUpperInvariant();
+            if (string.IsNullOrWhiteSpace(accion))
+            {
+                return controller;
+            }
+
+            var normalized = accion.Contains('.')
+                ? accion
+                : $"{controller}.{accion}";
+            return normalized.ToUpperInvariant();
         }
     }
 }

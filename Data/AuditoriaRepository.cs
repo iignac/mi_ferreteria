@@ -63,7 +63,7 @@ namespace mi_ferreteria.Data
             }
         }
 
-        public (IEnumerable<AuditoriaRegistro> Registros, int Total) GetPage(int page, int pageSize)
+        public (IEnumerable<AuditoriaRegistro> Registros, int Total) GetPage(int page, int pageSize, string? accionFiltro = null)
         {
             var list = new List<AuditoriaRegistro>();
             if (page < 1) page = 1;
@@ -73,22 +73,45 @@ namespace mi_ferreteria.Data
                 conn.Open();
                 EnsureSchema(conn);
 
+                var filtro = string.IsNullOrWhiteSpace(accionFiltro) ? null : accionFiltro.Trim();
+                var filtroParametro = filtro == null ? null : $"%{filtro}%";
+                var tieneFiltro = filtro != null;
+
                 int total;
-                using (var count = new NpgsqlCommand("SELECT COUNT(1) FROM auditoria_usuario", conn))
+                var countSql = "SELECT COUNT(1) FROM auditoria_usuario";
+                if (tieneFiltro)
                 {
+                    countSql += " WHERE accion ILIKE @accionFiltro";
+                }
+                using (var count = new NpgsqlCommand(countSql, conn))
+                {
+                    if (tieneFiltro)
+                    {
+                        count.Parameters.AddWithValue("@accionFiltro", filtroParametro!);
+                    }
                     var res = count.ExecuteScalar();
                     total = res is long l ? (int)l : Convert.ToInt32(res);
                 }
 
                 var offset = (page - 1) * pageSize;
-                using (var cmd = new NpgsqlCommand(@"
+                var query = @"
                     SELECT id, fecha, usuario_id, usuario_nombre, accion, detalle
-                    FROM auditoria_usuario
+                    FROM auditoria_usuario";
+                if (tieneFiltro)
+                {
+                    query += " WHERE accion ILIKE @accionFiltro";
+                }
+                query += @"
                     ORDER BY fecha DESC, id DESC
-                    LIMIT @limit OFFSET @offset", conn))
+                    LIMIT @limit OFFSET @offset";
+                using (var cmd = new NpgsqlCommand(query, conn))
                 {
                     cmd.Parameters.AddWithValue("@limit", pageSize);
                     cmd.Parameters.AddWithValue("@offset", offset);
+                    if (tieneFiltro)
+                    {
+                        cmd.Parameters.AddWithValue("@accionFiltro", filtroParametro!);
+                    }
                     using var r = cmd.ExecuteReader();
                     while (r.Read())
                     {

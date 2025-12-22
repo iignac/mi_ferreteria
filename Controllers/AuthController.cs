@@ -63,7 +63,7 @@ namespace mi_ferreteria.Controllers
 
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, authResult.Principal, authProperties);
             _logger.LogInformation("Usuario {Email} inicio sesion", model.Email);
-            RegistrarAuditoria(authResult.Principal, "LOGIN", $"Inicio de sesion de {GetNombre(authResult.Principal)} (ID {GetUserId(authResult.Principal)}, Email {model.Email}).");
+            RegistrarAuditoria(authResult.Principal, nameof(Login), $"Inicio de sesion de {GetNombre(authResult.Principal)} (ID {GetUserId(authResult.Principal)}, Email {model.Email}).");
 
             if (authResult.Principal?.IsInRole("Administrador") == true)
             {
@@ -86,7 +86,7 @@ namespace mi_ferreteria.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
-            RegistrarAuditoria(HttpContext.User, "LOGOUT", $"Cierre de sesion de {GetNombre(HttpContext.User)} (ID {GetUserId(HttpContext.User)}).");
+            RegistrarAuditoria(HttpContext.User, nameof(Logout), $"Cierre de sesion de {GetNombre(HttpContext.User)} (ID {GetUserId(HttpContext.User)}).");
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return RedirectToAction(nameof(Login));
         }
@@ -107,7 +107,8 @@ namespace mi_ferreteria.Controllers
             var uid = GetUserId(principal);
             if (uid <= 0) return;
             var nombre = GetNombre(principal);
-            _auditoriaRepository.Registrar(uid, nombre, accion.ToUpperInvariant(), detalle);
+            var finalAccion = BuildAccionNombre(accion);
+            _auditoriaRepository.Registrar(uid, nombre, finalAccion, detalle);
             HttpContext.Items["AuditLogged"] = true;
         }
 
@@ -120,6 +121,20 @@ namespace mi_ferreteria.Controllers
         private static string GetNombre(ClaimsPrincipal? principal)
         {
             return principal?.Identity?.Name ?? principal?.FindFirst(ClaimTypes.Email)?.Value ?? "Usuario desconocido";
+        }
+
+        private static string BuildAccionNombre(string accion)
+        {
+            var controller = nameof(AuthController).Replace("Controller", string.Empty).ToUpperInvariant();
+            if (string.IsNullOrWhiteSpace(accion))
+            {
+                return controller;
+            }
+
+            var normalized = accion.Contains('.')
+                ? accion
+                : $"{controller}.{accion}";
+            return normalized.ToUpperInvariant();
         }
     }
 }

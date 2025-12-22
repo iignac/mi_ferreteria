@@ -9,5 +9,6 @@ namespace mi_ferreteria.ViewModels
         public int Page { get; set; }
         public int TotalPages { get; set; }
         public int TotalCount { get; set; }
+        public string? SearchTerm { get; set; }
     }
 }
