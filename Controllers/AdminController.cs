@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +21,31 @@ namespace mi_ferreteria.Controllers
         private readonly IReporteFinancieroRepository _finanzasRepo;
         private readonly ICategoriaRepository _categoriaRepo;
         private readonly ILogger<AdminController> _logger;
+        private static readonly Dictionary<string, string> AuditoriaModulos = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["CLIENTE"] = "Clientes",
+            ["PRODUCTO"] = "Productos",
+            ["CATEGORIA"] = "Categorías",
+            ["USUARIO"] = "Usuarios",
+            ["STOCK"] = "Stock",
+            ["VENTA"] = "Ventas",
+            ["AUTH"] = "Sesiones",
+            ["ADMIN"] = "Administración"
+        };
+
+        private static readonly Dictionary<string, string> AuditoriaOperaciones = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["CREATE"] = "Altas",
+            ["EDIT"] = "Actualizaciones",
+            ["DELETE"] = "Eliminaciones",
+            ["ACTIVATE"] = "Reactivaciones",
+            ["LOGIN"] = "Inicios de sesión",
+            ["LOGOUT"] = "Cierres de sesión",
+            ["GENERARNOTADEBITO"] = "Notas de débito CC",
+            ["GENERARNOTACUENTACORRIENTE"] = "Notas en cuenta corriente",
+            ["REGISTRARPAGOCUENTACORRIENTE"] = "Pagos de cuenta corriente",
+            ["INDEX"] = "Movimientos de stock"
+        };
 
         public AdminController(
             IVentaRepository ventaRepo,
@@ -105,20 +131,30 @@ namespace mi_ferreteria.Controllers
             }
         }
 
-        public IActionResult Auditoria(int page = 1, string? search = null)
+        public IActionResult Auditoria(int page = 1, string? search = null, string? modulo = null, string? operacion = null, string? desde = null, string? hasta = null)
         {
             try
             {
                 const int pageSize = 10;
                 if (page < 1) page = 1;
                 var filtro = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
-                var (registros, total) = _auditoriaRepo.GetPage(page, pageSize, filtro);
+                var moduloKey = NormalizeModulo(modulo);
+                var operacionKey = NormalizeOperacion(operacion);
+                var fechaDesde = ParseDate(desde);
+                var fechaHasta = ParseDate(hasta);
+                if (fechaDesde.HasValue && fechaHasta.HasValue && fechaDesde > fechaHasta)
+                {
+                    (fechaDesde, fechaHasta) = (fechaHasta, fechaDesde);
+                }
+                var fechaHastaExclusive = fechaHasta?.AddDays(1);
+
+                var (registros, total) = _auditoriaRepo.GetPage(page, pageSize, filtro, moduloKey, operacionKey, fechaDesde, fechaHastaExclusive);
                 var totalPages = (int)Math.Ceiling(total / (double)pageSize);
                 if (totalPages == 0) totalPages = 1;
                 if (page > totalPages)
                 {
                     page = totalPages;
-                    (registros, total) = _auditoriaRepo.GetPage(page, pageSize, filtro);
+                    (registros, total) = _auditoriaRepo.GetPage(page, pageSize, filtro, moduloKey, operacionKey, fechaDesde, fechaHastaExclusive);
                 }
 
                 var model = new AuditoriaListadoViewModel
@@ -127,7 +163,21 @@ namespace mi_ferreteria.Controllers
                     Page = page,
                     TotalPages = totalPages,
                     TotalCount = total,
-                    SearchTerm = filtro
+                    SearchTerm = filtro,
+                    SelectedModulo = moduloKey,
+                    SelectedModuloLabel = moduloKey != null && AuditoriaModulos.TryGetValue(moduloKey, out var modLbl) ? modLbl : null,
+                    SelectedOperacion = operacionKey,
+                    SelectedOperacionLabel = operacionKey != null && AuditoriaOperaciones.TryGetValue(operacionKey, out var opLbl) ? opLbl : null,
+                    FechaDesde = fechaDesde,
+                    FechaHasta = fechaHasta,
+                    ModulosDisponibles = AuditoriaModulos
+                        .Select(kv => new FiltroOpcion { Value = kv.Key, Label = kv.Value })
+                        .OrderBy(o => o.Label)
+                        .ToList(),
+                    OperacionesDisponibles = AuditoriaOperaciones
+                        .Select(kv => new FiltroOpcion { Value = kv.Key, Label = kv.Value })
+                        .OrderBy(o => o.Label)
+                        .ToList()
                 };
 
                 ViewData["Title"] = "Auditoria de usuarios";
@@ -186,6 +236,34 @@ namespace mi_ferreteria.Controllers
                 _logger.LogError(ex, "No se pudo cargar el tablero financiero");
                 return Problem("No se pudo cargar el tablero financiero.");
             }
+        }
+
+        private static string? NormalizeModulo(string? modulo)
+        {
+            if (string.IsNullOrWhiteSpace(modulo)) return null;
+            var key = modulo.Trim().ToUpperInvariant();
+            return AuditoriaModulos.ContainsKey(key) ? key : null;
+        }
+
+        private static string? NormalizeOperacion(string? operacion)
+        {
+            if (string.IsNullOrWhiteSpace(operacion)) return null;
+            var key = operacion.Trim().ToUpperInvariant();
+            return AuditoriaOperaciones.ContainsKey(key) ? key : null;
+        }
+
+        private static DateTimeOffset? ParseDate(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+            if (DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var dt))
+            {
+                var local = DateTime.SpecifyKind(dt.Date, DateTimeKind.Local);
+                return new DateTimeOffset(local);
+            }
+            return null;
         }
     }
 }

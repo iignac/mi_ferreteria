@@ -63,7 +63,14 @@ namespace mi_ferreteria.Data
             }
         }
 
-        public (IEnumerable<AuditoriaRegistro> Registros, int Total) GetPage(int page, int pageSize, string? accionFiltro = null)
+        public (IEnumerable<AuditoriaRegistro> Registros, int Total) GetPage(
+            int page,
+            int pageSize,
+            string? accionFiltro = null,
+            string? modulo = null,
+            string? operacion = null,
+            DateTimeOffset? fechaDesde = null,
+            DateTimeOffset? fechaHasta = null)
         {
             var list = new List<AuditoriaRegistro>();
             if (page < 1) page = 1;
@@ -76,18 +83,58 @@ namespace mi_ferreteria.Data
                 var filtro = string.IsNullOrWhiteSpace(accionFiltro) ? null : accionFiltro.Trim();
                 var filtroParametro = filtro == null ? null : $"%{filtro}%";
                 var tieneFiltro = filtro != null;
+                var moduloFiltro = string.IsNullOrWhiteSpace(modulo) ? null : modulo.Trim().ToUpperInvariant();
+                var operacionFiltro = string.IsNullOrWhiteSpace(operacion) ? null : operacion.Trim().ToUpperInvariant();
+                var desdeFiltro = fechaDesde;
+                var hastaFiltro = fechaHasta;
 
-                int total;
-                var countSql = "SELECT COUNT(1) FROM auditoria_usuario";
+                var condiciones = new List<string>();
                 if (tieneFiltro)
                 {
-                    countSql += " WHERE accion ILIKE @accionFiltro";
+                    condiciones.Add("accion ILIKE @accionFiltro");
                 }
+                if (moduloFiltro != null)
+                {
+                    condiciones.Add("accion LIKE @moduloFiltro");
+                }
+                if (operacionFiltro != null)
+                {
+                    condiciones.Add("accion LIKE @operacionFiltro");
+                }
+                if (desdeFiltro.HasValue)
+                {
+                    condiciones.Add("fecha >= @fechaDesde");
+                }
+                if (hastaFiltro.HasValue)
+                {
+                    condiciones.Add("fecha < @fechaHasta");
+                }
+
+                var whereSql = condiciones.Count > 0 ? " WHERE " + string.Join(" AND ", condiciones) : string.Empty;
+
+                int total;
+                var countSql = "SELECT COUNT(1) FROM auditoria_usuario" + whereSql;
                 using (var count = new NpgsqlCommand(countSql, conn))
                 {
                     if (tieneFiltro)
                     {
                         count.Parameters.AddWithValue("@accionFiltro", filtroParametro!);
+                    }
+                    if (moduloFiltro != null)
+                    {
+                        count.Parameters.AddWithValue("@moduloFiltro", $"{moduloFiltro}.%");
+                    }
+                    if (operacionFiltro != null)
+                    {
+                        count.Parameters.AddWithValue("@operacionFiltro", $"%.{operacionFiltro}");
+                    }
+                    if (desdeFiltro.HasValue)
+                    {
+                        count.Parameters.AddWithValue("@fechaDesde", desdeFiltro.Value.UtcDateTime);
+                    }
+                    if (hastaFiltro.HasValue)
+                    {
+                        count.Parameters.AddWithValue("@fechaHasta", hastaFiltro.Value.UtcDateTime);
                     }
                     var res = count.ExecuteScalar();
                     total = res is long l ? (int)l : Convert.ToInt32(res);
@@ -96,12 +143,7 @@ namespace mi_ferreteria.Data
                 var offset = (page - 1) * pageSize;
                 var query = @"
                     SELECT id, fecha, usuario_id, usuario_nombre, accion, detalle
-                    FROM auditoria_usuario";
-                if (tieneFiltro)
-                {
-                    query += " WHERE accion ILIKE @accionFiltro";
-                }
-                query += @"
+                    FROM auditoria_usuario" + whereSql + @"
                     ORDER BY fecha DESC, id DESC
                     LIMIT @limit OFFSET @offset";
                 using (var cmd = new NpgsqlCommand(query, conn))
@@ -111,6 +153,22 @@ namespace mi_ferreteria.Data
                     if (tieneFiltro)
                     {
                         cmd.Parameters.AddWithValue("@accionFiltro", filtroParametro!);
+                    }
+                    if (moduloFiltro != null)
+                    {
+                        cmd.Parameters.AddWithValue("@moduloFiltro", $"{moduloFiltro}.%");
+                    }
+                    if (operacionFiltro != null)
+                    {
+                        cmd.Parameters.AddWithValue("@operacionFiltro", $"%.{operacionFiltro}");
+                    }
+                    if (desdeFiltro.HasValue)
+                    {
+                        cmd.Parameters.AddWithValue("@fechaDesde", desdeFiltro.Value.UtcDateTime);
+                    }
+                    if (hastaFiltro.HasValue)
+                    {
+                        cmd.Parameters.AddWithValue("@fechaHasta", hastaFiltro.Value.UtcDateTime);
                     }
                     using var r = cmd.ExecuteReader();
                     while (r.Read())

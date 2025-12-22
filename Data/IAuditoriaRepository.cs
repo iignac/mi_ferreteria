@@ -6,6 +6,13 @@ namespace mi_ferreteria.Data
     public interface IAuditoriaRepository
     {
         void Registrar(int usuarioId, string usuarioNombre, string accion, string? detalle = null);
-        (IEnumerable<AuditoriaRegistro> Registros, int Total) GetPage(int page, int pageSize, string? accionFiltro = null);
+        (IEnumerable<AuditoriaRegistro> Registros, int Total) GetPage(
+            int page,
+            int pageSize,
+            string? accionFiltro = null,
+            string? modulo = null,
+            string? operacion = null,
+            DateTimeOffset? fechaDesde = null,
+            DateTimeOffset? fechaHasta = null);
     }
 }
