@@ -10,5 +10,6 @@ namespace mi_ferreteria.ViewModels
         public List<ClienteCuentaCorrienteFacturaPendiente> FacturasVencidas { get; set; } = new();
         public List<ClienteCuentaCorrienteFacturaPendiente> FacturasPendientes { get; set; } = new();
         public decimal SaldoActual { get; set; }
+        public decimal SaldoDisponible { get; set; }
     }
 }

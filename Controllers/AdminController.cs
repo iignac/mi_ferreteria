@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using mi_ferreteria.Data;
+using mi_ferreteria.Models;
 using mi_ferreteria.ViewModels;
 
 namespace mi_ferreteria.Controllers
@@ -20,6 +22,7 @@ namespace mi_ferreteria.Controllers
         private readonly IAuditoriaRepository _auditoriaRepo;
         private readonly IReporteFinancieroRepository _finanzasRepo;
         private readonly ICategoriaRepository _categoriaRepo;
+        private readonly IClienteRepository _clienteRepo;
         private readonly ILogger<AdminController> _logger;
         private static readonly Dictionary<string, string> AuditoriaModulos = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -55,6 +58,7 @@ namespace mi_ferreteria.Controllers
             IAuditoriaRepository auditoriaRepo,
             IReporteFinancieroRepository finanzasRepo,
             ICategoriaRepository categoriaRepo,
+            IClienteRepository clienteRepo,
             ILogger<AdminController> logger)
         {
             _ventaRepo = ventaRepo;
@@ -64,6 +68,7 @@ namespace mi_ferreteria.Controllers
             _auditoriaRepo = auditoriaRepo;
             _finanzasRepo = finanzasRepo;
             _categoriaRepo = categoriaRepo;
+            _clienteRepo = clienteRepo;
             _logger = logger;
         }
 
@@ -128,6 +133,143 @@ namespace mi_ferreteria.Controllers
             {
                 _logger.LogError(ex, "No se pudo construir el panel de administracion");
                 return Problem("No se pudo cargar el panel de administracion.");
+            }
+        }
+
+        public IActionResult VentasPendientes()
+        {
+            try
+            {
+                var pendientes = _ventaRepo.GetPendientes().ToList();
+                var items = new List<VentaPendienteItemViewModel>();
+                foreach (var venta in pendientes)
+                {
+                    Cliente? cliente = null;
+                    decimal saldoActual = 0;
+                    if (venta.ClienteId.HasValue)
+                    {
+                        cliente = _clienteRepo.GetById(venta.ClienteId.Value);
+                        if (cliente != null)
+                        {
+                            saldoActual = _clienteRepo.GetSaldoCuentaCorriente(cliente.Id);
+                        }
+                    }
+                    items.Add(new VentaPendienteItemViewModel
+                    {
+                        Venta = venta,
+                        Cliente = cliente,
+                        SaldoActual = saldoActual,
+                        SaldoPostVenta = saldoActual - venta.Total
+                    });
+                }
+                return View("VentasPendientes", items);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al listar ventas pendientes");
+                return Problem("No se pudo cargar el listado de ventas pendientes.");
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult AutorizarVentaPendiente(long ventaId)
+        {
+            try
+            {
+                if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId) || userId <= 0)
+                {
+                    return Forbid();
+                }
+
+                var ventaPendiente = _ventaRepo.GetPendientes().FirstOrDefault(v => v.Id == ventaId);
+                if (ventaPendiente == null)
+                {
+                    TempData["Success"] = "La venta seleccionada ya no esta pendiente.";
+                    return RedirectToAction(nameof(VentasPendientes));
+                }
+
+                Cliente? cliente = ventaPendiente.ClienteId.HasValue ? _clienteRepo.GetById(ventaPendiente.ClienteId.Value) : null;
+                var resultado = _ventaRepo.AutorizarVentaPendiente(
+                    ventaId,
+                    cliente,
+                    "FACTURA_B",
+                    registrarFactura: true,
+                    registrarPago: true,
+                    userId,
+                    $"Autorizada por {User.Identity?.Name ?? $"Usuario {userId}"}");
+
+                if (resultado == null)
+                {
+                    TempData["Success"] = "La venta seleccionada ya no esta pendiente.";
+                    return RedirectToAction(nameof(VentasPendientes));
+                }
+
+                var (venta, detalles, _) = resultado.Value;
+                if (cliente != null)
+                {
+                    var fechaVencimiento = venta.Fecha.AddDays(30);
+                    _clienteRepo.RegistrarDeuda(
+                        cliente.Id,
+                        venta.Id,
+                        venta.Total,
+                        userId,
+                        "Venta a cuenta corriente autorizada",
+                        fechaVencimiento);
+                }
+
+                foreach (var detalle in detalles)
+                {
+                    try
+                    {
+                        if (detalle.PermiteVentaSinStock)
+                        {
+                            _stockRepo.EgresarPermitiendoNegativo(detalle.ProductoId, (long)detalle.Cantidad, "VENTA");
+                        }
+                        else
+                        {
+                            _stockRepo.Egresar(detalle.ProductoId, (long)detalle.Cantidad, "VENTA");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error al descontar stock para producto {ProductoId} en venta {VentaId}", detalle.ProductoId, venta.Id);
+                    }
+                }
+
+                TempData["Success"] = $"Venta {venta.Id} autorizada correctamente.";
+                return RedirectToAction(nameof(VentasPendientes));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al autorizar venta pendiente {VentaId}", ventaId);
+                TempData["Success"] = "Ocurrió un error al autorizar la venta.";
+                return RedirectToAction(nameof(VentasPendientes));
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult RechazarVentaPendiente(long ventaId, string? motivo)
+        {
+            try
+            {
+                if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId) || userId <= 0)
+                {
+                    return Forbid();
+                }
+                var motivoFinal = string.IsNullOrWhiteSpace(motivo) ? null : motivo.Trim();
+                var ok = _ventaRepo.RechazarVentaPendiente(ventaId, userId, motivoFinal);
+                TempData["Success"] = ok
+                    ? $"Venta {ventaId} rechazada correctamente."
+                    : "La venta seleccionada ya no estaba pendiente.";
+                return RedirectToAction(nameof(VentasPendientes));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al rechazar venta pendiente {VentaId}", ventaId);
+                TempData["Success"] = "Ocurrió un error al rechazar la venta.";
+                return RedirectToAction(nameof(VentasPendientes));
             }
         }
 

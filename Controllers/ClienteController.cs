@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using mi_ferreteria.Data;
 using mi_ferreteria.Models;
 using mi_ferreteria.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -210,6 +211,25 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        [HttpGet]
+        public IActionResult MovimientoComprobante(long clienteId, long movimientoId)
+        {
+            var cliente = _repo.GetById(clienteId);
+            if (cliente == null) return NotFound();
+            var movimiento = _repo.GetMovimiento(movimientoId);
+            if (movimiento == null || movimiento.ClienteId != clienteId)
+            {
+                return NotFound();
+            }
+
+            var vm = new ClienteMovimientoComprobanteViewModel
+            {
+                Cliente = cliente,
+                Movimiento = movimiento
+            };
+            return View("MovimientoComprobante", vm);
+        }
+
         public IActionResult Edit(long id)
         {
             var c = _repo.GetById(id);
@@ -226,7 +246,7 @@ namespace mi_ferreteria.Controllers
             if (c.CuentaCorrienteHabilitada)
             {
                 saldoActual = _repo.GetSaldoCuentaCorriente(id);
-                saldoDisponible = c.LimiteCredito - saldoActual.GetValueOrDefault();
+                saldoDisponible = c.LimiteCredito + saldoActual.GetValueOrDefault();
             }
             ViewBag.SaldoActual = saldoActual;
             ViewBag.SaldoDisponible = saldoDisponible;
@@ -242,13 +262,15 @@ namespace mi_ferreteria.Controllers
             var ahora = DateTimeOffset.UtcNow;
             var facturasVencidas = facturasPendientes.Where(f => f.FechaVencimiento < ahora).ToList();
             var saldoActual = cliente.CuentaCorrienteHabilitada ? _repo.GetSaldoCuentaCorriente(id) : 0m;
+            var saldoDisponible = cliente.CuentaCorrienteHabilitada ? cliente.LimiteCredito + saldoActual : cliente.LimiteCredito;
             var vm = new ClienteCuentaCorrienteViewModel
             {
                 Cliente = cliente,
                 Movimientos = movimientos,
                 FacturasVencidas = facturasVencidas,
                 FacturasPendientes = facturasPendientes,
-                SaldoActual = saldoActual
+                SaldoActual = saldoActual,
+                SaldoDisponible = saldoDisponible
             };
             return View(vm);
         }
@@ -300,10 +322,16 @@ namespace mi_ferreteria.Controllers
                     : descripcion.Trim();
 
                 var usuarioNombre = User?.Identity?.Name ?? $"Usuario {userId}";
-                _repo.RegistrarNotaDebito(clienteId, monto, userId, descripcionFinal, movimiento.VentaId, movimiento.Id);
+                                var movimientoId = _repo.RegistrarNotaDebito(clienteId, monto, userId, descripcionFinal, movimiento.VentaId, movimiento.Id);
+
                 RegistrarAuditoria(userId, usuarioNombre, nameof(GenerarNotaDebito),
+
                     $"Nota de debito por ${monto:N2} para cliente {cliente.Nombre} (ID {cliente.Id}).");
-                TempData["CuentaCorrienteOk"] = "La nota de débito se generó con éxito.";
+
+                var comprobanteUrl = Url.Action(nameof(MovimientoComprobante), new { clienteId, movimientoId });
+
+                TempData["CuentaCorrienteOk"] = $"La nota de debito se genero con exito. <a href=\"{comprobanteUrl}\" target=\"_blank\">Imprimir comprobante</a>.";
+
                 return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
             }
             catch (System.Exception ex)
@@ -342,7 +370,7 @@ namespace mi_ferreteria.Controllers
                 }
 
                 var saldoActual = _repo.GetSaldoCuentaCorriente(clienteId);
-                var saldoDisponible = cliente.LimiteCredito - saldoActual;
+                var saldoDisponible = cliente.LimiteCredito + saldoActual;
 
                 if (!TryGetAuditoriaUsuario(out var userId, out var usuarioNombre))
                 {
@@ -352,12 +380,13 @@ namespace mi_ferreteria.Controllers
 
                 if (tipo == "CREDITO")
                 {
-                    if (saldoActual <= 0)
+                    if (saldoActual >= 0)
                     {
                         TempData["NotaError"] = "El cliente no tiene deuda para generar una nota de credito.";
                         return RedirectToAction(nameof(Details), new { id = clienteId });
                     }
-                    if (monto > saldoActual)
+                    var deudaActual = Math.Abs(saldoActual);
+                    if (monto > deudaActual)
                     {
                         TempData["NotaError"] = "El monto supera la deuda actual del cliente.";
                         return RedirectToAction(nameof(Details), new { id = clienteId });
@@ -366,10 +395,11 @@ namespace mi_ferreteria.Controllers
                     var descripcionFinal = string.IsNullOrWhiteSpace(descripcion)
                         ? "Nota de credito en cuenta corriente"
                         : descripcion.Trim();
-                    _repo.RegistrarNotaCredito(clienteId, monto, userId, descripcionFinal, null, null);
+                    var movimientoId = _repo.RegistrarNotaCredito(clienteId, monto, userId, descripcionFinal, null, null);
                     RegistrarAuditoria(userId, usuarioNombre, nameof(GenerarNotaCuentaCorriente),
                         $"Nota de credito por ${monto:N2} para cliente {cliente.Nombre} (ID {cliente.Id}).");
-                    TempData["NotaOk"] = "La nota de credito se genero con exito.";
+                    var comprobanteUrl = Url.Action(nameof(MovimientoComprobante), new { clienteId, movimientoId });
+                    TempData["NotaOk"] = $"La nota de credito se genero con exito. <a href=\"{comprobanteUrl}\" target=\"_blank\">Imprimir comprobante</a>.";
                     return RedirectToAction(nameof(Details), new { id = clienteId });
                 }
 
@@ -387,10 +417,11 @@ namespace mi_ferreteria.Controllers
                 var descripcionDebito = string.IsNullOrWhiteSpace(descripcion)
                     ? "Nota de debito en cuenta corriente"
                     : descripcion.Trim();
-                _repo.RegistrarNotaDebito(clienteId, monto, userId, descripcionDebito, null, null);
+                var movimientoDebitoId = _repo.RegistrarNotaDebito(clienteId, monto, userId, descripcionDebito, null, null);
                 RegistrarAuditoria(userId, usuarioNombre, nameof(GenerarNotaCuentaCorriente),
                     $"Nota de debito por ${monto:N2} para cliente {cliente.Nombre} (ID {cliente.Id}).");
-                TempData["NotaOk"] = "La nota de debito se genero con exito.";
+                var comprobanteDebitoUrl = Url.Action(nameof(MovimientoComprobante), new { clienteId, movimientoId = movimientoDebitoId });
+                TempData["NotaOk"] = $"La nota de debito se genero con exito. <a href=\"{comprobanteDebitoUrl}\" target=\"_blank\">Imprimir comprobante</a>.";
                 return RedirectToAction(nameof(Details), new { id = clienteId });
             }
             catch (System.Exception ex)
@@ -420,13 +451,6 @@ namespace mi_ferreteria.Controllers
                     return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
                 }
 
-                var saldoActual = _repo.GetSaldoCuentaCorriente(clienteId);
-                if (saldoActual <= 0)
-                {
-                    TempData["CuentaCorrienteError"] = "El cliente no registra deuda en cuenta corriente.";
-                    return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
-                }
-
                 List<ClienteCuentaCorrienteFacturaPendiente>? facturasPendientes = null;
                 long? ventaId = null;
                 long? movRelacionadoId = null;
@@ -448,11 +472,6 @@ namespace mi_ferreteria.Controllers
                     ventaId = factura.VentaId;
                     movRelacionadoId = factura.MovimientoDeudaId;
                 }
-                else if (monto > saldoActual)
-                {
-                    TempData["CuentaCorrienteError"] = "El monto supera la deuda actual del cliente.";
-                    return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
-                }
 
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (!int.TryParse(userIdClaim, out var userId) || userId <= 0)
@@ -465,11 +484,12 @@ namespace mi_ferreteria.Controllers
                     ? "Pago registrado en cuenta corriente"
                     : descripcion.Trim();
 
-                _repo.RegistrarPagoCuentaCorriente(clienteId, monto, userId, descripcionFinal, ventaId, movRelacionadoId);
+                var pagoMovimientoId = _repo.RegistrarPagoCuentaCorriente(clienteId, monto, userId, descripcionFinal, ventaId, movRelacionadoId);
                 var usuarioNombre = User?.Identity?.Name ?? $"Usuario {userId}";
                 RegistrarAuditoria(userId, usuarioNombre, nameof(RegistrarPagoCuentaCorriente),
                     $"Pago por ${monto:N2} en cuenta corriente de cliente {cliente.Nombre} (ID {cliente.Id}){(ventaId.HasValue ? $" aplicado a venta #{ventaId}" : string.Empty)}.");
-                TempData["CuentaCorrienteOk"] = "El pago se registro correctamente.";
+                var pagoUrl = Url.Action(nameof(MovimientoComprobante), new { clienteId, movimientoId = pagoMovimientoId });
+                TempData["CuentaCorrienteOk"] = $"El pago se registro correctamente. <a href=\"{pagoUrl}\" target=\"_blank\">Imprimir recibo</a>.";
                 return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
             }
             catch (System.Exception ex)

@@ -36,9 +36,36 @@ else
                     <td>@(v.TipoCliente == "CONSUMIDOR_FINAL" ? "Consumidor final" : "Cliente registrado")</td>
                     <td>@(v.TipoPago == "CUENTA_CORRIENTE" ? "Cuenta corriente" : "Contado")</td>
                     <td class="text-end">@v.Total.ToString("C")</td>
-                    <td>@v.Estado</td>
+                    @{
+                        var estado = v.Estado ?? "CONFIRMADA";
+                        string estadoTexto;
+                        string estadoClase;
+                        switch (estado)
+                        {
+                            case "PENDIENTE_AUTORIZACION":
+                                estadoTexto = "Pendiente";
+                                estadoClase = "badge bg-warning text-dark";
+                                break;
+                            case "RECHAZADA":
+                                estadoTexto = "Rechazada";
+                                estadoClase = "badge bg-danger";
+                                break;
+                            case "ANULADA":
+                                estadoTexto = "Anulada";
+                                estadoClase = "badge bg-secondary";
+                                break;
+                            default:
+                                estadoTexto = "Confirmada";
+                                estadoClase = "badge bg-success";
+                                break;
+                        }
+                        var comprobanteHabilitado = string.Equals(estado, "CONFIRMADA", System.StringComparison.OrdinalIgnoreCase);
+                    }
+                    <td><span class="@estadoClase">@estadoTexto</span></td>
                     <td class="text-center">
-                        <a asp-action="Comprobante" asp-route-id="@v.Id" class="btn btn-sm btn-primary">
+                        <a asp-action="Comprobante"
+                           asp-route-id="@v.Id"
+                           class="btn btn-sm @(comprobanteHabilitado ? "btn-primary" : "btn-outline-secondary") @(comprobanteHabilitado ? string.Empty : "disabled")">
                             Ver comprobante
                         </a>
                     </td>

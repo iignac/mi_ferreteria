@@ -340,8 +340,8 @@ namespace mi_ferreteria.Data
                 using var cmd = new NpgsqlCommand(@"
                     SELECT COALESCE(SUM(
                         CASE
-                            WHEN tipo IN ('DEUDA', 'NOTA_DEBITO') THEN monto
-                            WHEN tipo IN ('PAGO', 'NOTA_CREDITO') THEN -monto
+                            WHEN tipo IN ('DEUDA', 'NOTA_DEBITO') THEN -monto
+                            WHEN tipo IN ('PAGO', 'NOTA_CREDITO') THEN monto
                             WHEN tipo = 'AJUSTE' THEN monto
                             ELSE 0
                         END
@@ -388,7 +388,7 @@ namespace mi_ferreteria.Data
             }
         }
 
-        public void RegistrarNotaDebito(long clienteId, decimal monto, int usuarioId, string descripcion, long? ventaId, long? movimientoRelacionadoId = null)
+        public long RegistrarNotaDebito(long clienteId, decimal monto, int usuarioId, string descripcion, long? ventaId, long? movimientoRelacionadoId = null)
         {
             try
             {
@@ -398,14 +398,16 @@ namespace mi_ferreteria.Data
                 using var cmd = new NpgsqlCommand(@"
                     INSERT INTO cliente_cuenta_corriente_mov
                         (cliente_id, venta_id, movimiento_relacionado_id, tipo, monto, descripcion, usuario_id)
-                    VALUES (@cid, @vid, @rel, 'NOTA_DEBITO', @monto, @desc, @uid)", conn);
+                    VALUES (@cid, @vid, @rel, 'NOTA_DEBITO', @monto, @desc, @uid)
+                    RETURNING id", conn);
                 cmd.Parameters.AddWithValue("@cid", clienteId);
                 cmd.Parameters.AddWithValue("@vid", (object?)ventaId ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@rel", (object?)movimientoRelacionadoId ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@monto", monto);
                 cmd.Parameters.AddWithValue("@desc", (object?)descripcion ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@uid", usuarioId);
-                cmd.ExecuteNonQuery();
+                var res = cmd.ExecuteScalar();
+                return res is long l ? l : Convert.ToInt64(res);
             }
             catch (Exception ex)
             {
@@ -414,7 +416,7 @@ namespace mi_ferreteria.Data
             }
         }
 
-        public void RegistrarNotaCredito(long clienteId, decimal monto, int usuarioId, string descripcion, long? ventaId = null, long? movimientoRelacionadoId = null)
+        public long RegistrarNotaCredito(long clienteId, decimal monto, int usuarioId, string descripcion, long? ventaId = null, long? movimientoRelacionadoId = null)
         {
             try
             {
@@ -424,14 +426,16 @@ namespace mi_ferreteria.Data
                 using var cmd = new NpgsqlCommand(@"
                     INSERT INTO cliente_cuenta_corriente_mov
                         (cliente_id, venta_id, movimiento_relacionado_id, tipo, monto, descripcion, usuario_id)
-                    VALUES (@cid, @vid, @rel, 'NOTA_CREDITO', @monto, @desc, @uid)", conn);
+                    VALUES (@cid, @vid, @rel, 'NOTA_CREDITO', @monto, @desc, @uid)
+                    RETURNING id", conn);
                 cmd.Parameters.AddWithValue("@cid", clienteId);
                 cmd.Parameters.AddWithValue("@vid", (object?)ventaId ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@rel", (object?)movimientoRelacionadoId ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@monto", monto);
                 cmd.Parameters.AddWithValue("@desc", (object?)descripcion ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@uid", usuarioId);
-                cmd.ExecuteNonQuery();
+                var res = cmd.ExecuteScalar();
+                return res is long l ? l : Convert.ToInt64(res);
             }
             catch (Exception ex)
             {
@@ -500,8 +504,8 @@ namespace mi_ferreteria.Data
                            tipo_comprobante, punto_venta, numero, fecha_emision,
                            SUM(
                                 CASE
-                                    WHEN tipo IN ('DEUDA','NOTA_DEBITO') THEN monto
-                                    WHEN tipo IN ('PAGO','NOTA_CREDITO') THEN -monto
+                                    WHEN tipo IN ('DEUDA','NOTA_DEBITO') THEN -monto
+                                    WHEN tipo IN ('PAGO','NOTA_CREDITO') THEN monto
                                     WHEN tipo = 'AJUSTE' THEN monto
                                     ELSE 0
                                 END
@@ -546,7 +550,7 @@ namespace mi_ferreteria.Data
             }
         }
 
-        public void RegistrarPagoCuentaCorriente(long clienteId, decimal monto, int usuarioId, string descripcion, long? ventaId = null, long? movimientoRelacionadoId = null)
+        public long RegistrarPagoCuentaCorriente(long clienteId, decimal monto, int usuarioId, string descripcion, long? ventaId = null, long? movimientoRelacionadoId = null)
         {
             try
             {
@@ -556,14 +560,16 @@ namespace mi_ferreteria.Data
                 using var cmd = new NpgsqlCommand(@"
                     INSERT INTO cliente_cuenta_corriente_mov
                         (cliente_id, venta_id, movimiento_relacionado_id, tipo, monto, descripcion, usuario_id)
-                    VALUES (@cid, @vid, @rel, 'PAGO', @monto, @desc, @uid)", conn);
+                    VALUES (@cid, @vid, @rel, 'PAGO', @monto, @desc, @uid)
+                    RETURNING id", conn);
                 cmd.Parameters.AddWithValue("@cid", clienteId);
                 cmd.Parameters.AddWithValue("@vid", (object?)ventaId ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@rel", (object?)movimientoRelacionadoId ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@monto", monto);
                 cmd.Parameters.AddWithValue("@desc", (object?)descripcion ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@uid", usuarioId);
-                cmd.ExecuteNonQuery();
+                var res = cmd.ExecuteScalar();
+                return res is long l ? l : Convert.ToInt64(res);
             }
             catch (Exception ex)
             {
@@ -601,8 +607,8 @@ namespace mi_ferreteria.Data
                             MAX(fecha_emision) AS fecha_emision,
                             SUM(
                                 CASE
-                                    WHEN tipo IN ('DEUDA','NOTA_DEBITO') THEN monto
-                                    WHEN tipo IN ('PAGO','NOTA_CREDITO') THEN -monto
+                                    WHEN tipo IN ('DEUDA','NOTA_DEBITO') THEN -monto
+                                    WHEN tipo IN ('PAGO','NOTA_CREDITO') THEN monto
                                     WHEN tipo = 'AJUSTE' THEN monto
                                     ELSE 0
                                 END
@@ -615,12 +621,12 @@ namespace mi_ferreteria.Data
                            COALESCE(fecha_emision, fecha_deuda) AS fecha_emision,
                            COALESCE(fecha_vencimiento_original, fecha_deuda + (@dias::text || ' days')::interval) AS fecha_vencimiento,
                            COALESCE(importe_deuda, 0) AS importe_deuda,
-                           saldo_pendiente,
+                           -saldo_pendiente AS saldo_pendiente,
                            tipo_comprobante,
                            punto_venta,
                            numero
                     FROM agrupado
-                    WHERE saldo_pendiente > 0
+                    WHERE saldo_pendiente < 0
                     ORDER BY fecha_vencimiento ASC;", conn);
                 cmd.Parameters.AddWithValue("@cid", clienteId);
                 cmd.Parameters.AddWithValue("@dias", DiasVencimientoCuentaCorriente);

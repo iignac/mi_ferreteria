@@ -13,7 +13,7 @@ namespace mi_ferreteria.Models
         public decimal Total { get; set; }
         public string TotalEnLetras { get; set; }
         public int UsuarioId { get; set; }
-        public string Estado { get; set; } = "CONFIRMADA"; // CONFIRMADA | ANULADA
+        public string Estado { get; set; } = "CONFIRMADA"; // CONFIRMADA | ANULADA | PENDIENTE_AUTORIZACION | RECHAZADA
         public string? Observaciones { get; set; }
 
         public List<VentaDetalle> Detalles { get; set; } = new();

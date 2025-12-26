@@ -1,0 +1,91 @@
+@model mi_ferreteria.ViewModels.ClienteMovimientoComprobanteViewModel
+@{
+    ViewData["Title"] = "Comprobante de movimiento";
+    var mov = Model.Movimiento;
+    var cliente = Model.Cliente;
+    string titulo = mov.Tipo switch
+    {
+        "PAGO" => "Recibo de pago",
+        "NOTA_CREDITO" => "Nota de crédito",
+        "NOTA_DEBITO" => "Nota de débito",
+        "AJUSTE" => "Ajuste de cuenta corriente",
+        _ => "Movimiento de cuenta corriente"
+    };
+    decimal montoFirmado = mov.Tipo switch
+    {
+        "DEUDA" => -mov.Monto,
+        "NOTA_DEBITO" => -mov.Monto,
+        "PAGO" => mov.Monto,
+        "NOTA_CREDITO" => mov.Monto,
+        _ => mov.Monto
+    };
+    var numeroComprobante = $"CC-{mov.Id:00000000}";
+}
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h3 class="mb-1">@titulo</h3>
+                    <p class="mb-0">Número: <strong>@numeroComprobante</strong></p>
+                    <p class="mb-0">Fecha: @mov.Fecha.LocalDateTime.ToString("dd/MM/yyyy HH:mm")</p>
+                </div>
+                <div class="text-end">
+                    <p class="mb-0"><strong>Cliente:</strong> @cliente.Nombre @cliente.Apellido</p>
+                    @if (!string.IsNullOrWhiteSpace(cliente.NumeroDocumento))
+                    {
+                        <p class="mb-0"><strong>Documento:</strong> @cliente.NumeroDocumento</p>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(cliente.Direccion))
+                    {
+                        <p class="mb-0"><strong>Dirección:</strong> @cliente.Direccion</p>
+                    }
+                </div>
+            </div>
+
+            <hr />
+
+            <dl class="row">
+                <dt class="col-sm-3">Tipo</dt>
+                <dd class="col-sm-9">@titulo</dd>
+
+                <dt class="col-sm-3">Descripción</dt>
+                <dd class="col-sm-9">@(!string.IsNullOrWhiteSpace(mov.Descripcion) ? mov.Descripcion : "-")</dd>
+
+                <dt class="col-sm-3">Importe</dt>
+                <dd class="col-sm-9">
+                    <span class="@(montoFirmado >= 0 ? "text-success" : "text-danger")">
+                        $ @montoFirmado.ToString("N2")
+                    </span>
+                </dd>
+
+                @if (mov.VentaId.HasValue)
+                {
+                    <dt class="col-sm-3">Venta / Factura</dt>
+                    <dd class="col-sm-9">
+                        @if (!string.IsNullOrWhiteSpace(mov.Comprobante))
+                        {
+                            @mov.Comprobante
+                        }
+                        else
+                        {
+                            <text>Venta #@mov.VentaId</text>
+                        }
+                    </dd>
+                }
+
+                @if (mov.FechaVencimiento.HasValue)
+                {
+                    <dt class="col-sm-3">Fecha de vencimiento</dt>
+                    <dd class="col-sm-9">@mov.FechaVencimiento.Value.ToString("dd/MM/yyyy")</dd>
+                }
+            </dl>
+
+            <div class="mt-4 d-print-none">
+                <a asp-action="CuentaCorriente" asp-route-id="@cliente.Id" class="btn btn-outline-secondary">Volver</a>
+                <button class="btn btn-primary" onclick="window.print()">Imprimir / Guardar PDF</button>
+            </div>
+        </div>
+    </div>
+</div>

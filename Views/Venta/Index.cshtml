@@ -28,6 +28,12 @@
         @TempData["VentaOk"]
     </div>
 }
+@if (TempData["VentaPendiente"] != null)
+{
+    <div class="alert alert-warning">
+        @TempData["VentaPendiente"]
+    </div>
+}
 @if (totalCriticos > 0)
 {
     var resumenCriticos = string.Join(", ", detalleCriticos.Take(4).Select(d => d.Nombre));
@@ -240,7 +246,7 @@ else
                     <div class="form-group form-check mb-2">
                         <input asp-for="IgnorarLimiteCredito" class="form-check-input" />
                         <label asp-for="IgnorarLimiteCredito" class="form-check-label">
-                            Ignorar límite de crédito (requiere autorización del dueño)
+                            Ignorar límite de crédito (solo administradores)
                         </label>
                     </div>
                 </div>

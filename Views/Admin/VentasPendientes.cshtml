@@ -1,0 +1,75 @@
+@model IEnumerable<mi_ferreteria.ViewModels.VentaPendienteItemViewModel>
+
+@{
+    ViewData["Title"] = "Ventas pendientes de autorización";
+}
+
+<h2>Ventas pendientes de autorización</h2>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        No hay ventas pendientes de autorización en este momento.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Venta</th>
+                    <th>Fecha</th>
+                    <th>Cliente</th>
+                    <th class="text-end">Total</th>
+                    <th class="text-end">Saldo actual</th>
+                    <th class="text-end">Saldo luego de venta</th>
+                    <th class="text-end">Límite crédito</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    var clienteNombre = item.Cliente != null
+                        ? $"{item.Cliente.Nombre} {(item.Cliente.Apellido ?? string.Empty)}".Trim()
+                        : "Consumidor final";
+                    <tr>
+                        <td>@item.Venta.Id</td>
+                        <td>@item.Venta.Fecha.LocalDateTime.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@clienteNombre</td>
+                        <td class="text-end">@item.Venta.Total.ToString("C")</td>
+                        <td class="text-end">
+                            <span class="@(item.SaldoActual >= 0 ? "text-success" : "text-danger")">
+                                $ @item.SaldoActual.ToString("N2")
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <span class="@(item.SaldoPostVenta >= -item.LimiteCredito ? "text-success" : "text-danger")">
+                                $ @item.SaldoPostVenta.ToString("N2")
+                            </span>
+                        </td>
+                        <td class="text-end">$ @item.LimiteCredito.ToString("N2")</td>
+                        <td class="text-center">
+                            <form asp-action="AutorizarVentaPendiente" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="ventaId" value="@item.Venta.Id" />
+                                <button type="submit" class="btn btn-sm btn-success mb-1">
+                                    Autorizar
+                                </button>
+                            </form>
+                            <form asp-action="RechazarVentaPendiente" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="ventaId" value="@item.Venta.Id" />
+                                <input type="text" name="motivo" class="form-control form-control-sm mb-1" placeholder="Motivo (opcional)" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    Rechazar
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

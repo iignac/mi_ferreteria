@@ -173,7 +173,7 @@ namespace mi_ferreteria.Data
             return $"{textoEntero} con {centavos:00}/100";
         }
 
-        public Venta CrearVenta(Venta venta, IEnumerable<VentaDetalle> detalles, bool registrarFactura, Cliente? cliente, string tipoComprobante)
+        public Venta CrearVenta(Venta venta, IEnumerable<VentaDetalle> detalles, bool registrarFactura, Cliente? cliente, string tipoComprobante, bool registrarPago = true)
         {
             if (venta == null) throw new ArgumentNullException(nameof(venta));
             if (detalles == null) throw new ArgumentNullException(nameof(detalles));
@@ -231,11 +231,11 @@ namespace mi_ferreteria.Data
                     cmdDet.ExecuteNonQuery();
                 }
 
-                // Pago: por ahora un solo registro por venta
-                using (var cmdPago = new NpgsqlCommand(@"
-                    INSERT INTO venta_pago (venta_id, tipo, monto, detalle)
-                    VALUES (@vid, @tipo, @monto, @det)", conn, tx))
+                if (registrarPago)
                 {
+                    using var cmdPago = new NpgsqlCommand(@"
+                        INSERT INTO venta_pago (venta_id, tipo, monto, detalle)
+                        VALUES (@vid, @tipo, @monto, @det)", conn, tx);
                     cmdPago.Parameters.AddWithValue("@vid", venta.Id);
                     cmdPago.Parameters.AddWithValue("@tipo", venta.TipoPago == "CUENTA_CORRIENTE" ? "CUENTA_CORRIENTE" : "EFECTIVO");
                     cmdPago.Parameters.AddWithValue("@monto", venta.Total);
@@ -365,6 +365,278 @@ namespace mi_ferreteria.Data
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener página de ventas");
+                throw;
+            }
+        }
+
+        public IEnumerable<Venta> GetPendientes()
+        {
+            var list = new List<Venta>();
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureSchema(conn);
+                using var cmd = new NpgsqlCommand(@"
+                    SELECT id, fecha, cliente_id, tipo_cliente, tipo_pago,
+                           total, total_en_letras, usuario_id, estado, observaciones
+                    FROM venta
+                    WHERE estado = 'PENDIENTE_AUTORIZACION'
+                    ORDER BY fecha ASC, id ASC", conn);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                {
+                    list.Add(new Venta
+                    {
+                        Id = r.GetInt64(0),
+                        Fecha = r.GetFieldValue<DateTimeOffset>(1),
+                        ClienteId = r.IsDBNull(2) ? (long?)null : r.GetInt64(2),
+                        TipoCliente = r.GetString(3),
+                        TipoPago = r.GetString(4),
+                        Total = r.GetDecimal(5),
+                        TotalEnLetras = r.GetString(6),
+                        UsuarioId = r.GetInt32(7),
+                        Estado = r.GetString(8),
+                        Observaciones = r.IsDBNull(9) ? null : r.GetString(9)
+                    });
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener ventas pendientes de autorizacion");
+                throw;
+            }
+        }
+
+        public (Venta venta, List<VentaDetalle> detalles, Factura? factura)? AutorizarVentaPendiente(long ventaId, Cliente? cliente, string tipoComprobante, bool registrarFactura, bool registrarPago, int usuarioId, string? auditoriaDetalle)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureSchema(conn);
+                using var tx = conn.BeginTransaction();
+
+                Venta? venta = null;
+                using (var cmdVenta = new NpgsqlCommand(@"
+                    SELECT id, fecha, cliente_id, tipo_cliente, tipo_pago,
+                           total, total_en_letras, usuario_id, estado, observaciones
+                    FROM venta
+                    WHERE id=@id
+                    FOR UPDATE", conn, tx))
+                {
+                    cmdVenta.Parameters.AddWithValue("@id", ventaId);
+                    using var reader = cmdVenta.ExecuteReader();
+                    if (reader.Read())
+                    {
+                        venta = new Venta
+                        {
+                            Id = reader.GetInt64(0),
+                            Fecha = reader.GetFieldValue<DateTimeOffset>(1),
+                            ClienteId = reader.IsDBNull(2) ? (long?)null : reader.GetInt64(2),
+                            TipoCliente = reader.GetString(3),
+                            TipoPago = reader.GetString(4),
+                            Total = reader.GetDecimal(5),
+                            TotalEnLetras = reader.GetString(6),
+                            UsuarioId = reader.GetInt32(7),
+                            Estado = reader.GetString(8),
+                            Observaciones = reader.IsDBNull(9) ? null : reader.GetString(9)
+                        };
+                    }
+                }
+
+                if (venta == null || !string.Equals(venta.Estado, "PENDIENTE_AUTORIZACION", StringComparison.OrdinalIgnoreCase))
+                {
+                    tx.Rollback();
+                    return null;
+                }
+
+                using (var cmdUpd = new NpgsqlCommand(@"
+                    UPDATE venta SET estado='CONFIRMADA'
+                    WHERE id=@id", conn, tx))
+                {
+                    cmdUpd.Parameters.AddWithValue("@id", venta.Id);
+                    cmdUpd.ExecuteNonQuery();
+                }
+
+                if (registrarPago)
+                {
+                    using var cmdPago = new NpgsqlCommand(@"
+                        INSERT INTO venta_pago (venta_id, tipo, monto, detalle)
+                        VALUES (@vid, @tipo, @monto, @det)", conn, tx);
+                    cmdPago.Parameters.AddWithValue("@vid", venta.Id);
+                    cmdPago.Parameters.AddWithValue("@tipo", venta.TipoPago == "CUENTA_CORRIENTE" ? "CUENTA_CORRIENTE" : "EFECTIVO");
+                    cmdPago.Parameters.AddWithValue("@monto", venta.Total);
+                    cmdPago.Parameters.AddWithValue("@det", DBNull.Value);
+                    cmdPago.ExecuteNonQuery();
+                }
+
+                Factura? factura = null;
+                if (registrarFactura)
+                {
+                    using var cmdFac = new NpgsqlCommand(@"
+                        INSERT INTO factura
+                            (venta_id, tipo_comprobante, punto_venta, total, total_en_letras, cliente_nombre, cliente_documento, cliente_direccion)
+                        VALUES (@vid, @tipo, @pto, @total, @txt, @cnom, @cdoc, @cdir)
+                        RETURNING id, venta_id, tipo_comprobante, punto_venta, numero, fecha_emision,
+                                  total, total_en_letras, cliente_nombre, cliente_documento, cliente_direccion", conn, tx);
+                    cmdFac.Parameters.AddWithValue("@vid", venta.Id);
+                    cmdFac.Parameters.AddWithValue("@tipo", tipoComprobante);
+                    cmdFac.Parameters.AddWithValue("@pto", 1);
+                    cmdFac.Parameters.AddWithValue("@total", venta.Total);
+                    cmdFac.Parameters.AddWithValue("@txt", venta.TotalEnLetras);
+                    string nom;
+                    if (cliente == null)
+                    {
+                        nom = "CONSUMIDOR FINAL";
+                    }
+                    else if (!string.IsNullOrWhiteSpace(cliente.Apellido))
+                    {
+                        nom = $"{cliente.Nombre} {cliente.Apellido}";
+                    }
+                    else
+                    {
+                        nom = cliente.Nombre;
+                    }
+                    var doc = cliente?.NumeroDocumento ?? (object?)null;
+                    var dir = cliente?.Direccion ?? (object?)null;
+                    cmdFac.Parameters.AddWithValue("@cnom", nom);
+                    cmdFac.Parameters.AddWithValue("@cdoc", (object?)doc ?? DBNull.Value);
+                    cmdFac.Parameters.AddWithValue("@cdir", (object?)dir ?? DBNull.Value);
+                    using var facReader = cmdFac.ExecuteReader();
+                    if (facReader.Read())
+                    {
+                        factura = new Factura
+                        {
+                            Id = facReader.GetInt64(0),
+                            VentaId = facReader.GetInt64(1),
+                            TipoComprobante = facReader.GetString(2),
+                            PuntoVenta = facReader.GetInt32(3),
+                            Numero = facReader.GetInt64(4),
+                            FechaEmision = facReader.GetFieldValue<DateTimeOffset>(5),
+                            Total = facReader.GetDecimal(6),
+                            TotalEnLetras = facReader.GetString(7),
+                            ClienteNombre = facReader.GetString(8),
+                            ClienteDocumento = facReader.IsDBNull(9) ? null : facReader.GetString(9),
+                            ClienteDireccion = facReader.IsDBNull(10) ? null : facReader.GetString(10)
+                        };
+                    }
+                }
+
+                using (var cmdAud = new NpgsqlCommand(@"
+                    INSERT INTO venta_auditoria (venta_id, usuario_id, accion, detalle)
+                    VALUES (@vid, @uid, @acc, @det)", conn, tx))
+                {
+                    cmdAud.Parameters.AddWithValue("@vid", venta.Id);
+                    cmdAud.Parameters.AddWithValue("@uid", usuarioId);
+                    cmdAud.Parameters.AddWithValue("@acc", "AUTORIZACION");
+                    cmdAud.Parameters.AddWithValue("@det", (object?)auditoriaDetalle ?? DBNull.Value);
+                    cmdAud.ExecuteNonQuery();
+                }
+
+                var detalles = new List<VentaDetalle>();
+                using (var cmdDet = new NpgsqlCommand(@"
+                    SELECT id, venta_id, producto_id, descripcion, cantidad, precio_unitario, subtotal, permite_venta_sin_stock
+                    FROM venta_detalle
+                    WHERE venta_id = @id
+                    ORDER BY id", conn, tx))
+                {
+                    cmdDet.Parameters.AddWithValue("@id", venta.Id);
+                    using var detReader = cmdDet.ExecuteReader();
+                    while (detReader.Read())
+                    {
+                        detalles.Add(new VentaDetalle
+                        {
+                            Id = detReader.GetInt64(0),
+                            VentaId = detReader.GetInt64(1),
+                            ProductoId = detReader.GetInt64(2),
+                            Descripcion = detReader.GetString(3),
+                            Cantidad = detReader.GetDecimal(4),
+                            PrecioUnitario = detReader.GetDecimal(5),
+                            Subtotal = detReader.GetDecimal(6),
+                            PermiteVentaSinStock = detReader.GetBoolean(7)
+                        });
+                    }
+                }
+
+                tx.Commit();
+                venta.Estado = "CONFIRMADA";
+                return (venta, detalles, factura);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al autorizar venta pendiente {VentaId}", ventaId);
+                throw;
+            }
+        }
+
+        public bool RechazarVentaPendiente(long ventaId, int usuarioId, string? motivo)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureSchema(conn);
+                using var tx = conn.BeginTransaction();
+                string? observaciones = null;
+                string? estado = null;
+                using (var cmdSel = new NpgsqlCommand(@"
+                    SELECT estado, observaciones
+                    FROM venta
+                    WHERE id=@id
+                    FOR UPDATE", conn, tx))
+                {
+                    cmdSel.Parameters.AddWithValue("@id", ventaId);
+                    using var reader = cmdSel.ExecuteReader();
+                    if (reader.Read())
+                    {
+                        estado = reader.GetString(0);
+                        observaciones = reader.IsDBNull(1) ? null : reader.GetString(1);
+                    }
+                }
+
+                if (!string.Equals(estado, "PENDIENTE_AUTORIZACION", StringComparison.OrdinalIgnoreCase))
+                {
+                    tx.Rollback();
+                    return false;
+                }
+
+                string? finalObs = observaciones;
+                var motivoTrim = string.IsNullOrWhiteSpace(motivo) ? null : motivo.Trim();
+                if (!string.IsNullOrWhiteSpace(motivoTrim))
+                {
+                    finalObs = string.IsNullOrWhiteSpace(finalObs)
+                        ? motivoTrim
+                        : $"{finalObs} | {motivoTrim}";
+                }
+
+                using (var cmdUpd = new NpgsqlCommand(@"
+                    UPDATE venta SET estado='RECHAZADA', observaciones=@obs
+                    WHERE id=@id", conn, tx))
+                {
+                    cmdUpd.Parameters.AddWithValue("@id", ventaId);
+                    cmdUpd.Parameters.AddWithValue("@obs", (object?)finalObs ?? DBNull.Value);
+                    cmdUpd.ExecuteNonQuery();
+                }
+
+                using (var cmdAud = new NpgsqlCommand(@"
+                    INSERT INTO venta_auditoria (venta_id, usuario_id, accion, detalle)
+                    VALUES (@vid, @uid, @acc, @det)", conn, tx))
+                {
+                    cmdAud.Parameters.AddWithValue("@vid", ventaId);
+                    cmdAud.Parameters.AddWithValue("@uid", usuarioId);
+                    cmdAud.Parameters.AddWithValue("@acc", "RECHAZO");
+                    cmdAud.Parameters.AddWithValue("@det", (object?)motivoTrim ?? DBNull.Value);
+                    cmdAud.ExecuteNonQuery();
+                }
+
+                tx.Commit();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al rechazar venta pendiente {VentaId}", ventaId);
                 throw;
             }
         }

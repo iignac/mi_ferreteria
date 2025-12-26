@@ -161,24 +161,43 @@ namespace mi_ferreteria.Controllers
                     }
                 }
 
-                if (model.TipoPago == "CUENTA_CORRIENTE")
-                {
-                    if (cliente == null)
-                    {
-                        ModelState.AddModelError(string.Empty, "Para cuenta corriente debe seleccionar un cliente registrado.");
-                    }
-                    else
-                    {
-                        var saldoActual = _clienteRepo.GetSaldoCuentaCorriente(cliente.Id);
-                        var saldoPostVenta = saldoActual + total;
-                        if (saldoPostVenta > cliente.LimiteCredito && !model.IgnorarLimiteCredito)
-                        {
-                            ModelState.AddModelError(string.Empty, $"La venta supera el límite de crédito del cliente ({cliente.LimiteCredito:C}). Debe ser autorizada por el dueño.");
-                        }
-                    }
-                }
-
-                if (!ModelState.IsValid)
+                var requiereAutorizacion = false;
+                var esAdmin = User.IsInRole("Administrador");
+                decimal saldoActualCliente = 0;
+                decimal saldoPostVenta = 0;
+
+                if (model.TipoPago == "CUENTA_CORRIENTE")
+                {
+                    if (cliente == null)
+                    {
+                        ModelState.AddModelError(string.Empty, "Para cuenta corriente debe seleccionar un cliente registrado.");
+                    }
+                    else if (!cliente.CuentaCorrienteHabilitada)
+                    {
+                        ModelState.AddModelError(string.Empty, "La cuenta corriente no esta habilitada para este cliente.");
+                    }
+                    else
+                    {
+                        saldoActualCliente = _clienteRepo.GetSaldoCuentaCorriente(cliente.Id);
+                        saldoPostVenta = saldoActualCliente - total;
+                        var limiteNegativo = -cliente.LimiteCredito;
+                        var excedeLimite = cliente.LimiteCredito > 0 && saldoPostVenta < limiteNegativo;
+                        if (excedeLimite)
+                        {
+                            var puedeIgnorar = esAdmin && model.IgnorarLimiteCredito;
+                            if (model.IgnorarLimiteCredito && !esAdmin)
+                            {
+                                ModelState.AddModelError(nameof(model.IgnorarLimiteCredito), "Solo un administrador puede ignorar el limite de credito.");
+                            }
+                            if (!puedeIgnorar)
+                            {
+                                requiereAutorizacion = true;
+                            }
+                        }
+                    }
+                }
+
+if (!ModelState.IsValid)
                 {
                     // recargar combos y listado de productos por defecto
                     RecargarListas(model);
@@ -199,10 +218,22 @@ namespace mi_ferreteria.Controllers
                     TipoCliente = model.TipoCliente,
                     TipoPago = model.TipoPago,
                     UsuarioId = userId,
-                    Estado = "CONFIRMADA"
+                    Estado = requiereAutorizacion ? "PENDIENTE_AUTORIZACION" : "CONFIRMADA"
                 };
 
-                var ventaCreada = _ventaRepo.CrearVenta(venta, detalles, registrarFactura: true, cliente: cliente, tipoComprobante: "FACTURA_B");
+                var ventaCreada = _ventaRepo.CrearVenta(
+                    venta,
+                    detalles,
+                    registrarFactura: !requiereAutorizacion,
+                    cliente: cliente,
+                    tipoComprobante: "FACTURA_B",
+                    registrarPago: !requiereAutorizacion);
+
+                if (requiereAutorizacion)
+                {
+                    TempData["VentaPendiente"] = $"La venta {ventaCreada.Id} supera el limite de deuda del cliente y quedo pendiente de autorizacion.";
+                    return RedirectToAction(nameof(Index));
+                }
 
                 if (model.TipoPago == "CUENTA_CORRIENTE" && cliente != null)
                 {

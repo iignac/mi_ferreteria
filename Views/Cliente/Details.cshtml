@@ -10,7 +10,7 @@
 <h2>Detalle de cliente</h2>
 @if (!string.IsNullOrWhiteSpace(notaOk))
 {
-    <div class="alert alert-success">@notaOk</div>
+    <div class="alert alert-success">@Html.Raw(notaOk)</div>
 }
 @if (!string.IsNullOrWhiteSpace(notaError))
 {
@@ -91,11 +91,11 @@
                 <dt class="col-sm-3">Límite de crédito</dt>
                 <dd class="col-sm-9">$ @Model.LimiteCredito.ToString("N2")</dd>
 
-                <dt class="col-sm-3">Saldo actual (deuda)</dt>
+                <dt class="col-sm-3">Saldo actual</dt>
                 <dd class="col-sm-9">
                     @if (saldoActual.HasValue)
                     {
-                        <span class="@(saldoActual.Value > 0 ? "text-danger" : (saldoActual.Value < 0 ? "text-success" : ""))">
+                        <span class="@(saldoActual.Value >= 0 ? "text-success" : "text-danger")">
                             $ @saldoActual.Value.ToString("N2")
                         </span>
                     }
