@@ -437,9 +437,23 @@ if (!ModelState.IsValid)
                 .Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem
                 {
                     Value = c.Id.ToString(),
-                    Text = $"{c.Nombre} (límite: {c.LimiteCredito:C})"
+                    Text = BuildClienteLabel(c)
                 })
                 .ToList();
+        }
+
+        private static string BuildClienteLabel(Cliente cliente)
+        {
+            var nombre = string.IsNullOrWhiteSpace(cliente.Apellido)
+                ? cliente.Nombre
+                : $"{cliente.Nombre} {cliente.Apellido}";
+            var tipoDoc = string.IsNullOrWhiteSpace(cliente.TipoDocumento)
+                ? "DNI"
+                : cliente.TipoDocumento.Trim().ToUpperInvariant();
+            var doc = string.IsNullOrWhiteSpace(cliente.NumeroDocumento)
+                ? "-"
+                : cliente.NumeroDocumento.Trim();
+            return $"{nombre} - {tipoDoc}: {doc} (limite: {cliente.LimiteCredito:C})";
         }
 
         [HttpGet]
@@ -476,3 +490,4 @@ if (!ModelState.IsValid)
         }
     }
 }
+

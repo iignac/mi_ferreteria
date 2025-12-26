@@ -380,26 +380,55 @@ namespace mi_ferreteria.Controllers
 
                 if (tipo == "CREDITO")
                 {
-                    if (saldoActual >= 0)
-                    {
-                        TempData["NotaError"] = "El cliente no tiene deuda para generar una nota de credito.";
-                        return RedirectToAction(nameof(Details), new { id = clienteId });
-                    }
-                    var deudaActual = Math.Abs(saldoActual);
-                    if (monto > deudaActual)
-                    {
-                        TempData["NotaError"] = "El monto supera la deuda actual del cliente.";
-                        return RedirectToAction(nameof(Details), new { id = clienteId });
-                    }
+                    var deudaActual = saldoActual < 0 ? Math.Abs(saldoActual) : 0m;
 
                     var descripcionFinal = string.IsNullOrWhiteSpace(descripcion)
                         ? "Nota de credito en cuenta corriente"
                         : descripcion.Trim();
-                    var movimientoId = _repo.RegistrarNotaCredito(clienteId, monto, userId, descripcionFinal, null, null);
+
+                    long movimientoIdDeuda = 0;
+                    long movimientoIdSaldo = 0;
+                    decimal aplicadoDeuda = 0m;
+
+                    if (deudaActual > 0)
+                    {
+                        aplicadoDeuda = Math.Min(monto, deudaActual);
+                        var descDeuda = monto > deudaActual
+                            ? $"{descripcionFinal}. Aplicada a deuda por ${aplicadoDeuda:N2}."
+                            : descripcionFinal;
+                        movimientoIdDeuda = _repo.RegistrarNotaCredito(clienteId, aplicadoDeuda, userId, descDeuda, null, null);
+                    }
+
+                    var saldoFavor = monto - aplicadoDeuda;
+                    if (saldoFavor > 0)
+                    {
+                        var descSaldo = deudaActual > 0
+                            ? $"{descripcionFinal}. Saldo a favor generado: ${saldoFavor:N2}."
+                            : $"{descripcionFinal}. Saldo a favor.";
+                        movimientoIdSaldo = _repo.RegistrarNotaCredito(clienteId, saldoFavor, userId, descSaldo, null, null);
+                    }
+
                     RegistrarAuditoria(userId, usuarioNombre, nameof(GenerarNotaCuentaCorriente),
-                        $"Nota de credito por ${monto:N2} para cliente {cliente.Nombre} (ID {cliente.Id}).");
-                    var comprobanteUrl = Url.Action(nameof(MovimientoComprobante), new { clienteId, movimientoId });
-                    TempData["NotaOk"] = $"La nota de credito se genero con exito. <a href=\"{comprobanteUrl}\" target=\"_blank\">Imprimir comprobante</a>.";
+                        $"Nota de credito por ${monto:N2} para cliente {cliente.Nombre} (ID {cliente.Id}){(aplicadoDeuda > 0 ? $", deuda saldada ${aplicadoDeuda:N2}" : string.Empty)}{(saldoFavor > 0 ? $", saldo a favor ${saldoFavor:N2}" : string.Empty)}.");
+
+                    var links = new List<string>();
+                    if (movimientoIdDeuda > 0)
+                    {
+                        var urlDeuda = Url.Action(nameof(MovimientoComprobante), new { clienteId, movimientoId = movimientoIdDeuda });
+                        links.Add($"<a href=\"{urlDeuda}\" target=\"_blank\">Comprobante deuda</a>");
+                    }
+                    if (movimientoIdSaldo > 0)
+                    {
+                        var urlSaldo = Url.Action(nameof(MovimientoComprobante), new { clienteId, movimientoId = movimientoIdSaldo });
+                        links.Add($"<a href=\"{urlSaldo}\" target=\"_blank\">Comprobante saldo a favor</a>");
+                    }
+                    if (links.Count == 0)
+                    {
+                        TempData["NotaError"] = "No se pudo registrar la nota de credito.";
+                        return RedirectToAction(nameof(Details), new { id = clienteId });
+                    }
+
+                    TempData["NotaOk"] = $"La nota de credito se genero con exito. {string.Join(" - ", links)}.";
                     return RedirectToAction(nameof(Details), new { id = clienteId });
                 }
 
