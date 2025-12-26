@@ -342,6 +342,7 @@ namespace mi_ferreteria.Data
                         CASE
                             WHEN tipo IN ('DEUDA', 'NOTA_DEBITO') THEN -monto
                             WHEN tipo IN ('PAGO', 'NOTA_CREDITO') THEN monto
+                            WHEN tipo = 'CONSUMO_SALDO' THEN -monto
                             WHEN tipo = 'AJUSTE' THEN monto
                             ELSE 0
                         END
@@ -384,6 +385,33 @@ namespace mi_ferreteria.Data
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al registrar deuda para cliente {ClienteId} por venta {VentaId}", clienteId, ventaId);
+                throw;
+            }
+        }
+
+        public long RegistrarConsumoSaldo(long clienteId, long ventaId, decimal monto, int usuarioId, string descripcion)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureSchema(conn);
+                using var cmd = new NpgsqlCommand(@"
+                    INSERT INTO cliente_cuenta_corriente_mov
+                        (cliente_id, venta_id, tipo, monto, descripcion, usuario_id)
+                    VALUES (@cid, @vid, 'CONSUMO_SALDO', @monto, @desc, @uid)
+                    RETURNING id", conn);
+                cmd.Parameters.AddWithValue("@cid", clienteId);
+                cmd.Parameters.AddWithValue("@vid", ventaId);
+                cmd.Parameters.AddWithValue("@monto", monto);
+                cmd.Parameters.AddWithValue("@desc", (object?)descripcion ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@uid", usuarioId);
+                var res = cmd.ExecuteScalar();
+                return res is long l ? l : Convert.ToInt64(res);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al registrar consumo de saldo para cliente {ClienteId}", clienteId);
                 throw;
             }
         }
@@ -506,6 +534,7 @@ namespace mi_ferreteria.Data
                                 CASE
                                     WHEN tipo IN ('DEUDA','NOTA_DEBITO') THEN -monto
                                     WHEN tipo IN ('PAGO','NOTA_CREDITO') THEN monto
+                                    WHEN tipo = 'CONSUMO_SALDO' THEN -monto
                                     WHEN tipo = 'AJUSTE' THEN monto
                                     ELSE 0
                                 END

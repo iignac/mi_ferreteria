@@ -209,13 +209,32 @@ namespace mi_ferreteria.Controllers
                 if (cliente != null)
                 {
                     var fechaVencimiento = venta.Fecha.AddDays(30);
-                    _clienteRepo.RegistrarDeuda(
-                        cliente.Id,
-                        venta.Id,
-                        venta.Total,
-                        userId,
-                        "Venta a cuenta corriente autorizada",
-                        fechaVencimiento);
+                    var saldoActual = _clienteRepo.GetSaldoCuentaCorriente(cliente.Id);
+                    var saldoFavor = saldoActual > 0 ? saldoActual : 0m;
+                    var aplicadoSaldo = Math.Min(saldoFavor, venta.Total);
+                    var deudaCredito = venta.Total - aplicadoSaldo;
+
+                    if (aplicadoSaldo > 0)
+                    {
+                        var descConsumo = deudaCredito > 0
+                            ? $"Aplicación de saldo a favor en venta #{venta.Id} (deuda restante ${deudaCredito:N2})."
+                            : $"Venta #{venta.Id} pagada completamente con saldo a favor.";
+                        _clienteRepo.RegistrarConsumoSaldo(cliente.Id, venta.Id, aplicadoSaldo, userId, descConsumo);
+                    }
+
+                    if (deudaCredito > 0)
+                    {
+                        var descDeuda = aplicadoSaldo > 0
+                            ? $"Venta a cuenta corriente. Saldo a favor aplicado: ${aplicadoSaldo:N2}. Deuda a crédito: ${deudaCredito:N2}."
+                            : "Venta a cuenta corriente (crédito).";
+                        _clienteRepo.RegistrarDeuda(
+                            cliente.Id,
+                            venta.Id,
+                            deudaCredito,
+                            userId,
+                            descDeuda,
+                            fechaVencimiento);
+                    }
                 }
 
                 foreach (var detalle in detalles)

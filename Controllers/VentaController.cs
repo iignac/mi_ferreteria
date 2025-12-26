@@ -238,13 +238,31 @@ if (!ModelState.IsValid)
                 if (model.TipoPago == "CUENTA_CORRIENTE" && cliente != null)
                 {
                     var fechaVencimiento = ventaCreada.Fecha.AddDays(30);
-                    _ = _clienteRepo.RegistrarDeuda(
-                        cliente.Id,
-                        ventaCreada.Id,
-                        ventaCreada.Total,
-                        ventaCreada.UsuarioId,
-                        "Venta a cuenta corriente",
-                        fechaVencimiento);
+                    var saldoFavor = saldoActualCliente > 0 ? saldoActualCliente : 0m;
+                    var aplicadoSaldo = Math.Min(saldoFavor, ventaCreada.Total);
+                    var deudaCredito = ventaCreada.Total - aplicadoSaldo;
+
+                    if (aplicadoSaldo > 0)
+                    {
+                        var descConsumo = deudaCredito > 0
+                            ? $"Aplicación de saldo a favor en venta #{ventaCreada.Id} (deuda restante ${deudaCredito:N2})."
+                            : $"Venta #{ventaCreada.Id} pagada completamente con saldo a favor.";
+                        _clienteRepo.RegistrarConsumoSaldo(cliente.Id, ventaCreada.Id, aplicadoSaldo, ventaCreada.UsuarioId, descConsumo);
+                    }
+
+                    if (deudaCredito > 0)
+                    {
+                        var descDeuda = aplicadoSaldo > 0
+                            ? $"Venta a cuenta corriente. Saldo a favor aplicado: ${aplicadoSaldo:N2}. Deuda a crédito: ${deudaCredito:N2}."
+                            : "Venta a cuenta corriente (crédito).";
+                        _ = _clienteRepo.RegistrarDeuda(
+                            cliente.Id,
+                            ventaCreada.Id,
+                            deudaCredito,
+                            ventaCreada.UsuarioId,
+                            descDeuda,
+                            fechaVencimiento);
+                    }
                 }
 
                 foreach (var d in detalles)

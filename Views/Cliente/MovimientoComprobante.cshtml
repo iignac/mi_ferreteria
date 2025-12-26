@@ -8,6 +8,7 @@
         "PAGO" => "Recibo de pago",
         "NOTA_CREDITO" => "Nota de crédito",
         "NOTA_DEBITO" => "Nota de débito",
+        "CONSUMO_SALDO" => "Consumo de saldo a favor",
         "AJUSTE" => "Ajuste de cuenta corriente",
         _ => "Movimiento de cuenta corriente"
     };
@@ -15,6 +16,7 @@
     {
         "DEUDA" => -mov.Monto,
         "NOTA_DEBITO" => -mov.Monto,
+        "CONSUMO_SALDO" => -mov.Monto,
         "PAGO" => mov.Monto,
         "NOTA_CREDITO" => mov.Monto,
         _ => mov.Monto

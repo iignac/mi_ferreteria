@@ -214,7 +214,7 @@ namespace mi_ferreteria.Data
             using var cmd = new NpgsqlCommand(@"
                 WITH saldos AS (
                     SELECT cliente_id,
-                        COALESCE(SUM(CASE WHEN tipo IN ('DEUDA','NOTA_DEBITO') THEN monto ELSE 0 END),0) -
+                        COALESCE(SUM(CASE WHEN tipo IN ('DEUDA','NOTA_DEBITO','CONSUMO_SALDO') THEN monto ELSE 0 END),0) -
                         COALESCE(SUM(CASE WHEN tipo IN ('PAGO','NOTA_CREDITO') THEN monto ELSE 0 END),0) AS saldo
                     FROM cliente_cuenta_corriente_mov
                     GROUP BY cliente_id
