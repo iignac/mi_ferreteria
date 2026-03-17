@@ -2,93 +2,150 @@
 @{
     ViewData["Title"] = "Crear Producto";
 }
-<h2>Crear Producto</h2>
-<div class="text-danger">@Html.ValidationSummary()</div>
-<form asp-action="Create" method="post">
-    <input type="hidden" name="page" value="@(ViewBag.ReturnPage ?? 1)" />
-    <div class="row g-3">
-        <div class="col-md-4">
-            <label class="form-label">SKU</label>
-            <input asp-for="Sku" class="form-control" />
-            <span asp-validation-for="Sku" class="text-danger"></span>
-        </div>
-        <div class="col-md-8">
-            <label class="form-label">Nombre</label>
-            <input asp-for="Nombre" class="form-control" />
-            <span asp-validation-for="Nombre" class="text-danger"></span>
-        </div>
-        <div class="col-12">
-            <label class="form-label">Descripcion</label>
-            <textarea asp-for="Descripcion" class="form-control" rows="3"></textarea>
-            <span asp-validation-for="Descripcion" class="text-danger"></span>
-        </div>
 
-        <div class="col-md-4">
-            <label class="form-label">Precio</label>
-            <input asp-for="PrecioVentaActual" class="form-control" type="number" step="0.01" min="0" />
-            <span asp-validation-for="PrecioVentaActual" class="text-danger"></span>
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">Stock minimo</label>
-            <input asp-for="StockMinimo" class="form-control" type="number" min="0" />
-            <span asp-validation-for="StockMinimo" class="text-danger"></span>
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">Unidad de medida</label>
-            <select asp-for="UnidadMedida" class="form-select" asp-items="Model.UnidadesMedida"></select>
-            <span asp-validation-for="UnidadMedida" class="text-danger"></span>
-            <div class="form-text">Opciones: unidad, gramos, kilos, m2, juego, bolsa, placa, rollo, litro, mililitro, bidon, kit, par.</div>
-        </div>
+<div class="md:flex md:items-center md:justify-between mb-6">
+    <div class="min-w-0 flex-1">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+            Crear Producto
+        </h2>
+    </div>
+</div>
 
-        <div class="col-12">
-            <label class="form-label d-flex align-items-center justify-content-between">
-                <span>Codigos de barra</span>
-                <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddBarcode">+ Agregar</button>
-            </label>
-            <div id="barcodeList" class="vstack gap-2"></div>
-            <div id="barcodeMsg" class="form-text text-danger d-none">No se pueden agregar mas codigos (maximo 5).</div>
-        </div>
-
-        <div class="col-12">
-            <label class="form-label">Categorias</label>
-            <div class="d-flex gap-2 mb-2 align-items-center">
-                <div class="dropdown">
-                    <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Categorias</button>
-                    <ul class="dropdown-menu p-2" style="max-height: 260px; overflow:auto; min-width: 280px;">
-                        <li class="px-1 mb-2">
-                            <input type="text" class="form-control form-control-sm" placeholder="Filtrar categorias..." id="catFilterCreate">
-                        </li>
-                        @foreach (var c in Model.Categorias)
-                        {
-                            <li><a href="#" class="dropdown-item cat-pick" data-id="@c.Value" data-name="@c.Text">@c.Text</a></li>
-                        }
-                    </ul>
+<div class="bg-white shadow sm:rounded-lg mb-8">
+    <div class="px-4 py-5 sm:p-6">
+        <div class="text-red-600 mb-4 text-sm font-medium" asp-validation-summary="ModelOnly"></div>
+        
+        <form asp-action="Create" method="post" class="space-y-8">
+            <input type="hidden" name="page" value="@(ViewBag.ReturnPage ?? 1)" />
+            
+            <div class="grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+                <!-- Data Fields -->
+                <div class="sm:col-span-1">
+                    <label asp-for="Sku" class="block text-sm font-medium leading-6 text-gray-900">SKU</label>
+                    <div class="mt-2 text-red-600">
+                        <input asp-for="Sku" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                        <span asp-validation-for="Sku" class="text-sm mt-1 block"></span>
+                    </div>
                 </div>
-                <small class="text-muted">Hasta 3 categorias.</small>
-            </div>
-            <div id="catSelectedCreate" class="d-flex flex-wrap gap-2 cat-box"></div>
-            <div id="catInputsCreate"></div>
-            <span asp-validation-for="CategoriaIds" class="text-danger"></span>
-        </div>
 
-        <div class="col-md-6">
-            <label class="form-label">Codigo ubicacion (ej: A1)</label>
-            <input asp-for="UbicacionCodigo" class="form-control" />
-            <span asp-validation-for="UbicacionCodigo" class="text-danger"></span>
-        </div>
-        <div class="col-md-6">
-            <label class="form-label d-block">Estado</label>
-            <div class="form-check form-switch">
-                <input class="form-check-input" asp-for="Activo" type="checkbox" role="switch" id="prodActivo" />
-                <label class="form-check-label" for="prodActivo">Activo</label>
+                <div class="sm:col-span-2">
+                    <label asp-for="Nombre" class="block text-sm font-medium leading-6 text-gray-900">Nombre</label>
+                    <div class="mt-2 text-red-600">
+                        <input asp-for="Nombre" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                        <span asp-validation-for="Nombre" class="text-sm mt-1 block"></span>
+                    </div>
+                </div>
+
+                <div class="sm:col-span-1 sm:col-start-1 lg:col-span-3">
+                    <label asp-for="Descripcion" class="block text-sm font-medium leading-6 text-gray-900">Descripción</label>
+                    <div class="mt-2 text-red-600">
+                        <textarea asp-for="Descripcion" rows="3" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"></textarea>
+                        <span asp-validation-for="Descripcion" class="text-sm mt-1 block"></span>
+                    </div>
+                </div>
+
+                <div class="sm:col-span-1">
+                    <label asp-for="PrecioVentaActual" class="block text-sm font-medium leading-6 text-gray-900">Precio</label>
+                    <div class="mt-2 text-red-600">
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <span class="text-gray-500 sm:text-sm">$</span>
+                            </div>
+                            <input asp-for="PrecioVentaActual" type="number" step="0.01" min="0" class="block w-full rounded-md border-0 py-1.5 pl-7 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                        </div>
+                        <span asp-validation-for="PrecioVentaActual" class="text-sm mt-1 block"></span>
+                    </div>
+                </div>
+
+                <div class="sm:col-span-1">
+                    <label asp-for="StockMinimo" class="block text-sm font-medium leading-6 text-gray-900">Stock Mínimo</label>
+                    <div class="mt-2 text-red-600">
+                        <input asp-for="StockMinimo" type="number" min="0" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                        <span asp-validation-for="StockMinimo" class="text-sm mt-1 block"></span>
+                    </div>
+                </div>
+
+                <div class="sm:col-span-1">
+                    <label asp-for="UnidadMedida" class="block text-sm font-medium leading-6 text-gray-900">Unidad de medida</label>
+                    <div class="mt-2 text-red-600">
+                        <select asp-for="UnidadMedida" asp-items="Model.UnidadesMedida" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"></select>
+                        <span asp-validation-for="UnidadMedida" class="text-sm mt-1 block"></span>
+                    </div>
+                </div>
             </div>
-        </div>
+
+            <!-- Complex Fields -->
+            <div class="border-t border-gray-200 pt-6">
+                <div class="sm:col-span-3">
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-sm font-medium leading-6 text-gray-900">Códigos de barra</label>
+                        <button type="button" id="btnAddBarcode" class="rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-indigo-600 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">+ Agregar</button>
+                    </div>
+                    <div id="barcodeList" class="space-y-2 max-w-lg"></div>
+                    <div id="barcodeMsg" class="mt-2 text-sm text-red-600 hidden">No se pueden agregar más códigos (máximo 5).</div>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-200 pt-6">
+                <label class="block text-sm font-medium leading-6 text-gray-900 mb-2">Categorías</label>
+                
+                <div x-data="{ open: false }" class="relative inline-block text-left mb-2">
+                    <div>
+                        <button type="button" @@click="open = !open" class="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50" aria-expanded="true" aria-haspopup="true">
+                            Seleccionar categorías
+                            <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div x-show="open" @@click.away="open = false" style="display: none;" class="absolute left-0 z-10 mt-2 w-72 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                        <div class="p-2" role="none">
+                            <input type="text" id="catFilterCreate" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 mb-2" placeholder="Filtrar categorías...">
+                            <div class="max-h-60 overflow-y-auto">
+                                @foreach (var c in Model.Categorias)
+                                {
+                                    <a href="#" class="cat-pick text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100" data-id="@c.Value" data-name="@c.Text">@c.Text</a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <p class="text-sm text-gray-500 mb-2">Hasta 3 categorías.</p>
+                <div id="catSelectedCreate" class="flex flex-wrap gap-2"></div>
+                <div id="catInputsCreate"></div>
+                <span asp-validation-for="CategoriaIds" class="text-sm text-red-600 block mt-1"></span>
+            </div>
+
+            <div class="border-t border-gray-200 pt-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                    <label asp-for="UbicacionCodigo" class="block text-sm font-medium leading-6 text-gray-900">Ubicación (ej: A1)</label>
+                    <div class="mt-2 text-red-600">
+                        <input asp-for="UbicacionCodigo" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                        <span asp-validation-for="UbicacionCodigo" class="text-sm mt-1 block"></span>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center justify-between mt-8">
+                        <span class="flex flex-grow flex-col">
+                            <span class="text-sm font-medium leading-6 text-gray-900" id="activo-label">Estado del producto</span>
+                        </span>
+                        <label class="relative inline-flex items-center cursor-pointer ml-4">
+                            <input type="checkbox" asp-for="Activo" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex items-center justify-end gap-x-4 border-t border-gray-200 pt-6">
+                <a asp-action="Index" asp-route-page="@(ViewBag.ReturnPage ?? 1)" class="btn-cancel-leave text-sm font-semibold leading-6 text-gray-900 hover:text-gray-600 transition-colors px-4 py-2">Cancelar</a>
+                <button type="submit" class="rounded-md bg-indigo-600 px-6 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors">Guardar Producto</button>
+            </div>
+        </form>
     </div>
-    <div class="d-flex justify-content-center gap-2 mt-4">
-        <button type="submit" class="btn btn-primary px-5">Guardar</button>
-        <a asp-action="Index" asp-route-page="@(ViewBag.ReturnPage ?? 1)" class="btn btn-outline-secondary px-5 btn-cancel-leave">Volver</a>
-    </div>
-</form>
+</div>
 
 @section Scripts {
 <script>
@@ -103,12 +160,12 @@
     const hasEmpty = inputs.some(i=>!i.value.trim());
     const seen = new Set(); const dup = new Set();
     vals.forEach(v=>{ const k=v.toLowerCase(); if(seen.has(k)) dup.add(k); else seen.add(k); });
-    if(hasEmpty){ e.preventDefault(); alert('No se permiten codigos de barra vacios.'); return; }
-    if(dup.size>0){ e.preventDefault(); alert('Hay codigos de barra repetidos.'); return; }
+    if(hasEmpty){ e.preventDefault(); alert('No se permiten códigos de barra vacíos.'); return; }
+    if(dup.size>0){ e.preventDefault(); alert('Hay códigos de barra repetidos.'); return; }
     isDirty=false;
   });
   window.addEventListener('beforeunload',function(e){ if(!isDirty) return; e.preventDefault(); e.returnValue=''; });
-  document.querySelectorAll('.btn-cancel-leave').forEach(a=>a.addEventListener('click',function(e){ if(isDirty && !confirm('Hay cambios sin guardar. Si vuelves, se perderan. Deseas salir igualmente?')){ e.preventDefault(); }}));
+  document.querySelectorAll('.btn-cancel-leave').forEach(a=>a.addEventListener('click',function(e){ if(isDirty && !confirm('Hay cambios sin guardar. Si vuelves, se perderán. ¿Deseas salir igualmente?')){ e.preventDefault(); }}));
 
   const list = document.getElementById('barcodeList');
   const btnAdd = document.getElementById('btnAddBarcode');
@@ -116,32 +173,41 @@
   const max = 5;
   const addInput = (val='')=>{
     const count = list.querySelectorAll('.barcode-item').length;
-    if(count >= max){ msg.classList.remove('d-none'); return; }
-    msg.classList.add('d-none');
+    if(count >= max){ msg.classList.remove('hidden'); return; }
+    msg.classList.add('hidden');
     const idx = count;
+    
     const row = document.createElement('div');
-    row.className = 'barcode-item input-group';
+    row.className = 'barcode-item relative flex items-center shadow-sm rounded-md';
+    
     const input = document.createElement('input');
     input.name = `Barcodes[${idx}]`;
-    input.className = 'form-control';
-    input.placeholder = 'Codigo de barra';
+    input.className = 'block w-full rounded-md border-0 py-1.5 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6';
+    input.placeholder = 'Código de barra';
     input.value = val;
+    
+    const btnContainer = document.createElement('div');
+    btnContainer.className = 'absolute inset-y-0 right-0 flex items-center pr-1';
+    
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'btn btn-outline-danger';
-    btn.textContent = '-';
+    btn.className = 'rounded p-1 text-gray-400 hover:text-red-600 transition-colors focus:outline-none';
+    btn.innerHTML = '<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"></path></svg>';
     btn.addEventListener('click', ()=>{ row.remove(); renumber(); });
-    row.appendChild(input); row.appendChild(btn);
+    
+    btnContainer.appendChild(btn);
+    row.appendChild(input); 
+    row.appendChild(btnContainer);
     list.appendChild(row);
   };
   const renumber = ()=>{
     const items = list.querySelectorAll('.barcode-item input');
     items.forEach((inp, i)=>{ inp.name = `Barcodes[${i}]`; });
-    if(items.length < max) msg.classList.add('d-none');
+    if(items.length < max) msg.classList.add('hidden');
   };
   btnAdd?.addEventListener('click', ()=> {
     const hasEmpty = Array.from(document.querySelectorAll('#barcodeList .barcode-item input')).some(i=>!i.value.trim());
-    if(hasEmpty){ alert('Complete el codigo vacio antes de agregar otro.'); return; }
+    if(hasEmpty){ alert('Complete el código vacío antes de agregar otro.'); return; }
     addInput();
   });
   if(list && list.children.length === 0){ addInput(); }
@@ -168,9 +234,15 @@
       ids.forEach(id => {
         const item = Array.from(picks).find(a => a.dataset.id === String(id));
         const name = item ? item.dataset.name : id;
+        
         const chip = document.createElement('span');
-        chip.className = 'cat-chip badge bg-primary-subtle text-primary border border-primary';
-        chip.innerHTML = `${name} <button type="button" class="btn-close btn-close-sm ms-1" aria-label="Quitar"></button>`;
+        chip.className = 'inline-flex items-center gap-x-0.5 rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10';
+        chip.innerHTML = `${name} 
+        <button type="button" class="group relative -mr-1 h-3.5 w-3.5 rounded-sm hover:bg-indigo-600/20">
+            <span class="sr-only">Quitar</span>
+            <svg viewBox="0 0 14 14" class="h-3.5 w-3.5 stroke-indigo-700/50 group-hover:stroke-indigo-700/75"><path d="M4 4l6 6m0-6l-6 6" /></svg>
+        </button>`;
+        
         chip.querySelector('button')?.addEventListener('click', () => { ids = ids.filter(x => String(x) !== String(id)); renumberCats(); renderChips(); });
         container.appendChild(chip);
       });
@@ -181,7 +253,7 @@
         const id = this.dataset.id;
         if (!id) return;
         if (ids.includes(id)) return;
-        if (ids.length >= 3) { alert('Solo puedes seleccionar hasta 3 categorias.'); return; }
+        if (ids.length >= 3) { alert('Solo puedes seleccionar hasta 3 categorías.'); return; }
         ids.push(id);
         renumberCats();
         renderChips();

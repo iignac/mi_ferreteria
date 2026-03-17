@@ -2,120 +2,181 @@
 @{
     ViewData["Title"] = "Editar Usuario";
 }
-<h2>Editar Usuario</h2>
-<div class="text-danger">@Html.ValidationSummary()</div>
-<form asp-action="Edit" method="post" data-unsaved-warning="true">
-    <input type="hidden" asp-for="Id" />
-    <input type="hidden" asp-for="OriginalHash" />
-    <div class="mb-3">
-        <label class="form-label">Nombre</label>
-        <input asp-for="Nombre" class="form-control" />
-        <span asp-validation-for="Nombre" class="text-danger"></span>
+
+<div class="md:flex md:items-center md:justify-between mb-6">
+    <div class="min-w-0 flex-1">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+            Editar Usuario
+        </h2>
     </div>
-    <div class="mb-3">
-        <label class="form-label">Email</label>
-        <input asp-for="Email" class="form-control" />
-        <span asp-validation-for="Email" class="text-danger"></span>
-    </div>
-    <div class="alert alert-secondary">
-        <div class="mb-2"><strong>Cambiar contraseña (opcional)</strong></div>
-        <div class="mb-2">
-            <label class="form-label">Nueva contraseña</label>
-            <input asp-for="Password" class="form-control" type="password" autocomplete="new-password" />
-            <span asp-validation-for="Password" class="text-danger"></span>
-        </div>
-        <div class="mb-2">
-            <label class="form-label">Confirmar contraseña</label>
-            <input asp-for="ConfirmPassword" class="form-control" type="password" autocomplete="new-password" />
-            <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
-        </div>
-        <small class="text-muted">Dejar vacío para mantener la contraseña actual.</small>
-    </div>
-    <div class="mb-4">
-        <label class="form-label d-block">Estado de usuario</label>
-        <div class="form-check form-switch">
-            <input class="form-check-input" asp-for="Activo" type="checkbox" role="switch" id="usuarioActivoEdit" />
-            <label class="form-check-label" for="usuarioActivoEdit">Activo</label>
-        </div>
-    </div>
-    <div class="mb-4">
-        <label class="form-label">Seleccione rol</label>
-        <div class="row g-3">
-            @foreach (var rol in Model.RolesDisponibles)
-            {
-                <div class="col-12 col-sm-6 col-lg-4">
-                    <input class="role-check d-none" type="checkbox" id="role_edit_@rol.Id" name="RolesIds" value="@rol.Id" @(Model.RolesIds.Contains(rol.Id) ? "checked" : "") />
-                    <label class="role-card w-100" for="role_edit_@rol.Id">
-                        <div class="name">@rol.Nombre</div>
-                        <div class="desc text-muted">@rol.Descripcion</div>
-                    </label>
+</div>
+
+<div class="bg-white shadow sm:rounded-lg mb-8">
+    <div class="px-4 py-5 sm:p-6">
+        <div class="text-red-600 mb-4 text-sm font-medium" asp-validation-summary="ModelOnly"></div>
+        
+        <form asp-action="Edit" method="post" data-unsaved-warning="true" class="space-y-8">
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="OriginalHash" />
+            
+            <div class="grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
+                <div>
+                    <label asp-for="Nombre" class="block text-sm font-medium leading-6 text-gray-900">Nombre</label>
+                    <div class="mt-2 text-red-600">
+                        <input asp-for="Nombre" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                        <span asp-validation-for="Nombre" class="text-sm mt-1 block"></span>
+                    </div>
                 </div>
-            }
-        </div>
-    </div>
-    <div class="mb-4">
-        <label class="form-label">Seleccione permisos directos (Excepcionales)</label>
-        <div class="text-muted small mb-2">Los permisos marcados y deshabilitados son heredados de los roles asignados. Seleccione permisos adicionales según sea necesario.</div>
-        
-        @{
-            var permisosPorGrupo = Model.TodosLosPermisos
-                .GroupBy(p => p.Nombre.Split('.').FirstOrDefault() ?? "Otros")
-                .OrderBy(g => g.Key);
-        }
-        
-        <div class="accordion" id="accordionPermisos">
-            @foreach (var grupo in permisosPorGrupo)
-            {
-                <div class="accordion-item">
-                    <h2 class="accordion-header" id="heading_@grupo.Key">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_@grupo.Key" aria-expanded="false" aria-controls="collapse_@grupo.Key">
-                            Módulo: @grupo.Key
-                        </button>
-                    </h2>
-                    <div id="collapse_@grupo.Key" class="accordion-collapse collapse" aria-labelledby="heading_@grupo.Key" data-bs-parent="#accordionPermisos">
-                        <div class="accordion-body">
-                            <div class="row g-3">
-                                @foreach (var permiso in grupo.OrderBy(p => p.Nombre))
-                                {
-                                    var isHeredado = Model.PermisosHeredados.Contains(permiso.Nombre);
-                                    var isDirecto = Model.PermisosIds.Contains(permiso.Id);
-                                    
-                                    <div class="col-12 col-md-6">
-                                        <div class="form-check form-switch border rounded p-2 custom-permiso-switch">
-                                            @if (isHeredado)
-                                            {
-                                                <input class="form-check-input ms-1 mt-2" type="checkbox" role="switch" checked disabled id="permiso_edit_@permiso.Id" />
-                                            }
-                                            else
-                                            {
-                                                <input class="form-check-input ms-1 mt-2" type="checkbox" role="switch" name="PermisosIds" value="@permiso.Id" @(isDirecto ? "checked" : "") id="permiso_edit_@permiso.Id" />
-                                            }
-                                            <label class="form-check-label ms-2" for="permiso_edit_@permiso.Id">
-                                                <strong>@permiso.Nombre.Split('.').LastOrDefault()</strong>
-                                                <span class="d-block small text-muted">@permiso.Descripcion</span>
-                                                @if(isHeredado) { <span class="badge bg-secondary">Heredado</span> }
-                                            </label>
-                                        </div>
-                                    </div>
-                                }
+
+                <div>
+                    <label asp-for="Email" class="block text-sm font-medium leading-6 text-gray-900">Email</label>
+                    <div class="mt-2 text-red-600">
+                        <input asp-for="Email" type="email" autocomplete="email" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                        <span asp-validation-for="Email" class="text-sm mt-1 block"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Optional Password Change Block -->
+            <div class="rounded-lg bg-blue-50/50 p-5 mt-6 border border-blue-100">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                    </div>
+                    <div class="ml-3 flex-1">
+                        <h3 class="text-sm font-semibold text-blue-800">Cambiar contraseña (opcional)</h3>
+                        <p class="text-xs text-blue-600 mt-1">Dejar vacío para mantener la contraseña actual.</p>
+                        
+                        <div class="mt-4 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+                            <div>
+                                <label asp-for="Password" class="block text-sm font-medium leading-6 text-gray-900">Nueva contraseña</label>
+                                <div class="mt-2 text-red-600">
+                                    <input asp-for="Password" type="password" autocomplete="new-password" class="data-pw block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                                    <span asp-validation-for="Password" class="text-sm mt-1 block"></span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label asp-for="ConfirmPassword" class="block text-sm font-medium leading-6 text-gray-900">Confirmar contraseña</label>
+                                <div class="mt-2 text-red-600">
+                                    <input asp-for="ConfirmPassword" type="password" autocomplete="new-password" class="data-pw block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                                    <span asp-validation-for="ConfirmPassword" class="text-sm mt-1 block"></span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            }
-        </div>
+            </div>
+
+            <div class="border-t border-gray-200 pt-6">
+                <div class="flex items-center justify-between max-w-lg">
+                    <span class="flex flex-grow flex-col">
+                        <span class="text-sm font-medium leading-6 text-gray-900" id="activo-label">Estado de usuario</span>
+                        <span class="text-sm text-gray-500" id="activo-description">Define si el usuario puede ingresar al sistema.</span>
+                    </span>
+                    <label class="relative inline-flex items-center cursor-pointer ml-4">
+                        <input type="checkbox" asp-for="Activo" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-200 pt-6">
+                <fieldset>
+                    <legend class="text-sm font-semibold leading-6 text-gray-900">Seleccione rol</legend>
+                    <div class="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 lg:grid-cols-3 sm:gap-x-4">
+                        @foreach (var rol in Model.RolesDisponibles)
+                        {
+                            <label class="relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm focus:outline-none border-gray-300 hover:border-indigo-400 transition-colors [&:has(:checked)]:border-indigo-600 [&:has(:checked)]:ring-1 [&:has(:checked)]:ring-indigo-600 [&:has(:checked)]:bg-indigo-50/50">
+                                <input type="checkbox" name="RolesIds" value="@rol.Id" class="sr-only peer" @(Model.RolesIds != null && Model.RolesIds.Contains(rol.Id) ? "checked" : "")>
+                                <span class="flex flex-1">
+                                    <span class="flex flex-col">
+                                        <span class="block text-sm font-medium text-gray-900">@rol.Nombre</span>
+                                        <span class="mt-1 flex items-center text-sm text-gray-500">@rol.Descripcion</span>
+                                    </span>
+                                </span>
+                            </label>
+                        }
+                    </div>
+                </fieldset>
+            </div>
+
+            <div class="border-t border-gray-200 pt-6">
+                <h3 class="text-sm font-semibold leading-6 text-gray-900">Seleccione permisos directos (Excepcionales)</h3>
+                <p class="mt-1 text-sm text-gray-500 mb-4">Los permisos marcados y deshabilitados son heredados de los roles seleccionados. Utilice los interruptores activos para sumar permisos adicionales.</p>
+
+                @if (Model.TodosLosPermisos != null && Model.TodosLosPermisos.Any())
+                {
+                    var permisosPorGrupo = Model.TodosLosPermisos
+                        .GroupBy(p => p.Nombre.Split('.').FirstOrDefault() ?? "Otros")
+                        .OrderBy(g => g.Key);
+
+                    <div class="divide-y divide-gray-200 border-b border-t border-gray-200">
+                        @foreach (var grupo in permisosPorGrupo)
+                        {
+                            <div x-data="{ open: false }" class="pt-4 pb-4">
+                                <button type="button" @@click="open = !open" class="flex w-full items-center justify-between text-left focus:outline-none bg-gray-50/50 p-3 rounded-md hover:bg-gray-100 transition-colors">
+                                    <span class="text-sm font-medium text-gray-900">Módulo: @grupo.Key</span>
+                                    <span class="ml-6 flex items-center">
+                                        <svg class="h-5 w-5 transform transition-transform duration-200 text-gray-400" :class="{ 'rotate-180': open }" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                                        </svg>
+                                    </span>
+                                </button>
+                                <div x-show="open" x-collapse>
+                                    <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 px-2 pb-2">
+                                        @foreach (var permiso in grupo.OrderBy(p => p.Nombre))
+                                        {
+                                            var isHeredado = Model.PermisosHeredados != null && Model.PermisosHeredados.Contains(permiso.Nombre);
+                                            var isDirecto = Model.PermisosIds != null && Model.PermisosIds.Contains(permiso.Id);
+
+                                            <div class="relative flex items-start py-3 border rounded-lg px-4 bg-white shadow-sm hover:border-gray-400 transition-colors">
+                                                <div class="min-w-0 flex-1 text-sm leading-6">
+                                                    <label for="permiso_edit_@permiso.Id" class="font-medium text-gray-900 select-none">@permiso.Nombre.Split('.').LastOrDefault()</label>
+                                                    <p class="text-gray-500 text-xs">@permiso.Descripcion</p>
+                                                    @if (isHeredado) { <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10 mt-1">Heredado</span> }
+                                                </div>
+                                                <div class="ml-3 flex h-6 items-center flex-shrink-0">
+                                                    @if (isHeredado)
+                                                    {
+                                                        <input id="permiso_edit_@permiso.Id" type="checkbox" checked disabled class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 disabled:opacity-50">
+                                                    }
+                                                    else
+                                                    {
+                                                        <input id="permiso_edit_@permiso.Id" name="PermisosIds" value="@permiso.Id" type="checkbox" @(isDirecto ? "checked" : "") class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer">
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="rounded-md bg-blue-50 p-4">
+                        <p class="text-sm text-blue-700">No hay permisos configurados para asignar.</p>
+                    </div>
+                }
+            </div>
+
+            <div class="mt-6 flex items-center justify-end gap-x-4 border-t border-gray-200 pt-6">
+                <a asp-action="Index" class="btn-cancel-leave text-sm font-semibold leading-6 text-gray-900 hover:text-gray-600 transition-colors px-4 py-2">Cancelar</a>
+                <button type="submit" class="rounded-md bg-indigo-600 px-6 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors">Guardar Cambios</button>
+            </div>
+        </form>
     </div>
-    <div class="d-flex justify-content-center gap-2 mt-4">
-        <button type="submit" class="btn btn-primary px-5">Guardar</button>
-        <a asp-action="Index" class="btn btn-outline-secondary px-5">Volver</a>
-    </div>
-</form>
+</div>
 
 @section Scripts {
     <script>
         (function(){
             let isDirty = false;
-            const form = document.querySelector('form[asp-action="Edit"]') || document.querySelector('form');
+            const form = document.querySelector('form[asp-action="Edit"]');
             if (!form) return;
             form.addEventListener('input', () => { isDirty = true; }, { capture: true });
             form.addEventListener('change', () => { isDirty = true; }, { capture: true });
@@ -135,26 +196,28 @@
         })();
     </script>
     <script>
+        // Password toggle visibility script
         (function(){
-            const form = document.querySelector('form[asp-action="Edit"]') || document.querySelector('form');
-            if (!form) return;
-            const targets = form.querySelectorAll('input[type="password"][name="Password"], input[type="password"][name="ConfirmPassword"]');
+            const targets = document.querySelectorAll('input.data-pw');
             targets.forEach(function(input){
-                // Wrap input inside Bootstrap input-group
                 const wrapper = document.createElement('div');
-                wrapper.className = 'input-group';
+                wrapper.className = 'relative mt-2 rounded-md shadow-sm';
                 input.parentNode.insertBefore(wrapper, input);
                 wrapper.appendChild(input);
+                input.classList.remove('mt-2'); // since wrapper has mt-2
 
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'btn btn-outline-secondary';
-                btn.textContent = 'Mostrar';
-                btn.setAttribute('data-generated','password-toggle');
+                btn.className = 'absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer text-gray-400 hover:text-gray-600';
+                btn.innerHTML = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943-9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>`;
                 btn.addEventListener('click', function(){
                     const show = input.type === 'password';
                     input.type = show ? 'text' : 'password';
-                    btn.textContent = show ? 'Ocultar' : 'Mostrar';
+                    if(show){
+                        btn.innerHTML = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>`;
+                    } else {
+                        btn.innerHTML = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943-9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>`;
+                    }
                 });
                 wrapper.appendChild(btn);
             });

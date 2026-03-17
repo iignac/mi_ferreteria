@@ -11,4 +11,8 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
+  <Target Name="Tailwind" BeforeTargets="Build">
+    <Exec Command="npx tailwindcss -i ./wwwroot/css/app.css -o ./wwwroot/css/tailwind.css --minify" />
+  </Target>
+
 </Project>

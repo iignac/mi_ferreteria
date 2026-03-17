@@ -75,7 +75,4 @@ WHERE r.nombre = 'Vendedor'
       SELECT 1 FROM rol_permiso rp WHERE rp.rol_id = r.id AND rp.permiso_id = p.id
   );
 
--- Nota: Si la tabla permiso no tiene un constraint UNIQUE en la columna nombre, los "ON CONFLICT DO NOTHING" 
--- no funcionarán. En ese caso, asegúrese de agregar el constraint:
--- ALTER TABLE permiso ADD CONSTRAINT uq_permiso_nombre UNIQUE (nombre);
 

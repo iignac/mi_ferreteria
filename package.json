@@ -1,0 +1,10 @@
+{
+  "name": "mi_ferreteria_frontend",
+  "version": "1.0.0",
+  "scripts": {
+    "build:css": "tailwindcss -i ./wwwroot/css/app.css -o ./wwwroot/css/tailwind.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.1"
+  }
+}
