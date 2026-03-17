@@ -53,6 +53,28 @@ WHERE r.nombre = 'Administrador'
       SELECT 1 FROM rol_permiso rp WHERE rp.rol_id = r.id AND rp.permiso_id = p.id
   );
 
+-- Asignar permisos al rol "Stock"
+INSERT INTO rol_permiso (rol_id, permiso_id)
+SELECT r.id, p.id
+FROM rol r
+CROSS JOIN permiso p
+WHERE r.nombre = 'Stock'
+  AND p.nombre IN ('Stock.Ver', 'Stock.Ajustar', 'Productos.Ver', 'Productos.Crear', 'Productos.Editar', 'Categorias.Ver')
+  AND NOT EXISTS (
+      SELECT 1 FROM rol_permiso rp WHERE rp.rol_id = r.id AND rp.permiso_id = p.id
+  );
+
+-- Asignar permisos al rol "Vendedor"
+INSERT INTO rol_permiso (rol_id, permiso_id)
+SELECT r.id, p.id
+FROM rol r
+CROSS JOIN permiso p
+WHERE r.nombre = 'Vendedor'
+  AND p.nombre IN ('Ventas.Crear', 'Ventas.Ver', 'Clientes.Ver', 'Productos.Ver')
+  AND NOT EXISTS (
+      SELECT 1 FROM rol_permiso rp WHERE rp.rol_id = r.id AND rp.permiso_id = p.id
+  );
+
 -- Nota: Si la tabla permiso no tiene un constraint UNIQUE en la columna nombre, los "ON CONFLICT DO NOTHING" 
 -- no funcionarán. En ese caso, asegúrese de agregar el constraint:
 -- ALTER TABLE permiso ADD CONSTRAINT uq_permiso_nombre UNIQUE (nombre);
