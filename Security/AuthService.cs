@@ -16,11 +16,13 @@ namespace mi_ferreteria.Security
     public class AuthService : IAuthService
     {
         private readonly IUsuarioRepository _usuarioRepository;
+        private readonly IPermisoRepository _permisoRepository;
         private readonly ILogger<AuthService> _logger;
 
-        public AuthService(IUsuarioRepository usuarioRepository, ILogger<AuthService> logger)
+        public AuthService(IUsuarioRepository usuarioRepository, IPermisoRepository permisoRepository, ILogger<AuthService> logger)
         {
             _usuarioRepository = usuarioRepository;
+            _permisoRepository = permisoRepository;
             _logger = logger;
         }
 
@@ -56,7 +58,10 @@ namespace mi_ferreteria.Security
                     return (false, "Credenciales invalidas.", null);
                 }
 
-                var claims = BuildClaims(usuario);
+                // Get consolidated permissions for RBAC
+                var permisos = _permisoRepository.GetPermisosConsolidados(usuario.Id);
+
+                var claims = BuildClaims(usuario, permisos);
                 var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                 var principal = new ClaimsPrincipal(identity);
                 return (true, null, principal);
@@ -68,7 +73,7 @@ namespace mi_ferreteria.Security
             }
         }
 
-        private static IEnumerable<Claim> BuildClaims(Usuario usuario)
+        private static IEnumerable<Claim> BuildClaims(Usuario usuario, List<Permiso> permisos)
         {
             var claims = new List<Claim>
             {
@@ -82,6 +87,18 @@ namespace mi_ferreteria.Security
                 if (!string.IsNullOrWhiteSpace(rol.Nombre))
                 {
                     claims.Add(new Claim(ClaimTypes.Role, rol.Nombre));
+                }
+            }
+            
+            // Add custom Permission claims
+            if (permisos != null)
+            {
+                foreach (var permiso in permisos)
+                {
+                    if (!string.IsNullOrWhiteSpace(permiso.Nombre))
+                    {
+                        claims.Add(new Claim("Permission", permiso.Nombre));
+                    }
                 }
             }
 

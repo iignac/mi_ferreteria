@@ -38,6 +38,13 @@ namespace mi_ferreteria.Controllers
         }
 
         [AllowAnonymous]
+        [HttpGet]
+        public IActionResult AccesoDenegado()
+        {
+            return View();
+        }
+
+        [AllowAnonymous]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model)

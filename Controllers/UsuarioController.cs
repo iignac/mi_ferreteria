@@ -9,20 +9,22 @@ using mi_ferreteria.Security;
 
 namespace mi_ferreteria.Controllers
 {
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Policy = mi_ferreteria.Security.Permisos.Usuarios.Ver)]
     public class UsuarioController : Controller
     {
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IRolRepository _rolRepository;
         private readonly ILogger<UsuarioController> _logger;
         private readonly IAuditoriaRepository _auditoriaRepository;
+        private readonly IPermisoRepository _permisoRepository;
 
-        public UsuarioController(IUsuarioRepository usuarioRepository, IRolRepository rolRepository, ILogger<UsuarioController> logger, IAuditoriaRepository auditoriaRepository)
+        public UsuarioController(IUsuarioRepository usuarioRepository, IRolRepository rolRepository, ILogger<UsuarioController> logger, IAuditoriaRepository auditoriaRepository, IPermisoRepository permisoRepository)
         {
             _usuarioRepository = usuarioRepository;
             _rolRepository = rolRepository;
             _logger = logger;
             _auditoriaRepository = auditoriaRepository;
+            _permisoRepository = permisoRepository;
         }
 
         public IActionResult Index()
@@ -40,6 +42,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        [Authorize(Policy = mi_ferreteria.Security.Permisos.Usuarios.Gestionar)]
         public IActionResult Create()
         {
             try
@@ -57,6 +60,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        [Authorize(Policy = mi_ferreteria.Security.Permisos.Usuarios.Gestionar)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Create(UsuarioFormViewModel model)
@@ -121,6 +125,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        [Authorize(Policy = mi_ferreteria.Security.Permisos.Usuarios.Gestionar)]
         public IActionResult Edit(int id)
         {
             try
@@ -128,6 +133,15 @@ namespace mi_ferreteria.Controllers
                 var usuario = _usuarioRepository.GetAll().FirstOrDefault(u => u.Id == id);
                 if (usuario == null) return NotFound();
                 var rolesIds = usuario.Roles.Select(r => r.Id).ToList();
+                var permisosHeredados = _permisoRepository.GetByRolIds(rolesIds).Select(p => p.Nombre).ToList();
+                var permisosDirectos = _permisoRepository.GetByUsuarioIdDirecto(id);
+                var todosLosPermisosDb = _permisoRepository.GetAll();
+                
+                var permisosDirectosIds = todosLosPermisosDb
+                    .Where(p => permisosDirectos.Any(pd => pd.Id == p.Id))
+                    .Select(p => p.Id)
+                    .ToList();
+
                 var model = new UsuarioFormViewModel
                 {
                     Id = usuario.Id,
@@ -136,6 +150,9 @@ namespace mi_ferreteria.Controllers
                     Activo = usuario.Activo,
                     RolesIds = rolesIds,
                     RolesDisponibles = _rolRepository.GetAll(),
+                    PermisosHeredados = permisosHeredados,
+                    PermisosIds = permisosDirectosIds,
+                    TodosLosPermisos = todosLosPermisosDb,
                     OriginalHash = mi_ferreteria.Security.ConcurrencyToken.ComputeUsuarioHash(usuario)
                 };
                 return View(model);
@@ -147,6 +164,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        [Authorize(Policy = mi_ferreteria.Security.Permisos.Usuarios.Gestionar)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Edit(UsuarioFormViewModel model)
@@ -154,6 +172,10 @@ namespace mi_ferreteria.Controllers
             try
             {
                 model.RolesDisponibles = _rolRepository.GetAll();
+                model.TodosLosPermisos = _permisoRepository.GetAll();
+                var permisosHeredados = _permisoRepository.GetByRolIds(model.RolesIds).Select(p => p.Nombre).ToList();
+                model.PermisosHeredados = permisosHeredados;
+                
                 model.Nombre = model.Nombre?.Trim();
                 model.Email = model.Email?.Trim();
                 if (ModelState.IsValid)
@@ -212,6 +234,21 @@ namespace mi_ferreteria.Controllers
                         newPwd = model.Password;
                     }
                     _usuarioRepository.Update(usuario, newPwd);
+                    
+                    // Match the incoming Permiso Nombre (from PermisosIds which are actually IDs)
+                    // Wait, we need to map the Permiso.Nombre to ID from the Db.
+                    // The UI will post PermisoIds. If we bind by ID, we just save it.
+                    var permisosDb = _permisoRepository.GetAll();
+                    var savedPermisoIds = new System.Collections.Generic.List<int>();
+                    if (model.PermisosIds != null)
+                    {
+                        foreach (var pid in model.PermisosIds)
+                        {
+                            savedPermisoIds.Add(pid);
+                        }
+                    }
+                    _permisoRepository.AsignarPermisosDirectos(usuario.Id, savedPermisoIds);
+
                     var rolesAntes = FormatearRoles(dbUsuario.Roles);
                     var rolesDespues = FormatearRoles(rolesSeleccionados);
                     var pwdDetalle = string.IsNullOrWhiteSpace(newPwd) ? "clave sin cambios" : "clave actualizada";
@@ -229,6 +266,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        [Authorize(Policy = mi_ferreteria.Security.Permisos.Usuarios.Gestionar)]
         public IActionResult Delete(int id)
         {
             try
@@ -259,6 +297,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        [Authorize(Policy = mi_ferreteria.Security.Permisos.Usuarios.Gestionar)]
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public IActionResult DeleteConfirmed(int id)

@@ -23,8 +23,10 @@ namespace mi_ferreteria.ViewModels
         [Compare("Password", ErrorMessage = "Las contraseñas no coinciden")]
         public string? ConfirmPassword { get; set; }
         public List<int> RolesIds { get; set; } = new List<int>();
-    public List<Rol> RolesDisponibles { get; set; } = new List<Rol>();
-    public List<Permiso> PermisosHeredados { get; set; } = new List<Permiso>();
+        public List<Rol> RolesDisponibles { get; set; } = new List<Rol>();
+        public List<int> PermisosIds { get; set; } = new List<int>();
+        public List<Permiso> TodosLosPermisos { get; set; } = new List<Permiso>();
+        public List<string> PermisosHeredados { get; set; } = new List<string>();
         // Concurrency token (optimistic lock): hash de los datos cargados en GET
         public string? OriginalHash { get; set; }
     }

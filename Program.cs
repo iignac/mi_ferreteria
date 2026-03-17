@@ -20,12 +20,19 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     .AddCookie(options =>
     {
         options.LoginPath = "/Auth/Login";
-        options.AccessDeniedPath = "/Auth/Login";
+        options.AccessDeniedPath = "/Auth/AccesoDenegado";
         options.SlidingExpiration = true;
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // Configure Policy for each Permission dynamically
+    foreach (var permiso in mi_ferreteria.Security.Permisos.Todos())
+    {
+        options.AddPolicy(permiso.Nombre, policy => policy.RequireClaim("Permission", permiso.Nombre));
+    }
+});
 builder.Services.AddTransient<mi_ferreteria.Data.IUsuarioRepository, mi_ferreteria.Data.UsuarioRepository>();
 builder.Services.AddTransient<mi_ferreteria.Data.IRolRepository, mi_ferreteria.Data.RolRepository>();
 builder.Services.AddTransient<mi_ferreteria.Data.IPermisoRepository, mi_ferreteria.Data.PermisoRepository>();

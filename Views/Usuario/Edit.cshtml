@@ -53,6 +53,58 @@
             }
         </div>
     </div>
+    <div class="mb-4">
+        <label class="form-label">Seleccione permisos directos (Excepcionales)</label>
+        <div class="text-muted small mb-2">Los permisos marcados y deshabilitados son heredados de los roles asignados. Seleccione permisos adicionales según sea necesario.</div>
+        
+        @{
+            var permisosPorGrupo = Model.TodosLosPermisos
+                .GroupBy(p => p.Nombre.Split('.').FirstOrDefault() ?? "Otros")
+                .OrderBy(g => g.Key);
+        }
+        
+        <div class="accordion" id="accordionPermisos">
+            @foreach (var grupo in permisosPorGrupo)
+            {
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="heading_@grupo.Key">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_@grupo.Key" aria-expanded="false" aria-controls="collapse_@grupo.Key">
+                            Módulo: @grupo.Key
+                        </button>
+                    </h2>
+                    <div id="collapse_@grupo.Key" class="accordion-collapse collapse" aria-labelledby="heading_@grupo.Key" data-bs-parent="#accordionPermisos">
+                        <div class="accordion-body">
+                            <div class="row g-3">
+                                @foreach (var permiso in grupo.OrderBy(p => p.Nombre))
+                                {
+                                    var isHeredado = Model.PermisosHeredados.Contains(permiso.Nombre);
+                                    var isDirecto = Model.PermisosIds.Contains(permiso.Id);
+                                    
+                                    <div class="col-12 col-md-6">
+                                        <div class="form-check form-switch border rounded p-2 custom-permiso-switch">
+                                            @if (isHeredado)
+                                            {
+                                                <input class="form-check-input ms-1 mt-2" type="checkbox" role="switch" checked disabled id="permiso_edit_@permiso.Id" />
+                                            }
+                                            else
+                                            {
+                                                <input class="form-check-input ms-1 mt-2" type="checkbox" role="switch" name="PermisosIds" value="@permiso.Id" @(isDirecto ? "checked" : "") id="permiso_edit_@permiso.Id" />
+                                            }
+                                            <label class="form-check-label ms-2" for="permiso_edit_@permiso.Id">
+                                                <strong>@permiso.Nombre.Split('.').LastOrDefault()</strong>
+                                                <span class="d-block small text-muted">@permiso.Descripcion</span>
+                                                @if(isHeredado) { <span class="badge bg-secondary">Heredado</span> }
+                                            </label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
     <div class="d-flex justify-content-center gap-2 mt-4">
         <button type="submit" class="btn btn-primary px-5">Guardar</button>
         <a asp-action="Index" class="btn btn-outline-secondary px-5">Volver</a>
