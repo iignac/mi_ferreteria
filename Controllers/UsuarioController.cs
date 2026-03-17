@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authorization;
 using System.Linq;
 using mi_ferreteria.Security;
+using System.Collections.Generic;
 
 namespace mi_ferreteria.Controllers
 {
@@ -49,7 +50,8 @@ namespace mi_ferreteria.Controllers
             {
                 var model = new UsuarioFormViewModel
                 {
-                    RolesDisponibles = _rolRepository.GetAll()
+                    RolesDisponibles = _rolRepository.GetAll(),
+                    TodosLosPermisos = _permisoRepository.GetAll()
                 };
                 return View(model);
             }
@@ -68,6 +70,13 @@ namespace mi_ferreteria.Controllers
             try
             {
                 model.RolesDisponibles = _rolRepository.GetAll();
+                model.RolesIds ??= new List<int>();
+                model.PermisosIds ??= new List<int>();
+                model.TodosLosPermisos = _permisoRepository.GetAll();
+                var permisosHeredados = _permisoRepository.GetByRolIds(model.RolesIds)
+                    .Select(p => p.Nombre)
+                    .ToList();
+                model.PermisosHeredados = permisosHeredados;
                 model.Nombre = model.Nombre?.Trim();
                 model.Email = model.Email?.Trim();
                 if (ModelState.IsValid)
@@ -112,7 +121,15 @@ namespace mi_ferreteria.Controllers
                         Roles = rolesSeleccionados
                     };
                     _usuarioRepository.Add(usuario, model.Password);
-                    RegistrarAuditoria(nameof(Create), $"Alta de usuario #{usuario.Id}: {usuario.Nombre} ({usuario.Email}), Activo={usuario.Activo}, Roles=[{FormatearRoles(rolesSeleccionados)}]");
+                    _permisoRepository.AsignarPermisosDirectos(usuario.Id, model.PermisosIds);
+                    var permisosDirectosNombres = model.TodosLosPermisos
+                        .Where(p => model.PermisosIds.Contains(p.Id))
+                        .Select(p => p.Nombre)
+                        .ToList();
+                    var detallePermisos = permisosDirectosNombres.Any()
+                        ? string.Join(", ", permisosDirectosNombres)
+                        : "Sin permisos directos";
+                    RegistrarAuditoria(nameof(Create), $"Alta de usuario #{usuario.Id}: {usuario.Nombre} ({usuario.Email}), Activo={usuario.Activo}, Roles=[{FormatearRoles(rolesSeleccionados)}], PermisosDirectos=[{detallePermisos}]");
                     TempData["Success"] = "Usuario creado correctamente.";
                     return RedirectToAction("Index");
                 }

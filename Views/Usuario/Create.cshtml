@@ -38,7 +38,7 @@
             @foreach (var rol in Model.RolesDisponibles)
             {
                 <div class="col-12 col-sm-6 col-lg-4">
-                    <input class="role-check d-none" type="checkbox" id="role_@rol.Id" name="RolesIds" value="@rol.Id" />
+                    <input class="role-check d-none" type="checkbox" id="role_@rol.Id" name="RolesIds" value="@rol.Id" @(Model.RolesIds != null && Model.RolesIds.Contains(rol.Id) ? "checked" : "") />
                     <label class="role-card w-100" for="role_@rol.Id">
                         <div class="name">@rol.Nombre</div>
                         <div class="desc text-muted">@rol.Descripcion</div>
@@ -46,6 +46,63 @@
                 </div>
             }
         </div>
+    </div>
+    <div class="mb-4">
+        <label class="form-label">Seleccione permisos directos (Excepcionales)</label>
+        <div class="text-muted small mb-2">Los permisos marcados y deshabilitados son heredados de los roles seleccionados. Utilice los interruptores activos para sumar permisos adicionales.</div>
+
+        @if (Model.TodosLosPermisos != null && Model.TodosLosPermisos.Any())
+        {
+            var permisosPorGrupo = Model.TodosLosPermisos
+                .GroupBy(p => p.Nombre.Split('.').FirstOrDefault() ?? "Otros")
+                .OrderBy(g => g.Key);
+
+            <div class="accordion" id="accordionPermisosCreate">
+                @foreach (var grupo in permisosPorGrupo)
+                {
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading_create_@grupo.Key">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_create_@grupo.Key" aria-expanded="false" aria-controls="collapse_create_@grupo.Key">
+                                Módulo: @grupo.Key
+                            </button>
+                        </h2>
+                        <div id="collapse_create_@grupo.Key" class="accordion-collapse collapse" aria-labelledby="heading_create_@grupo.Key" data-bs-parent="#accordionPermisosCreate">
+                            <div class="accordion-body">
+                                <div class="row g-3">
+                                    @foreach (var permiso in grupo.OrderBy(p => p.Nombre))
+                                    {
+                                        var isHeredado = Model.PermisosHeredados != null && Model.PermisosHeredados.Contains(permiso.Nombre);
+                                        var isDirecto = Model.PermisosIds != null && Model.PermisosIds.Contains(permiso.Id);
+
+                                        <div class="col-12 col-md-6">
+                                            <div class="form-check form-switch border rounded p-2 custom-permiso-switch">
+                                                @if (isHeredado)
+                                                {
+                                                    <input class="form-check-input ms-1 mt-2" type="checkbox" role="switch" checked disabled id="permiso_create_@permiso.Id" />
+                                                }
+                                                else
+                                                {
+                                                    <input class="form-check-input ms-1 mt-2" type="checkbox" role="switch" name="PermisosIds" value="@permiso.Id" @(isDirecto ? "checked" : "") id="permiso_create_@permiso.Id" />
+                                                }
+                                                <label class="form-check-label ms-2" for="permiso_create_@permiso.Id">
+                                                    <strong>@permiso.Nombre.Split('.').LastOrDefault()</strong>
+                                                    <span class="d-block small text-muted">@permiso.Descripcion</span>
+                                                    @if (isHeredado) { <span class="badge bg-secondary">Heredado</span> }
+                                                </label>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info">No hay permisos configurados para asignar.</div>
+        }
     </div>
     <div class="d-flex justify-content-center gap-2 mt-4">
         <button type="submit" class="btn btn-primary px-5">Guardar</button>
