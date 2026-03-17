@@ -6,91 +6,172 @@
     int totalPages = ViewBag.TotalPages is int tp ? tp : 1;
 }
 
-<h2>Historial de Ventas</h2>
+<div class="sm:flex sm:items-center sm:justify-between mb-6">
+    <div class="min-w-0 flex-1">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+            Historial de Ventas
+        </h2>
+    </div>
+    <div class="mt-4 flex sm:ml-4 sm:mt-0">
+        <a asp-action="Index" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors">
+            Nueva Venta
+        </a>
+    </div>
+</div>
 
 @if (!Model.Any())
 {
-    <div class="alert alert-info">No hay ventas registradas.</div>
+    <div class="text-center rounded-md bg-gray-50 p-12 border border-dashed border-gray-300">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path>
+        </svg>
+        <h3 class="mt-2 text-sm font-semibold text-gray-900">Sin historial</h3>
+        <p class="mt-1 text-sm text-gray-500">Aún no se han registrado ventas en el sistema.</p>
+        <div class="mt-6">
+            <a asp-action="Index" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                <svg class="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                </svg>
+                Registrar la primera venta
+            </a>
+        </div>
+    </div>
 }
 else
 {
-    <div class="table-responsive mb-3">
-        <table class="table table-striped table-hover table-bordered align-middle">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Fecha</th>
-                    <th>Tipo cliente</th>
-                    <th>Tipo pago</th>
-                    <th class="text-end">Total</th>
-                    <th>Estado</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-            @foreach (var v in Model)
-            {
-                <tr>
-                    <td>@v.Id</td>
-                    <td>@v.Fecha.LocalDateTime.ToString("dd/MM/yyyy HH:mm")</td>
-                    <td>@(v.TipoCliente == "CONSUMIDOR_FINAL" ? "Consumidor final" : "Cliente registrado")</td>
-                    <td>@(v.TipoPago == "CUENTA_CORRIENTE" ? "Cuenta corriente" : "Contado")</td>
-                    <td class="text-end">@v.Total.ToString("C")</td>
-                    @{
-                        var estado = v.Estado ?? "CONFIRMADA";
-                        string estadoTexto;
-                        string estadoClase;
-                        switch (estado)
-                        {
-                            case "PENDIENTE_AUTORIZACION":
-                                estadoTexto = "Pendiente";
-                                estadoClase = "badge bg-warning text-dark";
-                                break;
-                            case "RECHAZADA":
-                                estadoTexto = "Rechazada";
-                                estadoClase = "badge bg-danger";
-                                break;
-                            case "ANULADA":
-                                estadoTexto = "Anulada";
-                                estadoClase = "badge bg-secondary";
-                                break;
-                            default:
-                                estadoTexto = "Confirmada";
-                                estadoClase = "badge bg-success";
-                                break;
-                        }
-                        var comprobanteHabilitado = string.Equals(estado, "CONFIRMADA", System.StringComparison.OrdinalIgnoreCase);
-                    }
-                    <td><span class="@estadoClase">@estadoTexto</span></td>
-                    <td class="text-center">
-                        <a asp-action="Comprobante"
-                           asp-route-id="@v.Id"
-                           class="btn btn-sm @(comprobanteHabilitado ? "btn-primary" : "btn-outline-secondary") @(comprobanteHabilitado ? string.Empty : "disabled")">
-                            Ver comprobante
-                        </a>
-                    </td>
-                </tr>
-            }
-            </tbody>
-        </table>
+    <div class="flow-root">
+        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-300">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">ID</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Fecha</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Tipo cliente</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Tipo pago</th>
+                                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Total</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Estado</th>
+                                <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                                    <span class="sr-only">Acciones</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 bg-white">
+                            @foreach (var v in Model)
+                            {
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">@v.Id</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">@v.Fecha.LocalDateTime.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">@(v.TipoCliente == "CONSUMIDOR_FINAL" ? "Consumidor final" : "Cliente registrado")</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                        @if (v.TipoPago == "CUENTA_CORRIENTE")
+                                        {
+                                            <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">Cuenta corriente</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">Contado</span>
+                                        }
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900 font-medium text-right">@v.Total.ToString("C")</td>
+                                    
+                                    @{
+                                        var estado = v.Estado ?? "CONFIRMADA";
+                                        string estadoTexto;
+                                        string estadoClase;
+                                        var comprobanteHabilitado = string.Equals(estado, "CONFIRMADA", System.StringComparison.OrdinalIgnoreCase);
+
+                                        switch (estado)
+                                        {
+                                            case "PENDIENTE_AUTORIZACION":
+                                                estadoTexto = "Pendiente";
+                                                estadoClase = "bg-yellow-50 text-yellow-800 ring-yellow-600/20";
+                                                break;
+                                            case "RECHAZADA":
+                                                estadoTexto = "Rechazada";
+                                                estadoClase = "bg-red-50 text-red-700 ring-red-600/10";
+                                                break;
+                                            case "ANULADA":
+                                                estadoTexto = "Anulada";
+                                                estadoClase = "bg-gray-100 text-gray-600 ring-gray-500/10";
+                                                break;
+                                            default:
+                                                estadoTexto = "Confirmada";
+                                                estadoClase = "bg-green-50 text-green-700 ring-green-600/20";
+                                                break;
+                                        }
+                                    }
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                        <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset @estadoClase">
+                                            @estadoTexto
+                                        </span>
+                                    </td>
+                                    <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                        @if (comprobanteHabilitado)
+                                        {
+                                            <a asp-action="Comprobante" asp-route-id="@v.Id" class="text-indigo-600 hover:text-indigo-900">Ver comprobante<span class="sr-only">, @v.Id</span></a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-gray-400 cursor-not-allowed">Ver comprobante</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <nav aria-label="Paginacion de ventas" class="mb-3">
-        <ul class="pagination justify-content-center">
-            <li class="page-item @(page <= 1 ? "disabled" : "")">
-                <a class="page-link"
-                   asp-action="Historial"
-                   asp-route-page="@(page - 1)">Anterior</a>
-            </li>
-            <li class="page-item disabled">
-                <span class="page-link">Pagina @(page) de @totalPages</span>
-            </li>
-            <li class="page-item @(page >= totalPages ? "disabled" : "")">
-                <a class="page-link"
-                   asp-action="Historial"
-                   asp-route-page="@(page + 1)">Siguiente</a>
-            </li>
-        </ul>
-    </nav>
-}
+    @if (totalPages > 1)
+    {
+        var start = System.Math.Max(1, page - 2);
+        var end = System.Math.Min(totalPages, page + 2);
 
+        <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 mt-4">
+            <div class="flex flex-1 justify-between sm:hidden">
+                <a asp-action="Historial" asp-route-page="@(page - 1)" class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 @(page <= 1 ? "pointer-events-none opacity-50" : "")">Anterior</a>
+                <a asp-action="Historial" asp-route-page="@(page + 1)" class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 @(page >= totalPages ? "pointer-events-none opacity-50" : "")">Siguiente</a>
+            </div>
+            <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Mostrando página <span class="font-medium">@(page)</span> de <span class="font-medium">@totalPages</span>
+                    </p>
+                </div>
+                <div>
+                    <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                        <a asp-action="Historial" asp-route-page="@(page - 1)" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 @(page <= 1 ? "pointer-events-none opacity-50" : "")">
+                            <span class="sr-only">Anterior</span>
+                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
+                            </svg>
+                        </a>
+                        
+                        @for (var i = start; i <= end; i++)
+                        {
+                            if (i == page)
+                            {
+                                <span class="relative z-10 inline-flex items-center bg-indigo-600 px-4 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">@i</span>
+                            }
+                            else
+                            {
+                                <a asp-action="Historial" asp-route-page="@i" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">@i</a>
+                            }
+                        }
+
+                        <a asp-action="Historial" asp-route-page="@(page + 1)" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 @(page >= totalPages ? "pointer-events-none opacity-50" : "")">
+                            <span class="sr-only">Siguiente</span>
+                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                            </svg>
+                        </a>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    }
+}

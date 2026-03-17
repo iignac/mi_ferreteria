@@ -7,192 +7,264 @@
     string? notaError = TempData["NotaError"] as string;
 }
 
-<h2>Detalle de cliente</h2>
+<div class="md:flex md:items-center md:justify-between mb-6">
+    <div class="min-w-0 flex-1">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+            Detalle de cliente
+        </h2>
+    </div>
+    <div class="mt-4 flex md:ml-4 md:mt-0 gap-3">
+        <a asp-action="Index" class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">Volver al listado</a>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors">Editar cliente</a>
+    </div>
+</div>
+
 @if (!string.IsNullOrWhiteSpace(notaOk))
 {
-    <div class="alert alert-success">@Html.Raw(notaOk)</div>
+    <div class="rounded-md bg-green-50 p-4 mb-6 shadow-sm border border-green-200">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-green-800">@Html.Raw(notaOk)</p>
+            </div>
+        </div>
+    </div>
 }
+
 @if (!string.IsNullOrWhiteSpace(notaError))
 {
-    <div class="alert alert-danger">@notaError</div>
+    <div class="rounded-md bg-red-50 p-4 mb-6 shadow-sm border border-red-200">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-red-800">@notaError</p>
+            </div>
+        </div>
+    </div>
 }
 
-<div class="card mt-3">
-    <div class="card-header">
-        Datos generales
-    </div>
-    <div class="card-body">
-        <dl class="row mb-0">
-            <dt class="col-sm-3">ID</dt>
-            <dd class="col-sm-9">@Model.Id</dd>
-
-            <dt class="col-sm-3">Nombre / Razón social</dt>
-            <dd class="col-sm-9">@Model.Nombre</dd>
-
-            <dt class="col-sm-3">Apellido</dt>
-            <dd class="col-sm-9">@Model.Apellido</dd>
-
-            <dt class="col-sm-3">Documento</dt>
-            <dd class="col-sm-9">
-                @if (!string.IsNullOrWhiteSpace(Model.TipoDocumento) || !string.IsNullOrWhiteSpace(Model.NumeroDocumento))
-                {
-                    @($"{Model.TipoDocumento} {Model.NumeroDocumento}")
-                }
-                else
-                {
-                    @("-")
-                }
-            </dd>
-
-            <dt class="col-sm-3">Dirección</dt>
-            <dd class="col-sm-9">@(!string.IsNullOrWhiteSpace(Model.Direccion) ? Model.Direccion : "-")</dd>
-
-            <dt class="col-sm-3">Teléfono</dt>
-            <dd class="col-sm-9">@(!string.IsNullOrWhiteSpace(Model.Telefono) ? Model.Telefono : "-")</dd>
-
-            <dt class="col-sm-3">Email</dt>
-            <dd class="col-sm-9">@(!string.IsNullOrWhiteSpace(Model.Email) ? Model.Email : "-")</dd>
-
-            <dt class="col-sm-3">Fecha de alta</dt>
-            <dd class="col-sm-9">@Model.FechaAlta.ToString("yyyy-MM-dd HH:mm")</dd>
-
-            <dt class="col-sm-3">Estado</dt>
-            <dd class="col-sm-9">
-                @if (Model.Activo)
-                {
-                    <span class="badge bg-success">Activo</span>
-                }
-                else
-                {
-                    <span class="badge bg-secondary">Inactivo</span>
-                }
-            </dd>
-        </dl>
-    </div>
-</div>
-
-<div class="card mt-3">
-    <div class="card-header">
-        Cuenta corriente
-    </div>
-    <div class="card-body">
-        @if (!Model.CuentaCorrienteHabilitada)
-        {
-            <p class="mb-0 text-muted">La cuenta corriente no está habilitada para este cliente.</p>
-        }
-        else
-        {
-            <dl class="row mb-0">
-                <dt class="col-sm-3">Tipo de cliente</dt>
-                <dd class="col-sm-9">
-                    @(Model.TipoCliente == "CUENTA_CORRIENTE" ? "Cuenta corriente" : "Consumidor final")
-                </dd>
-
-                <dt class="col-sm-3">Límite de crédito</dt>
-                <dd class="col-sm-9">$ @Model.LimiteCredito.ToString("N2")</dd>
-
-                <dt class="col-sm-3">Saldo actual</dt>
-                <dd class="col-sm-9">
-                    @if (saldoActual.HasValue)
-                    {
-                        <span class="@(saldoActual.Value >= 0 ? "text-success" : "text-danger")">
-                            $ @saldoActual.Value.ToString("N2")
-                        </span>
-                    }
-                    else
-                    {
-                        @("-")
-                    }
-                </dd>
-
-                <dt class="col-sm-3">Saldo disponible</dt>
-                <dd class="col-sm-9">
-                    @if (saldoDisponible.HasValue)
-                    {
-                        <span class="@(saldoDisponible.Value <= 0 ? "text-danger" : "text-success")">
-                            $ @saldoDisponible.Value.ToString("N2")
-                        </span>
-                    }
-                    else
-                    {
-                        @("-")
-                    }
-                </dd>
+<div class="space-y-6">
+    <!-- Datos Generales -->
+    <div class="overflow-hidden bg-white shadow sm:rounded-lg border border-gray-200">
+        <div class="px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold leading-6 text-gray-900">Datos generales</h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">Información personal y de contacto del cliente.</p>
+        </div>
+        <div class="border-t border-gray-100">
+            <dl class="divide-y divide-gray-100">
+                <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+                    <dt class="text-sm font-medium text-gray-900">ID Cliente</dt>
+                    <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">@Model.Id</dd>
+                </div>
+                <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+                    <dt class="text-sm font-medium text-gray-900">Nombre / Razón social</dt>
+                    <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">@Model.Nombre</dd>
+                </div>
+                <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+                    <dt class="text-sm font-medium text-gray-900">Apellido</dt>
+                    <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">@(string.IsNullOrWhiteSpace(Model.Apellido) ? "-" : Model.Apellido)</dd>
+                </div>
+                <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+                    <dt class="text-sm font-medium text-gray-900">Documento</dt>
+                    <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
+                        @if (!string.IsNullOrWhiteSpace(Model.TipoDocumento) || !string.IsNullOrWhiteSpace(Model.NumeroDocumento))
+                        {
+                            @($"{Model.TipoDocumento} {Model.NumeroDocumento}")
+                        }
+                        else
+                        {
+                            @("-")
+                        }
+                    </dd>
+                </div>
+                <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+                    <dt class="text-sm font-medium text-gray-900">Dirección</dt>
+                    <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">@(!string.IsNullOrWhiteSpace(Model.Direccion) ? Model.Direccion : "-")</dd>
+                </div>
+                <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+                    <dt class="text-sm font-medium text-gray-900">Contacto</dt>
+                    <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
+                        @if (!string.IsNullOrWhiteSpace(Model.Telefono)) { <div>📞 @Model.Telefono</div> }
+                        @if (!string.IsNullOrWhiteSpace(Model.Email)) { <div>✉️ @Model.Email</div> }
+                        @if (string.IsNullOrWhiteSpace(Model.Telefono) && string.IsNullOrWhiteSpace(Model.Email)) { @("-") }
+                    </dd>
+                </div>
+                <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+                    <dt class="text-sm font-medium text-gray-900">Fecha de alta</dt>
+                    <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">@Model.FechaAlta.ToString("yyyy-MM-dd HH:mm")</dd>
+                </div>
+                <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+                    <dt class="text-sm font-medium text-gray-900">Estado</dt>
+                    <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
+                        @if (Model.Activo)
+                        {
+                            <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Activo</span>
+                        }
+                        else
+                        {
+                            <span class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">Inactivo</span>
+                        }
+                    </dd>
+                </div>
             </dl>
-
-            <div class="mt-3">
-                <a asp-action="CuentaCorriente" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm">
-                    Ver movimientos de cuenta
-                </a>
-            </div>
-        }
+        </div>
     </div>
-</div>
 
-<div class="card mt-3">
-    <div class="card-header">
-        Notas en cuenta corriente
-    </div>
-    <div class="card-body">
-        @if (!Model.CuentaCorrienteHabilitada)
-        {
-            <p class="mb-0 text-muted">La cuenta corriente no esta habilitada para este cliente.</p>
-        }
-        else
-        {
-            var puedeCredito = true;
-            var puedeDebito = saldoDisponible.HasValue && saldoDisponible.Value > 0;
-            var maxDebito = puedeDebito ? saldoDisponible!.Value.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : "0";
-            if (!puedeCredito && !puedeDebito)
+    <!-- Cuenta Corriente -->
+    <div class="overflow-hidden bg-white shadow sm:rounded-lg border border-gray-200">
+        <div class="px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold leading-6 text-gray-900">Cuenta corriente</h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">Condiciones y saldos actuales del cliente.</p>
+        </div>
+        <div class="border-t border-gray-100">
+            @if (!Model.CuentaCorrienteHabilitada)
             {
-                <p class="mb-0 text-muted">No hay saldo disponible ni deuda para generar notas.</p>
+                <div class="p-6 text-center text-sm text-gray-500">
+                    <p>La cuenta corriente no está habilitada para este cliente.</p>
+                </div>
             }
             else
             {
-                <form asp-action="GenerarNotaCuentaCorriente" method="post" class="row g-2">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="clienteId" value="@Model.Id" />
-                    <div class="col-md-4">
-                        <label class="form-label">Tipo de nota</label>
-                        <select class="form-select" id="tipoNotaSelect" name="tipoNota" required>
-                            <option value="">Seleccione...</option>
-                            <option value="CREDITO">Nota de credito</option>
-                            @if (puedeDebito)
+                <dl class="divide-y divide-gray-100">
+                    <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+                        <dt class="text-sm font-medium text-gray-900">Tipo de cliente</dt>
+                        <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
+                            @(Model.TipoCliente == "CUENTA_CORRIENTE" ? "Cuenta corriente" : "Consumidor final")
+                        </dd>
+                    </div>
+                    <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+                        <dt class="text-sm font-medium text-gray-900">Límite de crédito</dt>
+                        <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">$ @Model.LimiteCredito.ToString("N2")</dd>
+                    </div>
+                    <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+                        <dt class="text-sm font-medium text-gray-900">Saldo actual</dt>
+                        <dd class="mt-1 text-sm font-semibold leading-6 sm:col-span-2 sm:mt-0">
+                            @if (saldoActual.HasValue)
                             {
-                                <option value="DEBITO" data-max="@maxDebito">Nota de debito</option>
+                                <span class="@(saldoActual.Value >= 0 ? "text-green-600" : "text-red-600")">
+                                    $ @saldoActual.Value.ToString("N2")
+                                </span>
                             }
                             else
                             {
-                                <option value="DEBITO" data-max="@maxDebito" disabled>Nota de debito</option>
+                                <span class="text-gray-500">-</span>
                             }
-                        </select>
+                        </dd>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Monto</label>
-                        <input class="form-control" type="number" step="0.01" min="0.01"
-                               name="monto" id="notaMontoInput" required />
-                        <small class="text-muted" id="notaMaxHelp"></small>
+                    <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 hover:bg-gray-50">
+                        <dt class="text-sm font-medium text-gray-900">Saldo disponible</dt>
+                        <dd class="mt-1 text-sm font-semibold leading-6 sm:col-span-2 sm:mt-0">
+                            @if (saldoDisponible.HasValue)
+                            {
+                                <span class="@(saldoDisponible.Value <= 0 ? "text-red-600" : "text-green-600")">
+                                    $ @saldoDisponible.Value.ToString("N2")
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-gray-500">-</span>
+                            }
+                        </dd>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Descripcion</label>
-                        <input class="form-control" type="text" name="descripcion" placeholder="Opcional" />
-                    </div>
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-primary" id="notaSubmitBtn">Generar nota</button>
-                    </div>
-                </form>
+                </dl>
+                
+                <div class="bg-gray-50 px-4 py-4 sm:px-6 text-right">
+                    <a asp-action="CuentaCorriente" asp-route-id="@Model.Id" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                        Ver movimientos de cuenta &rarr;
+                    </a>
+                </div>
             }
-        }
+        </div>
     </div>
-</div>
-<div class="mt-4">
-    <a asp-action="Index" class="btn btn-outline-secondary">Volver al listado</a>
-    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Editar cliente</a>
+
+    <!-- Notas en cuenta corriente -->
+    <div class="overflow-hidden bg-white shadow sm:rounded-lg border border-gray-200">
+        <div class="px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold leading-6 text-gray-900">Notas en cuenta corriente</h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">Generar compensaciones manuales a favor o en contra del saldo.</p>
+        </div>
+        <div class="border-t border-gray-100">
+            @if (!Model.CuentaCorrienteHabilitada)
+            {
+                <div class="p-6 text-center text-sm text-gray-500">
+                    <p>La cuenta corriente no está habilitada para este cliente.</p>
+                </div>
+            }
+            else
+            {
+                var puedeCredito = true;
+                var puedeDebito = saldoDisponible.HasValue && saldoDisponible.Value > 0;
+                var maxDebito = puedeDebito ? saldoDisponible!.Value.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : "0";
+                
+                if (!puedeCredito && !puedeDebito)
+                {
+                    <div class="p-6 text-center text-sm text-gray-500">
+                        <p>No hay saldo disponible ni deuda para generar notas.</p>
+                    </div>
+                }
+                else
+                {
+                    <form asp-action="GenerarNotaCuentaCorriente" method="post" class="p-6">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="clienteId" value="@Model.Id" />
+                        
+                        <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6 items-start">
+                            <div class="sm:col-span-2">
+                                <label class="block text-sm font-medium leading-6 text-gray-900">Tipo de nota</label>
+                                <select id="tipoNotaSelect" name="tipoNota" required class="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                    <option value="">Seleccione...</option>
+                                    <option value="CREDITO">Nota de crédito</option>
+                                    @if (puedeDebito)
+                                    {
+                                        <option value="DEBITO" data-max="@maxDebito">Nota de débito</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="DEBITO" data-max="@maxDebito" disabled>Nota de débito</option>
+                                    }
+                                </select>
+                            </div>
+                            
+                            <div class="sm:col-span-2">
+                                <label class="block text-sm font-medium leading-6 text-gray-900">Monto</label>
+                                <div class="relative mt-2 rounded-md shadow-sm">
+                                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                        <span class="text-gray-500 sm:text-sm">$</span>
+                                    </div>
+                                    <input type="number" step="0.01" min="0.01" name="monto" id="notaMontoInput" required class="block w-full rounded-md border-0 py-1.5 pl-7 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500" id="notaMaxHelp"></p>
+                            </div>
+                            
+                            <div class="sm:col-span-2">
+                                <label class="block text-sm font-medium leading-6 text-gray-900">Descripción <span class="text-gray-400 font-normal">(Opcional)</span></label>
+                                <input type="text" name="descripcion" placeholder="Motivo de la nota" class="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                            </div>
+                        </div>
+
+                        <div class="mt-6 flex justify-end pt-4 border-t border-gray-100">
+                            <button type="submit" id="notaSubmitBtn" class="inline-flex justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                Generar nota
+                            </button>
+                        </div>
+                    </form>
+                }
+            }
+        </div>
+    </div>
 </div>
 
 @section Scripts {
     <script>
-        (function () {
+        document.addEventListener('DOMContentLoaded', function () {
             const select = document.getElementById('tipoNotaSelect');
             const montoInput = document.getElementById('notaMontoInput');
             const help = document.getElementById('notaMaxHelp');
@@ -208,14 +280,17 @@
                     montoInput.removeAttribute('max');
                     help.textContent = '';
                     submitBtn.textContent = 'Generar nota';
+                    submitBtn.disabled = true;
                     return;
                 }
+
+                submitBtn.disabled = false;
 
                 if (option.value === 'DEBITO') {
                     const max = option.getAttribute('data-max');
                     if (max && parseFloat(max) > 0) {
                         montoInput.setAttribute('max', max);
-                        help.textContent = 'Maximo: $ ' + Number(max).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        help.textContent = 'Máximo: $ ' + Number(max).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     } else {
                         montoInput.removeAttribute('max');
                         help.textContent = '';
@@ -225,15 +300,11 @@
                     help.textContent = '';
                 }
 
-                submitBtn.textContent = option.value === 'CREDITO' ? 'Generar nota de credito' : 'Generar nota de debito';
+                submitBtn.textContent = option.value === 'CREDITO' ? 'Generar nota de crédito' : 'Generar nota de débito';
             }
 
             select.addEventListener('change', actualizarNotaUI);
             actualizarNotaUI();
-        })();
+        });
     </script>
 }
-
-
-
-
