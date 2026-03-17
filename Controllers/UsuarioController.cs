@@ -18,6 +18,9 @@ namespace mi_ferreteria.Controllers
         private readonly ILogger<UsuarioController> _logger;
         private readonly IAuditoriaRepository _auditoriaRepository;
         private readonly IPermisoRepository _permisoRepository;
+        private const string RolAdministradorNombre = "ADMINISTRADOR";
+        private const string RolVendedorNombre = "VENDEDOR";
+        private const string RolStockNombre = "STOCK";
 
         public UsuarioController(IUsuarioRepository usuarioRepository, IRolRepository rolRepository, ILogger<UsuarioController> logger, IAuditoriaRepository auditoriaRepository, IPermisoRepository permisoRepository)
         {
@@ -113,6 +116,10 @@ namespace mi_ferreteria.Controllers
                     }
 
                     var rolesSeleccionados = _rolRepository.GetAll().Where(r => model.RolesIds.Contains(r.Id)).ToList();
+                    if (!RolesCompatibles(rolesSeleccionados))
+                    {
+                        return View(model);
+                    }
                     var usuario = new Usuario
                     {
                         Nombre = model.Nombre,
@@ -189,6 +196,8 @@ namespace mi_ferreteria.Controllers
             try
             {
                 model.RolesDisponibles = _rolRepository.GetAll();
+                model.RolesIds ??= new List<int>();
+                model.PermisosIds ??= new List<int>();
                 model.TodosLosPermisos = _permisoRepository.GetAll();
                 var permisosHeredados = _permisoRepository.GetByRolIds(model.RolesIds).Select(p => p.Nombre).ToList();
                 model.PermisosHeredados = permisosHeredados;
@@ -222,6 +231,10 @@ namespace mi_ferreteria.Controllers
                         return View(model);
                     }
                     var rolesSeleccionados = _rolRepository.GetAll().Where(r => model.RolesIds.Contains(r.Id)).ToList();
+                    if (!RolesCompatibles(rolesSeleccionados))
+                    {
+                        return View(model);
+                    }
                     var usuario = new Usuario
                     {
                         Id = model.Id,
@@ -364,6 +377,30 @@ namespace mi_ferreteria.Controllers
         {
             if (roles == null || !roles.Any()) return "Sin roles";
             return string.Join(", ", roles.Select(r => r.Nombre));
+        }
+
+        private bool RolesCompatibles(IEnumerable<Rol> rolesSeleccionados)
+        {
+            if (rolesSeleccionados == null) return true;
+            var rolesLista = rolesSeleccionados.ToList();
+            if (!rolesLista.Any()) return true;
+            var admin = rolesLista.Any(r => NombreRolCoincide(r?.Nombre, RolAdministradorNombre));
+            if (!admin) return true;
+            var conflictivo = rolesLista.Any(r =>
+                NombreRolCoincide(r?.Nombre, RolVendedorNombre) ||
+                NombreRolCoincide(r?.Nombre, RolStockNombre));
+            if (!conflictivo) return true;
+            ModelState.AddModelError("RolesIds", "Administrador abarca todas las funciones, por eso no se puede combinar con Vendedor ni Stock.");
+            return false;
+        }
+
+        private static bool NombreRolCoincide(string? nombreRol, string esperado)
+        {
+            if (string.IsNullOrWhiteSpace(nombreRol)) return false;
+            return string.Equals(
+                nombreRol.Trim(),
+                esperado,
+                System.StringComparison.OrdinalIgnoreCase);
         }
     }
 }

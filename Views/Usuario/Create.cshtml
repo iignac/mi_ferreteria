@@ -11,6 +11,54 @@
     </div>
 </div>
 
+<style>
+    .role-card {
+        position: relative;
+        transition: border-color .2s ease, box-shadow .25s ease, background .25s ease, transform .25s ease;
+        overflow: hidden;
+    }
+
+    .role-card::after {
+        content: '';
+        position: absolute;
+        inset: -6px;
+        border-radius: 1rem;
+        background: radial-gradient(circle at top, rgba(129, 140, 248, .25), transparent 55%);
+        opacity: 0;
+        transition: opacity .3s ease;
+        pointer-events: none;
+    }
+
+    .role-card > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .role-card:has(input:checked) {
+        background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+        border-color: #4f46e5;
+        box-shadow: 0 20px 25px -15px rgba(79, 70, 229, .55);
+        transform: translateY(-2px);
+    }
+
+    .role-card:has(input:checked)::after {
+        opacity: 1;
+    }
+
+    .role-card:focus-within {
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, .3), 0 18px 20px -15px rgba(79, 70, 229, .35);
+    }
+
+    .role-card.role-card--disabled {
+        opacity: .55;
+        cursor: not-allowed;
+    }
+
+    .role-card.role-card--disabled:after {
+        opacity: 0;
+    }
+</style>
+
 <div class="bg-white shadow sm:rounded-lg mb-8">
     <div class="px-4 py-5 sm:p-6">
         <div class="text-red-600 mb-4 text-sm font-medium" asp-validation-summary="ModelOnly"></div>
@@ -65,13 +113,14 @@
             </div>
 
             <div class="border-t border-gray-200 pt-6">
-                <fieldset>
+                <fieldset data-role-selector="true">
                     <legend class="text-sm font-semibold leading-6 text-gray-900">Seleccione rol</legend>
+                    <p class="mt-1 text-sm text-gray-500">Si eliges Administrador, no se podrÃ¡n combinar los roles Vendedor ni Stock.</p>
                     <div class="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 lg:grid-cols-3 sm:gap-x-4">
                         @foreach (var rol in Model.RolesDisponibles)
                         {
-                            <label class="relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm focus:outline-none border-gray-300 hover:border-indigo-400 transition-colors [&:has(:checked)]:border-indigo-600 [&:has(:checked)]:ring-1 [&:has(:checked)]:ring-indigo-600 [&:has(:checked)]:bg-indigo-50/50">
-                                <input type="checkbox" name="RolesIds" value="@rol.Id" class="sr-only peer" @(Model.RolesIds != null && Model.RolesIds.Contains(rol.Id) ? "checked" : "")>
+                            <label class="role-card relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm focus:outline-none border-gray-300 hover:border-indigo-400 transition-colors [&:has(:checked)]:border-indigo-600 [&:has(:checked)]:ring-1 [&:has(:checked)]:ring-indigo-600 [&:has(:checked)]:bg-indigo-50/50">
+                                <input type="checkbox" name="RolesIds" value="@rol.Id" data-role-name="@rol.Nombre" class="sr-only peer" @(Model.RolesIds != null && Model.RolesIds.Contains(rol.Id) ? "checked" : "")>
                                 <span class="flex flex-1">
                                     <span class="flex flex-col">
                                         <span class="block text-sm font-medium text-gray-900">@rol.Nombre</span>
@@ -81,6 +130,7 @@
                             </label>
                         }
                     </div>
+                    <span asp-validation-for="RolesIds" class="block text-sm text-red-600 mt-2"></span>
                 </fieldset>
             </div>
 
@@ -154,6 +204,70 @@
 </div>
 
 @section Scripts {
+    <script>
+        (function () {
+            const roleSelector = document.querySelector('[data-role-selector]');
+            if (!roleSelector) return;
+            const checkboxes = Array.from(roleSelector.querySelectorAll('input[name="RolesIds"]'));
+            if (!checkboxes.length) return;
+
+            const normalizeKey = (text) => (text || '')
+                .toString()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, '');
+
+            const getKey = (checkbox) => {
+                if (checkbox.dataset.roleKeyNormalized) return checkbox.dataset.roleKeyNormalized;
+                const label = checkbox.closest('label');
+                const raw = checkbox.getAttribute('data-role-name') ?? (label ? label.innerText : '');
+                const key = normalizeKey(raw);
+                checkbox.dataset.roleKeyNormalized = key;
+                return key;
+            };
+
+            const buildMatcher = (keys) => checkboxes.filter(cb => {
+                const key = getKey(cb);
+                return keys.some(target => key === target || key.includes(target));
+            });
+
+            const adminChecks = buildMatcher(['administrador']);
+            const vendedorChecks = buildMatcher(['vendedor']);
+            const stockChecks = buildMatcher(['stock']);
+            const disableReason = 'Administrador abarca todas las funciones, no se combina con Vendedor ni Stock.';
+
+            const toggleDisabled = (targets, disabled) => {
+                targets.forEach(cb => {
+                    const label = cb.closest('label');
+                    if (disabled) {
+                        cb.checked = false;
+                        cb.setAttribute('disabled', 'disabled');
+                        if (label) {
+                            label.classList.add('role-card--disabled');
+                            label.setAttribute('aria-disabled', 'true');
+                            label.setAttribute('title', disableReason);
+                        }
+                    } else {
+                        cb.removeAttribute('disabled');
+                        if (label) {
+                            label.classList.remove('role-card--disabled');
+                            label.removeAttribute('aria-disabled');
+                            label.removeAttribute('title');
+                        }
+                    }
+                });
+            };
+
+            const applyRestrictions = () => {
+                const adminActive = adminChecks.some(cb => cb.checked);
+                toggleDisabled([...vendedorChecks, ...stockChecks], adminActive);
+            };
+
+            checkboxes.forEach(cb => cb.addEventListener('change', applyRestrictions));
+            applyRestrictions();
+        })();
+    </script>
     <script>
         (function(){
             let isDirty = false;
