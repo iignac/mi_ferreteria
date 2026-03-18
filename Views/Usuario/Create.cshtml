@@ -171,7 +171,7 @@ else
             </div>
 
             <div class="border-t border-gray-200 pt-6">
-                <h3 class="text-sm font-semibold leading-6 text-gray-900">Seleccione permisos directos (Excepcionales)</h3>
+                <h3 class="text-sm font-semibold leading-6 text-gray-900">Seleccione permisos adicionales</h3>
                 <p class="mt-1 text-sm text-gray-500 mb-4">Los permisos marcados y deshabilitados son heredados de los roles seleccionados. Utilice los interruptores activos para sumar permisos adicionales.</p>
 
                 @if (Model.TodosLosPermisos != null && Model.TodosLosPermisos.Any())
@@ -320,6 +320,27 @@ else
                 return perms;
             };
 
+            const updateCardCursor = (card, disabled) => {
+                if (!card) return;
+                card.classList.toggle('cursor-not-allowed', disabled);
+                card.classList.toggle('cursor-pointer', !disabled);
+            };
+
+            const setupPermissionCardClicks = (permissionInputs) => {
+                permissionInputs.forEach(input => {
+                    const card = input.closest('[data-perm-item]');
+                    if (!card || card.dataset.permClickBound === 'true') return;
+                    card.dataset.permClickBound = 'true';
+                    updateCardCursor(card, input.disabled);
+                    card.addEventListener('click', (event) => {
+                        if (event.target.closest('input[type="checkbox"]')) return;
+                        if (input.disabled) return;
+                        input.checked = !input.checked;
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                });
+            };
+
             const buildPermissionsSync = () => {
                 const permissionInputs = Array.from(document.querySelectorAll('[data-perm-checkbox]'));
                 if (!permissionInputs.length) return null;
@@ -330,7 +351,7 @@ else
                     }
                     const wrapper = input.closest('[data-perm-item]');
                     const badge = wrapper ? wrapper.querySelector('[data-perm-badge]') : null;
-                    return [input.dataset.permId, { input, badge }];
+                    return [input.dataset.permId, { input, badge, wrapper }];
                 }));
 
                 permissionInputs.forEach(input => {
@@ -339,6 +360,8 @@ else
                         input.dataset.manualChecked = input.checked ? 'true' : 'false';
                     });
                 });
+
+                setupPermissionCardClicks(permissionInputs);
 
                 return () => {
                     const inherited = new Map();
@@ -349,7 +372,7 @@ else
                         });
                     });
 
-                    permissionMap.forEach(({ input, badge }, permId) => {
+                    permissionMap.forEach(({ input, badge, wrapper }, permId) => {
                         const shouldInherit = inherited.has(permId);
                         const wasInherited = input.dataset.inherited === 'true';
                         if (shouldInherit) {
@@ -361,12 +384,14 @@ else
                             input.disabled = true;
                             input.classList.remove('cursor-pointer');
                             input.classList.add('cursor-not-allowed');
+                            updateCardCursor(wrapper, true);
                             if (badge) badge.classList.remove('hidden');
                         } else {
                             input.dataset.inherited = 'false';
                             input.disabled = false;
                             input.classList.add('cursor-pointer');
                             input.classList.remove('cursor-not-allowed');
+                            updateCardCursor(wrapper, false);
                             if (wasInherited) {
                                 input.checked = input.dataset.manualChecked === 'true';
                             }
@@ -508,7 +533,28 @@ else
                     return perms;
                 };
 
-                const buildPermissionsSync = () => {
+                const updateCardCursor = (card, disabled) => {
+                if (!card) return;
+                card.classList.toggle('cursor-not-allowed', disabled);
+                card.classList.toggle('cursor-pointer', !disabled);
+            };
+
+            const setupPermissionCardClicks = (permissionInputs) => {
+                permissionInputs.forEach(input => {
+                    const card = input.closest('[data-perm-item]');
+                    if (!card || card.dataset.permClickBound === 'true') return;
+                    card.dataset.permClickBound = 'true';
+                    updateCardCursor(card, input.disabled);
+                    card.addEventListener('click', (event) => {
+                        if (event.target.closest('input[type="checkbox"]')) return;
+                        if (input.disabled) return;
+                        input.checked = !input.checked;
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                });
+            };
+
+            const buildPermissionsSync = () => {
                     const permissionInputs = Array.from(document.querySelectorAll('[data-perm-checkbox]'));
                     if (!permissionInputs.length) return null;
 
@@ -518,7 +564,7 @@ else
                         }
                         const wrapper = input.closest('[data-perm-item]');
                         const badge = wrapper ? wrapper.querySelector('[data-perm-badge]') : null;
-                        return [input.dataset.permId, { input, badge }];
+                        return [input.dataset.permId, { input, badge, wrapper }];
                     }));
 
                     permissionInputs.forEach(input => {
@@ -527,6 +573,8 @@ else
                             input.dataset.manualChecked = input.checked ? 'true' : 'false';
                         });
                     });
+
+                    setupPermissionCardClicks(permissionInputs);
 
                     return () => {
                         const inherited = new Map();
@@ -537,7 +585,7 @@ else
                             });
                         });
 
-                        permissionMap.forEach(({ input, badge }, permId) => {
+                        permissionMap.forEach(({ input, badge, wrapper }, permId) => {
                             const shouldInherit = inherited.has(permId);
                             const wasInherited = input.dataset.inherited === 'true';
                             if (shouldInherit) {
@@ -549,12 +597,14 @@ else
                                 input.disabled = true;
                                 input.classList.remove('cursor-pointer');
                                 input.classList.add('cursor-not-allowed');
+                                updateCardCursor(wrapper, true);
                                 if (badge) badge.classList.remove('hidden');
                             } else {
                                 input.dataset.inherited = 'false';
                                 input.disabled = false;
                                 input.classList.add('cursor-pointer');
                                 input.classList.remove('cursor-not-allowed');
+                                updateCardCursor(wrapper, false);
                                 if (wasInherited) {
                                     input.checked = input.dataset.manualChecked === 'true';
                                 }
