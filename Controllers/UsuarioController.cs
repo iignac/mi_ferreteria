@@ -51,10 +51,13 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
+                var rolesDisponibles = _rolRepository.GetAll();
+                var todosLosPermisos = _permisoRepository.GetAll();
                 var model = new UsuarioFormViewModel
                 {
-                    RolesDisponibles = _rolRepository.GetAll(),
-                    TodosLosPermisos = _permisoRepository.GetAll()
+                    RolesDisponibles = rolesDisponibles,
+                    TodosLosPermisos = todosLosPermisos,
+                    PermisosPorRol = _permisoRepository.GetPermisosIdsPorRol(rolesDisponibles.Select(r => r.Id).ToList())
                 };
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                 {
@@ -76,10 +79,13 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
-                model.RolesDisponibles = _rolRepository.GetAll();
+                var rolesDisponibles = _rolRepository.GetAll();
+                model.RolesDisponibles = rolesDisponibles;
                 model.RolesIds ??= new List<int>();
                 model.PermisosIds ??= new List<int>();
-                model.TodosLosPermisos = _permisoRepository.GetAll();
+                var todosLosPermisos = _permisoRepository.GetAll();
+                model.TodosLosPermisos = todosLosPermisos;
+                model.PermisosPorRol = _permisoRepository.GetPermisosIdsPorRol(rolesDisponibles.Select(r => r.Id).ToList());
                 var permisosHeredados = _permisoRepository.GetByRolIds(model.RolesIds)
                     .Select(p => p.Nombre)
                     .ToList();
@@ -119,7 +125,7 @@ namespace mi_ferreteria.Controllers
                         return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? PartialView(model) : View(model);
                     }
 
-                    var rolesSeleccionados = _rolRepository.GetAll().Where(r => model.RolesIds.Contains(r.Id)).ToList();
+                    var rolesSeleccionados = rolesDisponibles.Where(r => model.RolesIds.Contains(r.Id)).ToList();
                     if (!RolesCompatibles(rolesSeleccionados))
                     {
                         return View(model);
@@ -174,6 +180,7 @@ namespace mi_ferreteria.Controllers
                     .Select(p => p.Id)
                     .ToList();
 
+                var rolesDisponibles = _rolRepository.GetAll();
                 var model = new UsuarioFormViewModel
                 {
                     Id = usuario.Id,
@@ -181,10 +188,11 @@ namespace mi_ferreteria.Controllers
                     Email = usuario.Email,
                     Activo = usuario.Activo,
                     RolesIds = rolesIds,
-                    RolesDisponibles = _rolRepository.GetAll(),
+                    RolesDisponibles = rolesDisponibles,
                     PermisosHeredados = permisosHeredados,
                     PermisosIds = permisosDirectosIds,
                     TodosLosPermisos = todosLosPermisosDb,
+                    PermisosPorRol = _permisoRepository.GetPermisosIdsPorRol(rolesDisponibles.Select(r => r.Id).ToList()),
                     OriginalHash = mi_ferreteria.Security.ConcurrencyToken.ComputeUsuarioHash(usuario)
                 };
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
@@ -207,10 +215,13 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
-                model.RolesDisponibles = _rolRepository.GetAll();
+                var rolesDisponibles = _rolRepository.GetAll();
+                model.RolesDisponibles = rolesDisponibles;
                 model.RolesIds ??= new List<int>();
                 model.PermisosIds ??= new List<int>();
-                model.TodosLosPermisos = _permisoRepository.GetAll();
+                var todosLosPermisos = _permisoRepository.GetAll();
+                model.TodosLosPermisos = todosLosPermisos;
+                model.PermisosPorRol = _permisoRepository.GetPermisosIdsPorRol(rolesDisponibles.Select(r => r.Id).ToList());
                 var permisosHeredados = _permisoRepository.GetByRolIds(model.RolesIds).Select(p => p.Nombre).ToList();
                 model.PermisosHeredados = permisosHeredados;
                 
@@ -242,7 +253,7 @@ namespace mi_ferreteria.Controllers
                         ModelState.AddModelError("Email", "El email ya esta registrado por otro usuario");
                         return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? PartialView(model) : View(model);
                     }
-                    var rolesSeleccionados = _rolRepository.GetAll().Where(r => model.RolesIds.Contains(r.Id)).ToList();
+                    var rolesSeleccionados = rolesDisponibles.Where(r => model.RolesIds.Contains(r.Id)).ToList();
                     if (!RolesCompatibles(rolesSeleccionados))
                     {
                         return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? PartialView(model) : View(model);

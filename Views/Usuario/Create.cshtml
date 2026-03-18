@@ -1,4 +1,4 @@
-@model mi_ferreteria.ViewModels.UsuarioFormViewModel
+﻿@model mi_ferreteria.ViewModels.UsuarioFormViewModel
 @{
     if (Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
     {
@@ -135,8 +135,12 @@ else
                     <div class="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 lg:grid-cols-3 sm:gap-x-4">
                         @foreach (var rol in Model.RolesDisponibles)
                         {
+                            var permisosAsignadosAlRol = Model.PermisosPorRol != null && Model.PermisosPorRol.TryGetValue(rol.Id, out var listaRol) && listaRol != null
+                                ? listaRol
+                                : new List<int>();
+                            var permisosRolCsv = permisosAsignadosAlRol.Count > 0 ? string.Join(",", permisosAsignadosAlRol) : string.Empty;
                             <label class="role-card relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm focus:outline-none border-gray-300 hover:border-indigo-400 transition-colors [&:has(:checked)]:border-indigo-600 [&:has(:checked)]:ring-1 [&:has(:checked)]:ring-indigo-600 [&:has(:checked)]:bg-indigo-50/50">
-                                <input type="checkbox" name="RolesIds" value="@rol.Id" data-role-name="@rol.Nombre" class="sr-only peer" @(Model.RolesIds != null && Model.RolesIds.Contains(rol.Id) ? "checked" : "")>
+                                <input type="checkbox" name="RolesIds" value="@rol.Id" data-role-name="@rol.Nombre" data-role-id="@rol.Id" data-role-permisos="@permisosRolCsv" class="sr-only peer" @(Model.RolesIds != null && Model.RolesIds.Contains(rol.Id) ? "checked" : "")>
                                 <span class="flex flex-1">
                                     <span class="flex flex-col">
                                         <span class="block text-sm font-medium text-gray-900">@rol.Nombre</span>
@@ -179,21 +183,25 @@ else
                                             var isHeredado = Model.PermisosHeredados != null && Model.PermisosHeredados.Contains(permiso.Nombre);
                                             var isDirecto = Model.PermisosIds != null && Model.PermisosIds.Contains(permiso.Id);
 
-                                            <div class="relative flex items-start py-3 border rounded-lg px-4 bg-white shadow-sm hover:border-gray-400 transition-colors">
+                                            <div class="relative flex items-start py-3 border rounded-lg px-4 bg-white shadow-sm hover:border-gray-400 transition-colors" data-perm-item>
                                                 <div class="min-w-0 flex-1 text-sm leading-6">
                                                     <label for="permiso_create_@permiso.Id" class="font-medium text-gray-900 select-none">@permiso.Nombre.Split('.').LastOrDefault()</label>
                                                     <p class="text-gray-500 text-xs">@permiso.Descripcion</p>
-                                                    @if (isHeredado) { <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10 mt-1">Heredado</span> }
+                                                    <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10 mt-1 @(isHeredado ? "" : "hidden")" data-perm-badge>Heredado</span>
                                                 </div>
                                                 <div class="ml-3 flex h-6 items-center flex-shrink-0">
-                                                    @if (isHeredado)
-                                                    {
-                                                        <input id="permiso_create_@permiso.Id" type="checkbox" checked disabled class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 disabled:opacity-50">
-                                                    }
-                                                    else
-                                                    {
-                                                        <input id="permiso_create_@permiso.Id" name="PermisosIds" value="@permiso.Id" type="checkbox" @(isDirecto ? "checked" : "") class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer">
-                                                    }
+                                                    <input id="permiso_create_@permiso.Id"
+                                                           name="PermisosIds"
+                                                           value="@permiso.Id"
+                                                           type="checkbox"
+                                                           @(isDirecto || isHeredado ? "checked" : "")
+                                                           @(isHeredado ? "disabled" : "")
+                                                           class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 disabled:opacity-50 @(isHeredado ? "cursor-not-allowed" : "cursor-pointer")"
+                                                           data-perm-checkbox="true"
+                                                           data-perm-id="@permiso.Id"
+                                                           data-perm-nombre="@permiso.Nombre"
+                                                           data-inherited="@(isHeredado ? "true" : "false")"
+                                                           data-manual-checked="@(isDirecto ? "true" : "false")" />
                                                 </div>
                                             </div>
                                         }
@@ -228,7 +236,7 @@ else
 
 @if (Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
 {
-    <script>
+        <script>
         (function () {
             const roleSelector = document.querySelector('[data-role-selector]');
             if (!roleSelector) return;
@@ -238,7 +246,7 @@ else
             const normalizeKey = (text) => (text || '')
                 .toString()
                 .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[̀-ͯ]/g, '')
                 .toLowerCase()
                 .replace(/[^a-z0-9]/g, '');
 
@@ -283,13 +291,91 @@ else
                 });
             };
 
+            const getRolePermissionIds = (checkbox) => {
+                if (checkbox._rolePermissionsCache) {
+                    return checkbox._rolePermissionsCache;
+                }
+                const raw = checkbox.dataset.rolePermisos || '';
+                const perms = raw
+                    .split(',')
+                    .map(id => id.trim())
+                    .filter(Boolean);
+                checkbox._rolePermissionsCache = perms;
+                return perms;
+            };
+
+            const buildPermissionsSync = () => {
+                const permissionInputs = Array.from(document.querySelectorAll('[data-perm-checkbox]'));
+                if (!permissionInputs.length) return null;
+
+                const permissionMap = new Map(permissionInputs.map(input => {
+                    if (!('manualChecked' in input.dataset)) {
+                        input.dataset.manualChecked = input.checked ? 'true' : 'false';
+                    }
+                    const wrapper = input.closest('[data-perm-item]');
+                    const badge = wrapper ? wrapper.querySelector('[data-perm-badge]') : null;
+                    return [input.dataset.permId, { input, badge }];
+                }));
+
+                permissionInputs.forEach(input => {
+                    input.addEventListener('change', () => {
+                        if (input.dataset.inherited === 'true') return;
+                        input.dataset.manualChecked = input.checked ? 'true' : 'false';
+                    });
+                });
+
+                return () => {
+                    const inherited = new Map();
+                    checkboxes.filter(cb => cb.checked).forEach(cb => {
+                        getRolePermissionIds(cb).forEach(permId => {
+                            if (!permId) return;
+                            inherited.set(permId, (inherited.get(permId) || 0) + 1);
+                        });
+                    });
+
+                    permissionMap.forEach(({ input, badge }, permId) => {
+                        const shouldInherit = inherited.has(permId);
+                        const wasInherited = input.dataset.inherited === 'true';
+                        if (shouldInherit) {
+                            if (!wasInherited) {
+                                input.dataset.manualChecked = input.checked ? 'true' : 'false';
+                            }
+                            input.dataset.inherited = 'true';
+                            input.checked = true;
+                            input.disabled = true;
+                            input.classList.remove('cursor-pointer');
+                            input.classList.add('cursor-not-allowed');
+                            if (badge) badge.classList.remove('hidden');
+                        } else {
+                            input.dataset.inherited = 'false';
+                            input.disabled = false;
+                            input.classList.add('cursor-pointer');
+                            input.classList.remove('cursor-not-allowed');
+                            if (wasInherited) {
+                                input.checked = input.dataset.manualChecked === 'true';
+                            }
+                            if (badge) badge.classList.add('hidden');
+                        }
+                    });
+                };
+            };
+
             const applyRestrictions = () => {
                 const adminActive = adminChecks.some(cb => cb.checked);
                 toggleDisabled([...vendedorChecks, ...stockChecks], adminActive);
             };
 
-            checkboxes.forEach(cb => cb.addEventListener('change', applyRestrictions));
-            applyRestrictions();
+            const syncPermissions = buildPermissionsSync();
+
+            const handleRoleChange = () => {
+                applyRestrictions();
+                if (typeof syncPermissions === 'function') {
+                    syncPermissions();
+                }
+            };
+
+            checkboxes.forEach(cb => cb.addEventListener('change', handleRoleChange));
+            handleRoleChange();
         })();
     </script>
     <script>
@@ -346,7 +432,7 @@ else
 else
 {
     @section Scripts {
-        <script>
+                <script>
             // Paste the scripts here for non-AJAX context
             (function () {
                 const roleSelector = document.querySelector('[data-role-selector]');
@@ -354,7 +440,7 @@ else
                 const checkboxes = Array.from(roleSelector.querySelectorAll('input[name="RolesIds"]'));
                 if (!checkboxes.length) return;
 
-                const normalizeKey = (text) => (text || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                const normalizeKey = (text) => (text || '').toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
                 const getKey = (checkbox) => {
                     if (checkbox.dataset.roleKeyNormalized) return checkbox.dataset.roleKeyNormalized;
                     const label = checkbox.closest('label');
@@ -396,13 +482,88 @@ else
                     });
                 };
 
+                const getRolePermissionIds = (checkbox) => {
+                    if (checkbox._rolePermissionsCache) {
+                        return checkbox._rolePermissionsCache;
+                    }
+                    const raw = checkbox.dataset.rolePermisos || '';
+                    const perms = raw.split(',').map(id => id.trim()).filter(Boolean);
+                    checkbox._rolePermissionsCache = perms;
+                    return perms;
+                };
+
+                const buildPermissionsSync = () => {
+                    const permissionInputs = Array.from(document.querySelectorAll('[data-perm-checkbox]'));
+                    if (!permissionInputs.length) return null;
+
+                    const permissionMap = new Map(permissionInputs.map(input => {
+                        if (!('manualChecked' in input.dataset)) {
+                            input.dataset.manualChecked = input.checked ? 'true' : 'false';
+                        }
+                        const wrapper = input.closest('[data-perm-item]');
+                        const badge = wrapper ? wrapper.querySelector('[data-perm-badge]') : null;
+                        return [input.dataset.permId, { input, badge }];
+                    }));
+
+                    permissionInputs.forEach(input => {
+                        input.addEventListener('change', () => {
+                            if (input.dataset.inherited === 'true') return;
+                            input.dataset.manualChecked = input.checked ? 'true' : 'false';
+                        });
+                    });
+
+                    return () => {
+                        const inherited = new Map();
+                        checkboxes.filter(cb => cb.checked).forEach(cb => {
+                            getRolePermissionIds(cb).forEach(permId => {
+                                if (!permId) return;
+                                inherited.set(permId, (inherited.get(permId) || 0) + 1);
+                            });
+                        });
+
+                        permissionMap.forEach(({ input, badge }, permId) => {
+                            const shouldInherit = inherited.has(permId);
+                            const wasInherited = input.dataset.inherited === 'true';
+                            if (shouldInherit) {
+                                if (!wasInherited) {
+                                    input.dataset.manualChecked = input.checked ? 'true' : 'false';
+                                }
+                                input.dataset.inherited = 'true';
+                                input.checked = true;
+                                input.disabled = true;
+                                input.classList.remove('cursor-pointer');
+                                input.classList.add('cursor-not-allowed');
+                                if (badge) badge.classList.remove('hidden');
+                            } else {
+                                input.dataset.inherited = 'false';
+                                input.disabled = false;
+                                input.classList.add('cursor-pointer');
+                                input.classList.remove('cursor-not-allowed');
+                                if (wasInherited) {
+                                    input.checked = input.dataset.manualChecked === 'true';
+                                }
+                                if (badge) badge.classList.add('hidden');
+                            }
+                        });
+                    };
+                };
+
                 const applyRestrictions = () => {
                     const adminActive = adminChecks.some(cb => cb.checked);
                     toggleDisabled([...vendedorChecks, ...stockChecks], adminActive);
                 };
 
-                checkboxes.forEach(cb => cb.addEventListener('change', applyRestrictions));
-                applyRestrictions();
+                const syncPermissions = buildPermissionsSync();
+
+                const handleRoleChange = () => {
+                    applyRestrictions();
+                    if (typeof syncPermissions === 'function') {
+                        syncPermissions();
+                    }
+                };
+
+                checkboxes.forEach(cb => cb.addEventListener('change', handleRoleChange));
+                handleRoleChange();
             })();
         </script>
         <script>

@@ -6,6 +6,7 @@ namespace mi_ferreteria.Data
     public interface IPermisoRepository
     {
         List<Permiso> GetByRolIds(List<int> rolIds);
+        Dictionary<int, List<int>> GetPermisosIdsPorRol(List<int> rolIds = null);
         List<Permiso> GetAll();
         List<Permiso> GetPermisosConsolidados(int usuarioId);
         List<Permiso> GetByUsuarioIdDirecto(int usuarioId);

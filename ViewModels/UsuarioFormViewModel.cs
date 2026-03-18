@@ -27,6 +27,7 @@ namespace mi_ferreteria.ViewModels
         public List<int> PermisosIds { get; set; } = new List<int>();
         public List<Permiso> TodosLosPermisos { get; set; } = new List<Permiso>();
         public List<string> PermisosHeredados { get; set; } = new List<string>();
+        public Dictionary<int, List<int>> PermisosPorRol { get; set; } = new Dictionary<int, List<int>>();
         // Concurrency token (optimistic lock): hash de los datos cargados en GET
         public string? OriginalHash { get; set; }
     }
