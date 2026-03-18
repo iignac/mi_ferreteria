@@ -66,6 +66,7 @@ namespace mi_ferreteria.Controllers
                 CuentaCorrienteHabilitada = false,
                 LimiteCredito = 0
             };
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(c);
             return View(c);
         }
 
@@ -149,6 +150,7 @@ namespace mi_ferreteria.Controllers
 
                 if (!ModelState.IsValid)
                 {
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(cliente);
                     return View(cliente);
                 }
 
@@ -187,6 +189,7 @@ namespace mi_ferreteria.Controllers
                     }
                 }
 
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return Json(new { success = true });
                 return RedirectToAction("Index");
             }
             catch (System.Exception ex)
@@ -194,7 +197,7 @@ namespace mi_ferreteria.Controllers
                 _logger.LogError(ex, "Error al crear cliente");
                 ModelState.AddModelError(string.Empty, "Ocurrió un error al crear el cliente.");
                 var direccion = BuildDireccion(DireccionCalle, DireccionNumero, DireccionLocalidad);
-                return View(new Cliente
+                var modelEx = new Cliente
                 {
                     Nombre = Nombre ?? string.Empty,
                     Apellido = Apellido,
@@ -207,7 +210,9 @@ namespace mi_ferreteria.Controllers
                     CuentaCorrienteHabilitada = CuentaCorrienteHabilitada,
                     LimiteCredito = LimiteCredito,
                     Activo = Activo
-                });
+                };
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(modelEx);
+                return View(modelEx);
             }
         }
 
@@ -234,6 +239,7 @@ namespace mi_ferreteria.Controllers
         {
             var c = _repo.GetById(id);
             if (c == null) return NotFound();
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(c);
             return View(c);
         }
 
@@ -622,6 +628,7 @@ namespace mi_ferreteria.Controllers
                     RegistrarAuditoria(userId, usuarioNombre, nameof(Edit),
                         $"Actualizacion cliente #{cliente.Id}: nombre '{anterior.Nombre}' -> '{cliente.Nombre}', tipo '{anterior.TipoCliente}' -> '{cliente.TipoCliente}', activo {anterior.Activo} -> {cliente.Activo}, CC {(anterior.CuentaCorrienteHabilitada ? $"SI (limite {anterior.LimiteCredito:N2})" : "NO")} -> {(cliente.CuentaCorrienteHabilitada ? $"SI (limite {cliente.LimiteCredito:N2})" : "NO")}.");
                 }
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return Json(new { success = true });
                 return RedirectToAction("Index");
             }
             catch (System.Exception ex)
@@ -629,7 +636,7 @@ namespace mi_ferreteria.Controllers
                 _logger.LogError(ex, "Error al actualizar cliente {ClienteId}", Id);
                 ModelState.AddModelError(string.Empty, "Ocurrió un error al actualizar el cliente.");
                 var direccion = BuildDireccion(DireccionCalle, DireccionNumero, DireccionLocalidad);
-                return View(new Cliente
+                var modelEx = new Cliente
                 {
                     Id = Id,
                     Nombre = Nombre ?? string.Empty,
@@ -643,7 +650,9 @@ namespace mi_ferreteria.Controllers
                     CuentaCorrienteHabilitada = CuentaCorrienteHabilitada,
                     LimiteCredito = LimiteCredito,
                     Activo = Activo
-                });
+                };
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(modelEx);
+                return View(modelEx);
             }
         }
 

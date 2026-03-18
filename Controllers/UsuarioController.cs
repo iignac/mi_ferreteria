@@ -56,6 +56,10 @@ namespace mi_ferreteria.Controllers
                     RolesDisponibles = _rolRepository.GetAll(),
                     TodosLosPermisos = _permisoRepository.GetAll()
                 };
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return PartialView(model);
+                }
                 return View(model);
             }
             catch (System.Exception ex)
@@ -97,22 +101,22 @@ namespace mi_ferreteria.Controllers
                     if (_usuarioRepository.EmailExists(model.Email))
                     {
                         ModelState.AddModelError("Email", "El email ya esta registrado");
-                        return View(model);
+                        return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? PartialView(model) : View(model);
                     }
                     if (string.IsNullOrWhiteSpace(model.Password))
                     {
                         ModelState.AddModelError("Password", "La contrasena es obligatoria.");
-                        return View(model);
+                        return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? PartialView(model) : View(model);
                     }
                     if (model.Password != model.ConfirmPassword)
                     {
                         ModelState.AddModelError("ConfirmPassword", "Las contrasenas no coinciden.");
-                        return View(model);
+                        return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? PartialView(model) : View(model);
                     }
                     if (!PasswordPolicy.IsStrong(model.Password, out var pwdMsg))
                     {
                         ModelState.AddModelError("Password", pwdMsg);
-                        return View(model);
+                        return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? PartialView(model) : View(model);
                     }
 
                     var rolesSeleccionados = _rolRepository.GetAll().Where(r => model.RolesIds.Contains(r.Id)).ToList();
@@ -138,9 +142,13 @@ namespace mi_ferreteria.Controllers
                         : "Sin permisos directos";
                     RegistrarAuditoria(nameof(Create), $"Alta de usuario #{usuario.Id}: {usuario.Nombre} ({usuario.Email}), Activo={usuario.Activo}, Roles=[{FormatearRoles(rolesSeleccionados)}], PermisosDirectos=[{detallePermisos}]");
                     TempData["Success"] = "Usuario creado correctamente.";
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    {
+                        return Json(new { success = true, redirectUrl = Url.Action("Index") });
+                    }
                     return RedirectToAction("Index");
                 }
-                return View(model);
+                return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? PartialView(model) : View(model);
             }
             catch (System.Exception ex)
             {
@@ -179,6 +187,10 @@ namespace mi_ferreteria.Controllers
                     TodosLosPermisos = todosLosPermisosDb,
                     OriginalHash = mi_ferreteria.Security.ConcurrencyToken.ComputeUsuarioHash(usuario)
                 };
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return PartialView(model);
+                }
                 return View(model);
             }
             catch (System.Exception ex)
@@ -209,12 +221,12 @@ namespace mi_ferreteria.Controllers
                     if (string.IsNullOrWhiteSpace(model.Nombre))
                     {
                         ModelState.AddModelError("Nombre", "El nombre es obligatorio.");
-                        return View(model);
+                        return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? PartialView(model) : View(model);
                     }
                     if (string.IsNullOrWhiteSpace(model.Email))
                     {
                         ModelState.AddModelError("Email", "El email es obligatorio.");
-                        return View(model);
+                        return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? PartialView(model) : View(model);
                     }
                     var dbUsuario = _usuarioRepository.GetAll().FirstOrDefault(u => u.Id == model.Id);
                     if (dbUsuario == null) return NotFound();
@@ -223,17 +235,17 @@ namespace mi_ferreteria.Controllers
                     {
                         Response.StatusCode = 409;
                         ModelState.AddModelError(string.Empty, "El usuario fue modificado por otro proceso. Recarga la pagina.");
-                        return View(model);
+                        return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? PartialView(model) : View(model);
                     }
                     if (_usuarioRepository.EmailExists(model.Email, model.Id))
                     {
                         ModelState.AddModelError("Email", "El email ya esta registrado por otro usuario");
-                        return View(model);
+                        return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? PartialView(model) : View(model);
                     }
                     var rolesSeleccionados = _rolRepository.GetAll().Where(r => model.RolesIds.Contains(r.Id)).ToList();
                     if (!RolesCompatibles(rolesSeleccionados))
                     {
-                        return View(model);
+                        return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? PartialView(model) : View(model);
                     }
                     var usuario = new Usuario
                     {
@@ -249,17 +261,17 @@ namespace mi_ferreteria.Controllers
                         if (string.IsNullOrWhiteSpace(model.Password))
                         {
                             ModelState.AddModelError("Password", "La contrasena no puede ser vacia si desea cambiarla.");
-                            return View(model);
+                            return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? PartialView(model) : View(model);
                         }
                         if (model.Password != model.ConfirmPassword)
                         {
                             ModelState.AddModelError("ConfirmPassword", "Las contrasenas no coinciden.");
-                            return View(model);
+                            return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? PartialView(model) : View(model);
                         }
                         if (!PasswordPolicy.IsStrong(model.Password, out var pwdMsg))
                         {
                             ModelState.AddModelError("Password", pwdMsg);
-                            return View(model);
+                            return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? PartialView(model) : View(model);
                         }
                         newPwd = model.Password;
                     }
@@ -285,9 +297,13 @@ namespace mi_ferreteria.Controllers
                     RegistrarAuditoria(nameof(Edit),
                         $"Actualizacion de usuario #{usuario.Id}: nombre '{dbUsuario.Nombre}' -> '{usuario.Nombre}', email '{dbUsuario.Email}' -> '{usuario.Email}', activo {dbUsuario.Activo} -> {usuario.Activo}, roles [{rolesAntes}] -> [{rolesDespues}], {pwdDetalle}");
                     TempData["Success"] = "Usuario actualizado correctamente.";
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    {
+                        return Json(new { success = true, redirectUrl = Url.Action("Index") });
+                    }
                     return RedirectToAction("Index");
                 }
-                return View(model);
+                return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? PartialView(model) : View(model);
             }
             catch (System.Exception ex)
             {

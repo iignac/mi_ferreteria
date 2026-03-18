@@ -72,6 +72,8 @@ namespace mi_ferreteria.Controllers
         public IActionResult Create()
         {
             ViewBag.Categorias = _repo.GetAll().Where(c => c.Activo);
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return PartialView(new Categoria());
             return View(new Categoria());
         }
 
@@ -97,17 +99,21 @@ namespace mi_ferreteria.Controllers
                 if (!ModelState.IsValid)
                 {
                     var c = new Categoria { Nombre = Nombre ?? string.Empty, IdPadre = IdPadre, Descripcion = Descripcion };
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(c);
                     return View(c);
                 }
                 if (_repo.NombreExists(Nombre))
                 {
                     ModelState.AddModelError("Nombre", "La categoría ya existe");
                     var c = new Categoria { Nombre = Nombre, IdPadre = IdPadre, Descripcion = Descripcion };
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(c);
                     return View(c);
                 }
                 var nueva = new Categoria { Nombre = Nombre!, IdPadre = IdPadre, Descripcion = Descripcion, Activo = true };
                 _repo.Add(nueva);
                 RegistrarAuditoria(nameof(Create), $"Alta de categoria #{nueva.Id}: {nueva.Nombre}");
+                
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return Json(new { success = true });
                 return RedirectToAction("Index");
             }
             catch (System.Exception ex)
@@ -115,6 +121,7 @@ namespace mi_ferreteria.Controllers
                 _logger.LogError(ex, "Error al crear categoría");
                 ModelState.AddModelError(string.Empty, "Error al crear categoría");
                 var c = new Categoria { Nombre = Nombre ?? string.Empty, IdPadre = IdPadre, Descripcion = Descripcion };
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(c);
                 return View(c);
             }
         }
@@ -125,6 +132,7 @@ namespace mi_ferreteria.Controllers
             var c = _repo.GetById(id);
             if (c == null) return NotFound();
             ViewBag.Categorias = _repo.GetAll().Where(x => x.Id != id && x.Activo);
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(c);
             return View(c);
         }
 
@@ -154,11 +162,13 @@ namespace mi_ferreteria.Controllers
                 }
                 if (!ModelState.IsValid)
                 {
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(new Categoria { Id = Id, Nombre = Nombre ?? string.Empty, IdPadre = IdPadre, Descripcion = Descripcion, Activo = Activo });
                     return View(new Categoria { Id = Id, Nombre = Nombre ?? string.Empty, IdPadre = IdPadre, Descripcion = Descripcion, Activo = Activo });
                 }
                 if (_repo.NombreExists(Nombre, Id))
                 {
                     ModelState.AddModelError("Nombre", "La categoría ya existe");
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(new Categoria { Id = Id, Nombre = Nombre, IdPadre = IdPadre, Descripcion = Descripcion, Activo = Activo });
                     return View(new Categoria { Id = Id, Nombre = Nombre, IdPadre = IdPadre, Descripcion = Descripcion, Activo = Activo });
                 }
                 var nueva = new Categoria { Id = Id, Nombre = Nombre!, IdPadre = IdPadre, Descripcion = Descripcion, Activo = Activo };
@@ -167,12 +177,15 @@ namespace mi_ferreteria.Controllers
                 {
                     RegistrarAuditoria(nameof(Edit), $"Actualizacion de categoria #{Id}: nombre '{anterior.Nombre}' -> '{nueva.Nombre}', activo {anterior.Activo} -> {nueva.Activo}, descripcion '{anterior.Descripcion}' -> '{nueva.Descripcion}'");
                 }
+                
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return Json(new { success = true });
                 return RedirectToAction("Index");
             }
             catch (System.Exception ex)
             {
                 _logger.LogError(ex, "Error al actualizar categoría {CategoriaId}", Id);
                 ModelState.AddModelError(string.Empty, "Error al actualizar categoría");
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(new Categoria { Id = Id, Nombre = Nombre ?? string.Empty, IdPadre = IdPadre, Descripcion = Descripcion, Activo = Activo });
                 return View(new Categoria { Id = Id, Nombre = Nombre ?? string.Empty, IdPadre = IdPadre, Descripcion = Descripcion, Activo = Activo });
             }
         }

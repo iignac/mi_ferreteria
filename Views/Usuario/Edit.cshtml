@@ -1,8 +1,17 @@
 @model mi_ferreteria.ViewModels.UsuarioFormViewModel
 @{
-    ViewData["Title"] = "Editar Usuario";
+    if (Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+    {
+        Layout = null;
+    }
+    else
+    {
+        ViewData["Title"] = "Editar Usuario";
+    }
 }
 
+@if (Context.Request.Headers["X-Requested-With"] != "XMLHttpRequest")
+{
 <div class="md:flex md:items-center md:justify-between mb-6">
     <div class="min-w-0 flex-1">
         <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
@@ -10,6 +19,13 @@
         </h2>
     </div>
 </div>
+}
+else
+{
+    <div class="mb-4">
+        <h3 class="text-xl font-bold leading-7 text-gray-900">Editar Usuario</h3>
+    </div>
+}
 
 <style>
     .role-card {
@@ -59,8 +75,8 @@
     }
 </style>
 
-<div class="bg-white shadow sm:rounded-lg mb-8">
-    <div class="px-4 py-5 sm:p-6">
+<div class="@(Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? "" : "bg-white shadow sm:rounded-lg mb-8")">
+    <div class="@(Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? "pt-2" : "px-4 py-5 sm:p-6")">
         <div class="text-red-600 mb-4 text-sm font-medium" asp-validation-summary="ModelOnly"></div>
         
         <form asp-action="Edit" method="post" data-unsaved-warning="true" class="space-y-8">
@@ -215,14 +231,22 @@
             </div>
 
             <div class="mt-6 flex items-center justify-end gap-x-4 border-t border-gray-200 pt-6">
-                <a asp-action="Index" class="btn-cancel-leave text-sm font-semibold leading-6 text-gray-900 hover:text-gray-600 transition-colors px-4 py-2">Cancelar</a>
+                @if (Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    <button type="button" onclick="closeAjaxModal()" class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-600 transition-colors px-4 py-2">Cancelar</button>
+                }
+                else
+                {
+                    <a asp-action="Index" class="btn-cancel-leave text-sm font-semibold leading-6 text-gray-900 hover:text-gray-600 transition-colors px-4 py-2">Cancelar</a>
+                }
                 <button type="submit" class="rounded-md bg-indigo-600 px-6 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors">Guardar Cambios</button>
             </div>
         </form>
     </div>
 </div>
 
-@section Scripts {
+@if (Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+{
     <script>
         (function () {
             const roleSelector = document.querySelector('[data-role-selector]');
@@ -337,4 +361,116 @@
             });
         })();
     </script>
+}
+else
+{
+    @section Scripts {
+        <script>
+            (function () {
+                const roleSelector = document.querySelector('[data-role-selector]');
+                if (!roleSelector) return;
+                const checkboxes = Array.from(roleSelector.querySelectorAll('input[name="RolesIds"]'));
+                if (!checkboxes.length) return;
+
+                const normalizeKey = (text) => (text || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                const getKey = (checkbox) => {
+                    if (checkbox.dataset.roleKeyNormalized) return checkbox.dataset.roleKeyNormalized;
+                    const label = checkbox.closest('label');
+                    const raw = checkbox.getAttribute('data-role-name') ?? (label ? label.innerText : '');
+                    const key = normalizeKey(raw);
+                    checkbox.dataset.roleKeyNormalized = key;
+                    return key;
+                };
+
+                const buildMatcher = (keys) => checkboxes.filter(cb => {
+                    const key = getKey(cb);
+                    return keys.some(target => key === target || key.includes(target));
+                });
+
+                const adminChecks = buildMatcher(['administrador']);
+                const vendedorChecks = buildMatcher(['vendedor']);
+                const stockChecks = buildMatcher(['stock']);
+                const disableReason = 'Administrador abarca todas las funciones, no se combina con Vendedor ni Stock.';
+
+                const toggleDisabled = (targets, disabled) => {
+                    targets.forEach(cb => {
+                        const label = cb.closest('label');
+                        if (disabled) {
+                            cb.checked = false;
+                            cb.setAttribute('disabled', 'disabled');
+                            if (label) {
+                                label.classList.add('role-card--disabled');
+                                label.setAttribute('aria-disabled', 'true');
+                                label.setAttribute('title', disableReason);
+                            }
+                        } else {
+                            cb.removeAttribute('disabled');
+                            if (label) {
+                                label.classList.remove('role-card--disabled');
+                                label.removeAttribute('aria-disabled');
+                                label.removeAttribute('title');
+                            }
+                        }
+                    });
+                };
+
+                const applyRestrictions = () => {
+                    const adminActive = adminChecks.some(cb => cb.checked);
+                    toggleDisabled([...vendedorChecks, ...stockChecks], adminActive);
+                };
+
+                checkboxes.forEach(cb => cb.addEventListener('change', applyRestrictions));
+                applyRestrictions();
+            })();
+        </script>
+        <script>
+            (function(){
+                let isDirty = false;
+                const form = document.querySelector('form[asp-action="Edit"]');
+                if (!form) return;
+                form.addEventListener('input', () => { isDirty = true; }, { capture: true });
+                form.addEventListener('change', () => { isDirty = true; }, { capture: true });
+                form.addEventListener('submit', () => { isDirty = false; });
+                window.addEventListener('beforeunload', function (e) {
+                    if (!isDirty) return;
+                    e.preventDefault();
+                    e.returnValue = '';
+                });
+                document.querySelectorAll('.btn-cancel-leave').forEach(function(a){
+                    a.addEventListener('click', function(e){
+                        if (isDirty && !confirm('Hay cambios sin guardar. Si vuelves, se perderán. ¿Deseas salir igualmente?')) {
+                            e.preventDefault();
+                        }
+                    });
+                });
+            })();
+        </script>
+        <script>
+            (function(){
+                const targets = document.querySelectorAll('input.data-pw');
+                targets.forEach(function(input){
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'relative mt-2 rounded-md shadow-sm';
+                    input.parentNode.insertBefore(wrapper, input);
+                    wrapper.appendChild(input);
+                    input.classList.remove('mt-2'); 
+
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer text-gray-400 hover:text-gray-600';
+                    btn.innerHTML = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943-9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>`;
+                    btn.addEventListener('click', function(){
+                        const show = input.type === 'password';
+                        input.type = show ? 'text' : 'password';
+                        if(show){
+                            btn.innerHTML = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>`;
+                        } else {
+                            btn.innerHTML = `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943-9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>`;
+                        }
+                    });
+                    wrapper.appendChild(btn);
+                });
+            })();
+        </script>
+    }
 }

@@ -1,8 +1,17 @@
 @model mi_ferreteria.Models.Categoria
 @{
-    ViewData["Title"] = "Editar Categoría";
+    if (Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+    {
+        Layout = null;
+    }
+    else
+    {
+        ViewData["Title"] = "Editar Categoría";
+    }
 }
 
+@if (Context.Request.Headers["X-Requested-With"] != "XMLHttpRequest")
+{
 <div class="md:flex md:items-center md:justify-between mb-6">
     <div class="min-w-0 flex-1">
         <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
@@ -10,9 +19,16 @@
         </h2>
     </div>
 </div>
+}
+else
+{
+    <div class="mb-4">
+        <h3 class="text-xl font-bold leading-7 text-gray-900">Editar Categoría</h3>
+    </div>
+}
 
-<div class="bg-white shadow sm:rounded-lg mb-8 max-w-2xl">
-    <div class="px-4 py-5 sm:p-6">
+<div class="@(Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? "" : "bg-white shadow sm:rounded-lg mb-8 max-w-2xl")">
+    <div class="@(Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? "pt-2" : "px-4 py-5 sm:p-6")">
         <div class="text-red-600 mb-4 text-sm font-medium" asp-validation-summary="ModelOnly"></div>
         
         <form asp-action="Edit" method="post" data-unsaved-warning="true" class="space-y-6">
@@ -74,14 +90,22 @@
             </div>
 
             <div class="mt-6 flex items-center justify-end gap-x-4 border-t border-gray-200 pt-6">
-                <a asp-action="Index" class="btn-cancel-leave text-sm font-semibold leading-6 text-gray-900 hover:text-gray-600 transition-colors px-4 py-2">Cancelar</a>
+                @if (Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    <button type="button" onclick="closeAjaxModal()" class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-600 transition-colors px-4 py-2">Cancelar</button>
+                }
+                else
+                {
+                    <a asp-action="Index" class="btn-cancel-leave text-sm font-semibold leading-6 text-gray-900 hover:text-gray-600 transition-colors px-4 py-2">Cancelar</a>
+                }
                 <button type="submit" class="rounded-md bg-indigo-600 px-6 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors">Guardar Cambios</button>
             </div>
         </form>
     </div>
 </div>
 
-@section Scripts {
+@if (Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+{
     <script>
         (function(){
             let isDirty = false;
@@ -105,4 +129,32 @@
             });
         })();
     </script>
+}
+else
+{
+    @section Scripts {
+        <script>
+            (function(){
+                let isDirty = false;
+                const form = document.querySelector('form[asp-action="Edit"]');
+                if (form) {
+                    form.addEventListener('input', () => { isDirty = true; }, { capture: true });
+                    form.addEventListener('change', () => { isDirty = true; }, { capture: true });
+                    form.addEventListener('submit', () => { isDirty = false; });
+                }
+                window.addEventListener('beforeunload', function (e) {
+                    if (!isDirty) return;
+                    e.preventDefault();
+                    e.returnValue = '';
+                });
+                document.querySelectorAll('.btn-cancel-leave').forEach(function(a){
+                    a.addEventListener('click', function(e){
+                        if (isDirty && !confirm('Hay cambios sin guardar. Si vuelves, se perderán. ¿Deseas salir igualmente?')) {
+                            e.preventDefault();
+                        }
+                    });
+                });
+            })();
+        </script>
+    }
 }

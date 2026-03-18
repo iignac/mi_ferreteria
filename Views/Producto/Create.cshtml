@@ -1,8 +1,17 @@
 @model mi_ferreteria.ViewModels.ProductoFormViewModel
 @{
-    ViewData["Title"] = "Crear Producto";
+    if (Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+    {
+        Layout = null;
+    }
+    else
+    {
+        ViewData["Title"] = "Crear Producto";
+    }
 }
 
+@if (Context.Request.Headers["X-Requested-With"] != "XMLHttpRequest")
+{
 <div class="md:flex md:items-center md:justify-between mb-6">
     <div class="min-w-0 flex-1">
         <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
@@ -10,9 +19,16 @@
         </h2>
     </div>
 </div>
+}
+else
+{
+    <div class="mb-4">
+        <h3 class="text-xl font-bold leading-7 text-gray-900">Crear Producto</h3>
+    </div>
+}
 
-<div class="bg-white shadow sm:rounded-lg mb-8">
-    <div class="px-4 py-5 sm:p-6">
+<div class="@(Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? "" : "bg-white shadow sm:rounded-lg mb-8")">
+    <div class="@(Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? "pt-2" : "px-4 py-5 sm:p-6")">
         <div class="text-red-600 mb-4 text-sm font-medium" asp-validation-summary="ModelOnly"></div>
         
         <form asp-action="Create" method="post" class="space-y-8">
@@ -140,17 +156,24 @@
             </div>
 
             <div class="mt-6 flex items-center justify-end gap-x-4 border-t border-gray-200 pt-6">
-                <a asp-action="Index" asp-route-page="@(ViewBag.ReturnPage ?? 1)" class="btn-cancel-leave text-sm font-semibold leading-6 text-gray-900 hover:text-gray-600 transition-colors px-4 py-2">Cancelar</a>
+                @if (Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    <button type="button" onclick="closeAjaxModal()" class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-600 transition-colors px-4 py-2">Cancelar</button>
+                }
+                else
+                {
+                    <a asp-action="Index" asp-route-page="@(ViewBag.ReturnPage ?? 1)" class="btn-cancel-leave text-sm font-semibold leading-6 text-gray-900 hover:text-gray-600 transition-colors px-4 py-2">Cancelar</a>
+                }
                 <button type="submit" class="rounded-md bg-indigo-600 px-6 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors">Guardar Producto</button>
             </div>
         </form>
     </div>
 </div>
 
-@section Scripts {
-<script>
+@{
+    var scriptContent = @"
 (function(){
-  let isDirty=false; const form=document.querySelector('form');
+  let isDirty=false; const form=document.querySelector('form[asp-action=""Create""]');
   if(!form) return;
   form.addEventListener('input',()=>isDirty=true,{capture:true});
   form.addEventListener('change',()=>isDirty=true,{capture:true});
@@ -192,7 +215,7 @@
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'rounded p-1 text-gray-400 hover:text-red-600 transition-colors focus:outline-none';
-    btn.innerHTML = '<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"></path></svg>';
+    btn.innerHTML = '<svg class=""h-5 w-5"" viewBox=""0 0 20 20"" fill=""currentColor""><path d=""M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z""></path></svg>';
     btn.addEventListener('click', ()=>{ row.remove(); renumber(); });
     
     btnContainer.appendChild(btn);
@@ -238,9 +261,9 @@
         const chip = document.createElement('span');
         chip.className = 'inline-flex items-center gap-x-0.5 rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10';
         chip.innerHTML = `${name} 
-        <button type="button" class="group relative -mr-1 h-3.5 w-3.5 rounded-sm hover:bg-indigo-600/20">
-            <span class="sr-only">Quitar</span>
-            <svg viewBox="0 0 14 14" class="h-3.5 w-3.5 stroke-indigo-700/50 group-hover:stroke-indigo-700/75"><path d="M4 4l6 6m0-6l-6 6" /></svg>
+        <button type=""button"" class=""group relative -mr-1 h-3.5 w-3.5 rounded-sm hover:bg-indigo-600/20"">
+            <span class=""sr-only"">Quitar</span>
+            <svg viewBox=""0 0 14 14"" class=""h-3.5 w-3.5 stroke-indigo-700/50 group-hover:stroke-indigo-700/75""><path d=""M4 4l6 6m0-6l-6 6"" /></svg>
         </button>`;
         
         chip.querySelector('button')?.addEventListener('click', () => { ids = ids.filter(x => String(x) !== String(id)); renumberCats(); renderChips(); });
@@ -265,5 +288,15 @@
     });
   })();
 })();
-</script>
+";
+}
+@if (Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+{
+    <script>@Html.Raw(scriptContent)</script>
+}
+else
+{
+    @section Scripts {
+        <script>@Html.Raw(scriptContent)</script>
+    }
 }

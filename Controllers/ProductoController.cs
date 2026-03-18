@@ -120,6 +120,7 @@ namespace mi_ferreteria.Controllers
             model.Categorias = _catRepo.GetAll().Where(c => c.Activo).Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Nombre }).ToList();
             model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
             ViewBag.ReturnPage = page ?? 1;
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(model);
             return View(model);
         }
 
@@ -150,6 +151,7 @@ namespace mi_ferreteria.Controllers
                     model.Categorias = _catRepo.GetAll().Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Nombre }).ToList();
                     model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
                     ViewBag.ReturnPage = page ?? 1;
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(model);
                     return View(model);
                 }
                 if (_repo.SkuExists(model.Sku))
@@ -158,6 +160,7 @@ namespace mi_ferreteria.Controllers
                     Response.StatusCode = 409;
                     model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
                     ViewBag.ReturnPage = page ?? 1;
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(model);
                     return View(model);
                 }
 
@@ -168,6 +171,7 @@ namespace mi_ferreteria.Controllers
                     model.Categorias = _catRepo.GetAll().Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Nombre }).ToList();
                     model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
                     ViewBag.ReturnPage = page ?? 1;
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(model);
                     return View(model);
                 }
 
@@ -202,12 +206,14 @@ namespace mi_ferreteria.Controllers
                     model.Categorias = _catRepo.GetAll().Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Nombre }).ToList();
                     model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
                     ViewBag.ReturnPage = page ?? 1;
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(model);
                     return View(model);
                 }
 
                 _repo.ReplaceBarcodes(p.Id, barcodes);
                 RegistrarAuditoria(nameof(Create), $"Alta de producto #{p.Id}: {p.Nombre} (SKU {p.Sku}, Precio {p.PrecioVentaActual}, Activo={p.Activo})");
                 TempData["Success"] = $"Producto '{p.Nombre}' creado correctamente.";
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return Json(new { success = true });
                 return RedirectToAction("Index", new { page = page ?? 1 });
             }
             catch (Exception ex)
@@ -281,6 +287,7 @@ namespace mi_ferreteria.Controllers
                     model.Categorias = _catRepo.GetAll().Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = model.CategoriaIds.Contains(c.Id) }).ToList();
                     model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
                     ViewBag.ReturnPage = page ?? 1;
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(model);
                     return View(model);
                 }
                 if (_repo.SkuExists(model.Sku, model.Id))
@@ -289,6 +296,7 @@ namespace mi_ferreteria.Controllers
                     Response.StatusCode = 409;
                     model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
                     ViewBag.ReturnPage = page ?? 1;
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(model);
                     return View(model);
                 }
 
@@ -302,6 +310,7 @@ namespace mi_ferreteria.Controllers
                     model.Categorias = _catRepo.GetAll().Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = model.CategoriaIds.Contains(c.Id) }).ToList();
                     model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
                     ViewBag.ReturnPage = page ?? 1;
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(model);
                     return View(model);
                 }
 
@@ -312,6 +321,7 @@ namespace mi_ferreteria.Controllers
                     model.Categorias = _catRepo.GetAll().Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = model.CategoriaIds.Contains(c.Id) }).ToList();
                     model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
                     ViewBag.ReturnPage = page ?? 1;
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(model);
                     return View(model);
                 }
 
@@ -345,6 +355,7 @@ namespace mi_ferreteria.Controllers
                     model.Categorias = _catRepo.GetAll().Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Nombre, Selected = model.CategoriaIds.Contains(c.Id) }).ToList();
                     model.UnidadesMedida = BuildUnidadesSelect(model.UnidadMedida);
                     ViewBag.ReturnPage = page ?? 1;
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(model);
                     return View(model);
                 }
                 _repo.ReplaceBarcodes(p.Id, barcodes);
@@ -354,6 +365,7 @@ namespace mi_ferreteria.Controllers
                         $"Actualizacion de producto #{p.Id}: nombre '{actual.Nombre}' -> '{p.Nombre}', precio {actual.PrecioVentaActual} -> {p.PrecioVentaActual}, activo {actual.Activo} -> {p.Activo}, stockMin {actual.StockMinimo} -> {p.StockMinimo}, unidad '{actual.UnidadMedida}' -> '{p.UnidadMedida}'");
                 }
                 TempData["Success"] = $"Producto '{p.Nombre}' actualizado correctamente.";
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return Json(new { success = true });
                 return RedirectToAction("Index", new { page = page ?? 1 });
             }
             catch (Exception ex)
