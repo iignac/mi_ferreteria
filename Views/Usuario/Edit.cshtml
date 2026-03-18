@@ -147,10 +147,26 @@ else
                 </div>
             </div>
 
-            <div class="border-t border-gray-200 pt-6">
+            <div class="border-t border-gray-200 pt-6 space-y-4">
+                <div class="rounded-lg border border-indigo-100 bg-indigo-50/50">
+                    <details class="group">
+                        <summary class="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-semibold text-indigo-900">
+                            ¿Cómo funciona la selección de roles y permisos?
+                            <span class="ml-2 text-indigo-500 transition-transform group-open:rotate-180">⌄</span>
+                        </summary>
+                        <div class="border-t border-indigo-100 bg-white/70 px-4 py-4">
+                            <ul class="list-disc space-y-2 pl-5 text-sm text-indigo-900">
+                                <li>Cada rol tiene un conjunto de permisos predefinidos (heredados).</li>
+                                <li>El rol Administrador tiene la totalidad de los permisos.</li>
+                                <li>Los roles Vendedor y Stock pueden seleccionarse de forma conjunta (se suman los permisos de ambos roles).</li>
+                                <li>Si seleccionás el rol Vendedor, Stock, o ambos, podés sumar permisos adicionales (manuales) a los heredados.</li>
+                                <li>También podés dejar todos los roles sin marcar y seleccionar solo permisos manuales.</li>
+                            </ul>
+                        </div>
+                    </details>
+                </div>
                 <fieldset data-role-selector="true">
                     <legend class="text-sm font-semibold leading-6 text-gray-900">Seleccione rol</legend>
-                    <p class="mt-1 text-sm text-gray-500">Si eliges Administrador, no se podrÃ¡n combinar los roles Vendedor ni Stock.</p>
                     <div class="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 lg:grid-cols-3 sm:gap-x-4">
                         @foreach (var rol in Model.RolesDisponibles)
                         {
