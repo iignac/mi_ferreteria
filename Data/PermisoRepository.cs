@@ -50,6 +50,48 @@ namespace mi_ferreteria.Data
             }
         }
         
+        public Dictionary<int, List<int>> GetPermisosIdsPorRol(List<int> rolIds = null)
+        {
+            var permisosPorRol = new Dictionary<int, List<int>>();
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                var sql = "SELECT rp.rol_id, p.id FROM rol_permiso rp JOIN permiso p ON p.id = rp.permiso_id";
+                if (rolIds != null && rolIds.Count > 0)
+                {
+                    sql += " WHERE rp.rol_id = ANY(@rolIds)";
+                }
+                sql += " ORDER BY rp.rol_id, p.id";
+                using var cmd = new NpgsqlCommand(sql, conn);
+                if (rolIds != null && rolIds.Count > 0)
+                {
+                    cmd.Parameters.AddWithValue("@rolIds", rolIds);
+                }
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    var rolId = reader.GetInt32(0);
+                    var permisoId = reader.GetInt32(1);
+                    if (!permisosPorRol.TryGetValue(rolId, out var lista))
+                    {
+                        lista = new List<int>();
+                        permisosPorRol[rolId] = lista;
+                    }
+                    if (!lista.Contains(permisoId))
+                    {
+                        lista.Add(permisoId);
+                    }
+                }
+                return permisosPorRol;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener permisos agrupados por rol");
+                throw;
+            }
+        }
+
         public List<Permiso> GetAll()
         {
             var permisos = new List<Permiso>();
