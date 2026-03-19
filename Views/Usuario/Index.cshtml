@@ -156,6 +156,28 @@ else
             });
         });
 
+        function hydrateAjaxContent(container) {
+            if (!container) return;
+            if (window.jQuery && window.jQuery.validator && window.jQuery.validator.unobtrusive) {
+                const form = container.querySelector('form');
+                if (form) {
+                    window.jQuery.validator.unobtrusive.parse(form);
+                }
+            }
+            executeInlineScripts(container);
+            setupAjaxForm(container.querySelector('form'));
+        }
+
+        function executeInlineScripts(container) {
+            if (!container) return;
+            Array.from(container.querySelectorAll('script')).forEach(oldScript => {
+                const newScript = document.createElement('script');
+                Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                oldScript.parentNode.replaceChild(newScript, oldScript);
+            });
+        }
+
         function openAjaxModal(url) {
             const container = document.getElementById('ajax-modal-container');
             const backdrop = document.getElementById('ajax-modal-backdrop');
@@ -185,22 +207,7 @@ else
                 loading.classList.add('hidden');
                 body.innerHTML = html;
                 body.classList.remove('hidden');
-                
-                // Re-parse unobtrusive validation if needed
-                if (window.jQuery && window.jQuery.validator && window.jQuery.validator.unobtrusive) {
-                    const form = body.querySelector('form');
-                    if (form) window.jQuery.validator.unobtrusive.parse(form);
-                }
-
-                // Execute inserted scripts
-                Array.from(body.querySelectorAll('script')).forEach(oldScript => {
-                    const newScript = document.createElement('script');
-                    Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-                    newScript.appendChild(document.createTextNode(oldScript.innerHTML));
-                    oldScript.parentNode.replaceChild(newScript, oldScript);
-                });
-
-                setupAjaxForm(body.querySelector('form'));
+                hydrateAjaxContent(body);
             })
             .catch(err => {
                 console.error('Error fetching modal content', err);
@@ -265,7 +272,7 @@ else
                         const html = await res.text();
                         const body = document.getElementById('ajax-modal-body');
                         body.innerHTML = html;
-                        setupAjaxForm(body.querySelector('form'));
+                        hydrateAjaxContent(body);
                     }
                 })
                 .catch(err => {

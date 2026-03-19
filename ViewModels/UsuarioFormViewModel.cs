@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using mi_ferreteria.Models;
+using mi_ferreteria.Security;
 
 namespace mi_ferreteria.ViewModels
 {
@@ -17,7 +18,7 @@ namespace mi_ferreteria.ViewModels
         public string Email { get; set; }
         public bool Activo { get; set; }
         // Para creación y cambio de contraseña
-        [MinLength(6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres")]
+        [PasswordPolicyValidation]
         public string? Password { get; set; }
 
         [Compare("Password", ErrorMessage = "Las contraseñas no coinciden")]
