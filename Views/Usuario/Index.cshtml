@@ -166,6 +166,9 @@ else
             }
             executeInlineScripts(container);
             setupAjaxForm(container.querySelector('form'));
+            if (window.initFieldTips) {
+                window.initFieldTips(container);
+            }
         }
 
         function executeInlineScripts(container) {
