@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using System.Linq;
 using mi_ferreteria.Security;
 using System.Collections.Generic;
+using mi_ferreteria.Helpers;
 
 namespace mi_ferreteria.Controllers
 {
@@ -90,8 +91,7 @@ namespace mi_ferreteria.Controllers
                     .Select(p => p.Nombre)
                     .ToList();
                 model.PermisosHeredados = permisosHeredados;
-                model.Nombre = model.Nombre?.Trim();
-                model.Email = model.Email?.Trim();
+                NormalizeUsuarioInput(model);
                 if (ModelState.IsValid)
                 {
                     if (string.IsNullOrWhiteSpace(model.Nombre))
@@ -224,9 +224,7 @@ namespace mi_ferreteria.Controllers
                 model.PermisosPorRol = _permisoRepository.GetPermisosIdsPorRol(rolesDisponibles.Select(r => r.Id).ToList());
                 var permisosHeredados = _permisoRepository.GetByRolIds(model.RolesIds).Select(p => p.Nombre).ToList();
                 model.PermisosHeredados = permisosHeredados;
-                
-                model.Nombre = model.Nombre?.Trim();
-                model.Email = model.Email?.Trim();
+                NormalizeUsuarioInput(model);
                 if (ModelState.IsValid)
                 {
                     if (string.IsNullOrWhiteSpace(model.Nombre))
@@ -373,6 +371,13 @@ namespace mi_ferreteria.Controllers
                 _logger.LogError(ex, "Error al eliminar usuario {UsuarioId}", id);
                 return Problem("Ocurrio un error al eliminar el usuario.");
             }
+        }
+
+        private static void NormalizeUsuarioInput(UsuarioFormViewModel model)
+        {
+            if (model == null) return;
+            model.Nombre = InputSanitizer.NormalizeName(model.Nombre);
+            model.Email = InputSanitizer.NormalizeEmail(model.Email);
         }
 
         private void RegistrarAuditoria(string accion, string detalle)

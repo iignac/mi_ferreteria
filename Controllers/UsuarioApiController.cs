@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using mi_ferreteria.Dtos;
 using Microsoft.Extensions.Logging;
 using mi_ferreteria.Security;
+using mi_ferreteria.Helpers;
 
 namespace mi_ferreteria.Controllers
 {
@@ -89,6 +90,7 @@ namespace mi_ferreteria.Controllers
                 {
                     return ValidationProblem(ModelState);
                 }
+                NormalizeUsuarioDto(dto);
                 if (_usuarioRepository.EmailExists(dto.Email))
                 {
                     return ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>
@@ -148,6 +150,7 @@ namespace mi_ferreteria.Controllers
                 {
                     return ValidationProblem(ModelState);
                 }
+                NormalizeUsuarioDto(dto);
                 if (_usuarioRepository.EmailExists(dto.Email, dto.Id))
                 {
                     return ValidationProblem(new ValidationProblemDetails(new Dictionary<string, string[]>
@@ -211,6 +214,20 @@ namespace mi_ferreteria.Controllers
                 _logger.LogError(ex, "Error en eliminar-usuario {UsuarioId}", id);
                 return StatusCode(500, "Error interno al eliminar usuario");
             }
+        }
+
+        private static void NormalizeUsuarioDto(UsuarioCreateDto dto)
+        {
+            if (dto == null) return;
+            dto.Nombre = InputSanitizer.NormalizeName(dto.Nombre) ?? dto.Nombre;
+            dto.Email = InputSanitizer.NormalizeEmail(dto.Email) ?? dto.Email;
+        }
+
+        private static void NormalizeUsuarioDto(UsuarioUpdateDto dto)
+        {
+            if (dto == null) return;
+            dto.Nombre = InputSanitizer.NormalizeName(dto.Nombre) ?? dto.Nombre;
+            dto.Email = InputSanitizer.NormalizeEmail(dto.Email) ?? dto.Email;
         }
     }
 }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using mi_ferreteria.Helpers;
 
 namespace mi_ferreteria.Dtos
 {
@@ -7,6 +8,7 @@ namespace mi_ferreteria.Dtos
     {
         [Required]
         [StringLength(100)]
+        [RegularExpression(ValidationConstants.NombreSoloLetrasPattern, ErrorMessage = "El nombre solo puede contener letras, espacios, apostrofes o guiones.")]
         public string Nombre { get; set; }
 
         [Required]
@@ -33,6 +35,7 @@ namespace mi_ferreteria.Dtos
 
         [Required]
         [StringLength(100)]
+        [RegularExpression(ValidationConstants.NombreSoloLetrasPattern, ErrorMessage = "El nombre solo puede contener letras, espacios, apostrofes o guiones.")]
         public string Nombre { get; set; }
 
         [Required]
