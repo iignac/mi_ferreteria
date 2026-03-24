@@ -19,8 +19,6 @@ namespace mi_ferreteria.Data
         {
             using var set = new NpgsqlCommand("SET search_path TO venta, public", conn);
             set.ExecuteNonQuery();
-            using var alt = new NpgsqlCommand("ALTER TABLE IF EXISTS producto_stock_mov ADD COLUMN IF NOT EXISTS precio_compra NUMERIC(18,2)", conn);
-            alt.ExecuteNonQuery();
         }
 
         public long GetStock(long productoId)
@@ -294,6 +292,34 @@ namespace mi_ferreteria.Data
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error contando movimientos globales de stock (tipo={Tipo})", tipo);
+                throw;
+            }
+        }
+
+        public (int Total, int Ingreso, int Egreso) CountMovimientosResumen()
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_cs);
+                conn.Open();
+                EnsureSchema(conn);
+                var sql = @"SELECT
+                                COUNT(1),
+                                COUNT(CASE WHEN tipo='INGRESO' THEN 1 END),
+                                COUNT(CASE WHEN tipo='EGRESO' THEN 1 END)
+                            FROM producto_stock_mov";
+                using var cmd = new NpgsqlCommand(sql, conn);
+                using var r = cmd.ExecuteReader();
+                r.Read();
+                return (
+                    r.IsDBNull(0) ? 0 : Convert.ToInt32(r.GetInt64(0)),
+                    r.IsDBNull(1) ? 0 : Convert.ToInt32(r.GetInt64(1)),
+                    r.IsDBNull(2) ? 0 : Convert.ToInt32(r.GetInt64(2))
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener resumen de movimientos de stock");
                 throw;
             }
         }

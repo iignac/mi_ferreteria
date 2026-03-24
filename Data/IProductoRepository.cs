@@ -14,6 +14,7 @@ namespace mi_ferreteria.Data
         IEnumerable<Producto> SearchPage(string query, int page, int pageSize);
         IEnumerable<Producto> SearchPageSorted(string query, int page, int pageSize, string sort);
         Producto? GetById(long id);
+        Dictionary<long, string> GetNombresPorIds(IEnumerable<long> ids);
         void Add(Producto producto);
         void Update(Producto producto);
         void Delete(long id);

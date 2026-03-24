@@ -244,9 +244,7 @@ namespace mi_ferreteria.Data
                                   OR lower(p.ubicacion_codigo) LIKE unaccent(lower(@q))
                                   OR EXISTS (SELECT 1 FROM producto_codigo_barra b WHERE b.producto_id = p.id AND lower(b.codigo_barra) LIKE unaccent(lower(@q)))
                                   OR EXISTS (SELECT 1 FROM categoria c WHERE c.id = p.categoria_id AND lower(c.nombre) LIKE unaccent(lower(@q)))
-                                  OR EXISTS (SELECT 1 FROM producto_categoria pc JOIN categoria c2 ON c2.id=pc.categoria_id WHERE pc.producto_id=p.id AND lower(c2.nombre) LIKE unaccent(lower(@q)))
-                              
-                                  OR EXISTS (SELECT 1 FROM categoria c WHERE c.id = p.categoria_id AND lower(c.nombre) LIKE unaccent(lower(@q))))
+                                  OR EXISTS (SELECT 1 FROM producto_categoria pc JOIN categoria c2 ON c2.id=pc.categoria_id WHERE pc.producto_id=p.id AND lower(c2.nombre) LIKE unaccent(lower(@q))))
                               ORDER BY {orderBy}
                               LIMIT @limit OFFSET @offset";
                 using var cmd = new NpgsqlCommand(sql, conn);
@@ -289,6 +287,30 @@ namespace mi_ferreteria.Data
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener producto {ProductoId}", id);
+                throw;
+            }
+        }
+
+        public Dictionary<long, string> GetNombresPorIds(IEnumerable<long> ids)
+        {
+            var result = new Dictionary<long, string>();
+            var idList = ids.ToList();
+            if (idList.Count == 0) return result;
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureProductExtras(conn);
+                using var cmd = new NpgsqlCommand("SELECT id, nombre FROM producto WHERE id = ANY(@ids)", conn);
+                cmd.Parameters.AddWithValue("@ids", idList.ToArray());
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                    result[reader.GetInt64(0)] = reader.GetString(1);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener nombres de productos por ids");
                 throw;
             }
         }

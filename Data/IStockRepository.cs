@@ -16,6 +16,7 @@ namespace mi_ferreteria.Data
         System.Collections.Generic.IEnumerable<mi_ferreteria.Models.StockMovimiento> GetMovimientosPage(long productoId, string? tipo, int page, int pageSize);
         // Paginación de movimientos globales (opcionalmente por tipo: INGRESO o EGRESO)
         int CountMovimientosGlobal(string? tipo = null);
+        (int Total, int Ingreso, int Egreso) CountMovimientosResumen();
         System.Collections.Generic.IEnumerable<mi_ferreteria.Models.StockMovimiento> GetMovimientosGlobalPage(string? tipo, int page, int pageSize);
         decimal? GetUltimoPrecioCompra(long productoId);
         System.Collections.Generic.IEnumerable<mi_ferreteria.Models.ProductoStockCritico> GetProductosStockCritico(string? query, int page, int pageSize, out int totalCount);

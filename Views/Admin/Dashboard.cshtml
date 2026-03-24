@@ -103,17 +103,6 @@
         </div>
     </div>
     <div class="col-12 col-md-6 col-lg-3">
-        <a class="text-decoration-none" asp-controller="Usuario" asp-action="Index">
-            <div class="card shadow-sm h-100 hover-card">
-                <div class="card-body">
-                    <p class="text-muted mb-1">Admins monitoreando</p>
-                    <h4 class="mb-0 fw-bold">@Model.AdministradoresActivos.Count</h4>
-                    <small class="text-muted">Ir a usuarios</small>
-                </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-12 col-md-6 col-lg-3">
         <a class="text-decoration-none" asp-controller="Stock" asp-action="Criticos">
             <div class="card shadow-sm h-100 hover-card">
                 <div class="card-body">
@@ -277,92 +266,6 @@
     </div>
 </div>
 
-<div class="row g-4 mt-1">
-    <div class="col-12 col-lg-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-white">
-                <h5 class="mb-0">Altas de productos</h5>
-            </div>
-            <div class="list-group list-group-flush">
-                @if (Model.UltimasAltas.Any())
-                {
-                    foreach (var p in Model.UltimasAltas)
-                    {
-                        <div class="list-group-item">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <div class="fw-semibold">@p.Nombre</div>
-                                    <small class="text-muted">SKU: @p.Sku</small>
-                                </div>
-                                <small class="text-muted">@FechaCorta(p.CreatedAt)</small>
-                            </div>
-                        </div>
-                    }
-                }
-                else
-                {
-                    <div class="list-group-item text-muted">Sin altas registradas.</div>
-                }
-            </div>
-        </div>
-    </div>
-    <div class="col-12 col-lg-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-white">
-                <h5 class="mb-0">Bajas / inactivaciones</h5>
-            </div>
-            <div class="list-group list-group-flush">
-                @if (Model.UltimasBajas.Any())
-                {
-                    foreach (var p in Model.UltimasBajas)
-                    {
-                        <div class="list-group-item">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <div class="fw-semibold">@p.Nombre</div>
-                                    <small class="text-muted">SKU: @p.Sku</small>
-                                </div>
-                                <small class="text-muted">@FechaCorta(p.UpdatedAt)</small>
-                            </div>
-                        </div>
-                    }
-                }
-                else
-                {
-                    <div class="list-group-item text-muted">Sin bajas registradas.</div>
-                }
-            </div>
-        </div>
-    </div>
-    <div class="col-12 col-lg-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-white">
-                <h5 class="mb-0">Modificaciones de productos</h5>
-            </div>
-            <div class="list-group list-group-flush">
-                @if (Model.UltimasEdiciones.Any())
-                {
-                    foreach (var p in Model.UltimasEdiciones)
-                    {
-                        <div class="list-group-item">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <div class="fw-semibold">@p.Nombre</div>
-                                    <small class="text-muted">SKU: @p.Sku</small>
-                                </div>
-                                <small class="text-muted">@FechaCorta(p.UpdatedAt)</small>
-                            </div>
-                        </div>
-                    }
-                }
-                else
-                {
-                    <div class="list-group-item text-muted">Sin modificaciones recientes.</div>
-                }
-            </div>
-        </div>
-    </div>
-</div>
 
 <div class="card shadow-sm mt-4">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">

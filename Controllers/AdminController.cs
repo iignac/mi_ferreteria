@@ -77,34 +77,24 @@ namespace mi_ferreteria.Controllers
             try
             {
                 const int topDashboardRows = 5;
+                var stockResumen = _stockRepo.CountMovimientosResumen();
                 var model = new AdminDashboardViewModel
                 {
                     TotalVentas = _ventaRepo.CountAll(),
-                    TotalMovimientosStock = _stockRepo.CountMovimientosGlobal(null),
-                    TotalMovimientosIngreso = _stockRepo.CountMovimientosGlobal("INGRESO"),
-                    TotalMovimientosEgreso = _stockRepo.CountMovimientosGlobal("EGRESO"),
+                    TotalMovimientosStock = stockResumen.Total,
+                    TotalMovimientosIngreso = stockResumen.Ingreso,
+                    TotalMovimientosEgreso = stockResumen.Egreso,
                     TotalProductos = _productoRepo.CountAll(),
                     ProductosInactivos = _productoRepo.CountInactive(),
                     UltimasVentas = _ventaRepo.GetPage(1, topDashboardRows).ToList(),
-                    UltimosMovimientosStock = _stockRepo.GetUltimosMovimientos(null, topDashboardRows).ToList(),
-                    UltimasAltas = _productoRepo.GetLastCreated(topDashboardRows).ToList(),
-                    UltimasBajas = _productoRepo.GetLastInactive(topDashboardRows).ToList(),
-                    UltimasEdiciones = _productoRepo.GetLastUpdated(topDashboardRows).ToList()
+                    UltimosMovimientosStock = _stockRepo.GetUltimosMovimientos(null, topDashboardRows).ToList()
                 };
                 var criticosDestacados = _stockRepo.GetProductosStockCritico(null, 1, topDashboardRows, out var totalCriticos).ToList();
                 model.ProductosStockCritico = totalCriticos;
                 model.ProductosCriticosDestacados = criticosDestacados;
 
-                var productosMapa = new Dictionary<long, string>();
-                foreach (var pid in model.UltimosMovimientosStock.Select(m => m.ProductoId).Distinct())
-                {
-                    var prod = _productoRepo.GetById(pid);
-                    if (prod != null)
-                    {
-                        productosMapa[pid] = prod.Nombre;
-                    }
-                }
-                model.ProductosPorId = productosMapa;
+                var pids = model.UltimosMovimientosStock.Select(m => m.ProductoId).Distinct();
+                model.ProductosPorId = _productoRepo.GetNombresPorIds(pids).ToDictionary(k => k.Key, v => v.Value);
 
                 var usuarios = _usuarioRepo.GetAll();
                 model.AdministradoresActivos = usuarios
