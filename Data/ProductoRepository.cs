@@ -29,7 +29,7 @@ namespace mi_ferreteria.Data
                 conn.Open();
                 EnsureProductExtras(conn);
                 using var cmd = new NpgsqlCommand(@"SELECT id, sku, nombre, descripcion, categoria_id,
-                                                           precio_venta_actual, stock_minimo, unidad_medida, activo,
+                                                           precio_venta_actual, precio_costo_actual, stock_minimo, unidad_medida, activo,
                                                            ubicacion_preferida_id, ubicacion_codigo, created_at, updated_at
                                                     FROM producto
                                                     ORDER BY id DESC", conn);
@@ -58,7 +58,7 @@ namespace mi_ferreteria.Data
                 conn.Open();
                 EnsureProductExtras(conn);
                 var sql = @"SELECT id, sku, nombre, descripcion, categoria_id,
-                                     precio_venta_actual, stock_minimo, unidad_medida, activo,
+                                     precio_venta_actual, precio_costo_actual, stock_minimo, unidad_medida, activo,
                                      ubicacion_preferida_id, ubicacion_codigo, created_at, updated_at
                               FROM producto
                               ORDER BY id DESC
@@ -109,7 +109,7 @@ namespace mi_ferreteria.Data
                 EnsureProductExtras(conn);
                 var orderBy = BuildOrderBy(sort);
                 var sql = $@"SELECT p.id, p.sku, p.nombre, p.descripcion, p.categoria_id,
-                                     p.precio_venta_actual, p.stock_minimo, p.unidad_medida, p.activo,
+                                     p.precio_venta_actual, p.precio_costo_actual, p.stock_minimo, p.unidad_medida, p.activo,
                                      p.ubicacion_preferida_id, p.ubicacion_codigo, p.created_at, p.updated_at
                               FROM producto p
                               LEFT JOIN producto_stock s ON s.producto_id = p.id
@@ -191,7 +191,7 @@ namespace mi_ferreteria.Data
                 conn.Open();
                 using (var set = new NpgsqlCommand("SET search_path TO venta, public", conn)) { set.ExecuteNonQuery(); }
                 var sql = @"SELECT p.id, p.sku, p.nombre, p.descripcion, p.categoria_id,
-                                     p.precio_venta_actual, p.stock_minimo, p.unidad_medida, p.activo,
+                                     p.precio_venta_actual, p.precio_costo_actual, p.stock_minimo, p.unidad_medida, p.activo,
                                      p.ubicacion_preferida_id, p.ubicacion_codigo, p.created_at, p.updated_at
                               FROM producto p
                               WHERE (lower(p.sku) LIKE unaccent(lower(@q))
@@ -234,7 +234,7 @@ namespace mi_ferreteria.Data
                 EnsureProductExtras(conn);
                 var orderBy = BuildOrderBy(sort);
                 var sql = $@"SELECT p.id, p.sku, p.nombre, p.descripcion, p.categoria_id,
-                                     p.precio_venta_actual, p.stock_minimo, p.unidad_medida, p.activo,
+                                     p.precio_venta_actual, p.precio_costo_actual, p.stock_minimo, p.unidad_medida, p.activo,
                                      p.ubicacion_preferida_id, p.ubicacion_codigo, p.created_at, p.updated_at
                               FROM producto p
                               LEFT JOIN producto_stock s ON s.producto_id = p.id
@@ -273,7 +273,7 @@ namespace mi_ferreteria.Data
                 conn.Open();
                 EnsureProductExtras(conn);
                 using var cmd = new NpgsqlCommand(@"SELECT id, sku, nombre, descripcion, categoria_id,
-                                                           precio_venta_actual, stock_minimo, unidad_medida, activo,
+                                                           precio_venta_actual, precio_costo_actual, stock_minimo, unidad_medida, activo,
                                                            ubicacion_preferida_id, ubicacion_codigo, created_at, updated_at
                                                     FROM producto WHERE id=@id", conn);
                 cmd.Parameters.AddWithValue("@id", id);
@@ -323,14 +323,15 @@ namespace mi_ferreteria.Data
                 conn.Open();
                 EnsureProductExtras(conn);
                 using var cmd = new NpgsqlCommand(@"INSERT INTO producto
-                    (sku, nombre, descripcion, categoria_id, precio_venta_actual, stock_minimo, unidad_medida, activo, ubicacion_preferida_id, ubicacion_codigo)
-                    VALUES (@sku, @nombre, @descripcion, @categoria_id, @precio, @stockmin, @unidad, @activo, @ubipref, @ubicod)
+                    (sku, nombre, descripcion, categoria_id, precio_venta_actual, precio_costo_actual, stock_minimo, unidad_medida, activo, ubicacion_preferida_id, ubicacion_codigo)
+                    VALUES (@sku, @nombre, @descripcion, @categoria_id, @precio, @costo, @stockmin, @unidad, @activo, @ubipref, @ubicod)
                     RETURNING id, created_at, updated_at", conn);
                 cmd.Parameters.AddWithValue("@sku", p.Sku);
                 cmd.Parameters.AddWithValue("@nombre", p.Nombre);
                 cmd.Parameters.AddWithValue("@descripcion", (object?)p.Descripcion ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@categoria_id", (object?)p.CategoriaId ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@precio", p.PrecioVentaActual);
+                cmd.Parameters.AddWithValue("@costo", (object?)p.PrecioCostoActual ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@stockmin", p.StockMinimo);
                 cmd.Parameters.AddWithValue("@unidad", p.UnidadMedida);
                 cmd.Parameters.AddWithValue("@activo", p.Activo);
@@ -371,7 +372,7 @@ namespace mi_ferreteria.Data
                 }
                 using var cmd = new NpgsqlCommand(@"UPDATE producto SET
                         sku=@sku, nombre=@nombre, descripcion=@descripcion, categoria_id=@categoria_id,
-                        precio_venta_actual=@precio, stock_minimo=@stockmin, unidad_medida=@unidad, activo=@activo, ubicacion_preferida_id=@ubipref, ubicacion_codigo=@ubicod
+                        precio_venta_actual=@precio, precio_costo_actual=@costo, stock_minimo=@stockmin, unidad_medida=@unidad, activo=@activo, ubicacion_preferida_id=@ubipref, ubicacion_codigo=@ubicod
                     WHERE id=@id", conn);
                 cmd.Parameters.AddWithValue("@id", p.Id);
                 cmd.Parameters.AddWithValue("@sku", p.Sku);
@@ -379,6 +380,7 @@ namespace mi_ferreteria.Data
                 cmd.Parameters.AddWithValue("@descripcion", (object?)p.Descripcion ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@categoria_id", (object?)p.CategoriaId ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@precio", p.PrecioVentaActual);
+                cmd.Parameters.AddWithValue("@costo", (object?)p.PrecioCostoActual ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@stockmin", p.StockMinimo);
                 cmd.Parameters.AddWithValue("@unidad", p.UnidadMedida);
                 cmd.Parameters.AddWithValue("@activo", p.Activo);
@@ -526,6 +528,76 @@ namespace mi_ferreteria.Data
                 throw;
             }
         }
+        public Producto? GetByBarcode(string codigo)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureProductExtras(conn);
+                using var cmd = new NpgsqlCommand(@"
+                    SELECT p.id, p.sku, p.nombre, p.descripcion, p.categoria_id,
+                           p.precio_venta_actual, p.precio_costo_actual, p.stock_minimo, p.unidad_medida, p.activo,
+                           p.ubicacion_preferida_id, p.ubicacion_codigo, p.created_at, p.updated_at
+                    FROM producto p
+                    INNER JOIN producto_codigo_barra cb ON cb.producto_id = p.id
+                    WHERE cb.codigo_barra = @codigo
+                    LIMIT 1", conn);
+                cmd.Parameters.AddWithValue("@codigo", codigo);
+                using var r = cmd.ExecuteReader();
+                return r.Read() ? MapProducto(r) : null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al buscar producto por codigo de barra {Codigo}", codigo);
+                throw;
+            }
+        }
+
+        public Producto? GetBySku(string sku)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureProductExtras(conn);
+                using var cmd = new NpgsqlCommand(@"
+                    SELECT id, sku, nombre, descripcion, categoria_id,
+                           precio_venta_actual, precio_costo_actual, stock_minimo, unidad_medida, activo,
+                           ubicacion_preferida_id, ubicacion_codigo, created_at, updated_at
+                    FROM producto
+                    WHERE LOWER(sku) = LOWER(@sku)
+                    LIMIT 1", conn);
+                cmd.Parameters.AddWithValue("@sku", sku);
+                using var r = cmd.ExecuteReader();
+                return r.Read() ? MapProducto(r) : null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al buscar producto por SKU {Sku}", sku);
+                throw;
+            }
+        }
+
+        public void ActualizarPrecioCosto(long id, decimal precio)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureProductExtras(conn);
+                using var cmd = new NpgsqlCommand("UPDATE producto SET precio_costo_actual=@precio WHERE id=@id", conn);
+                cmd.Parameters.AddWithValue("@precio", precio);
+                cmd.Parameters.AddWithValue("@id", id);
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al actualizar precio de costo del producto {ProductoId}", id);
+                throw;
+            }
+        }
+
         public int CountInactive()
         {
             try
@@ -556,7 +628,7 @@ namespace mi_ferreteria.Data
                 EnsureProductExtras(conn);
                 using var cmd = new NpgsqlCommand(@"
                     SELECT id, sku, nombre, descripcion, categoria_id,
-                           precio_venta_actual, stock_minimo, unidad_medida, activo,
+                           precio_venta_actual, precio_costo_actual, stock_minimo, unidad_medida, activo,
                            ubicacion_preferida_id, ubicacion_codigo, created_at, updated_at
                     FROM producto
                     ORDER BY created_at DESC, id DESC
@@ -588,7 +660,7 @@ namespace mi_ferreteria.Data
                 EnsureProductExtras(conn);
                 using var cmd = new NpgsqlCommand(@"
                     SELECT id, sku, nombre, descripcion, categoria_id,
-                           precio_venta_actual, stock_minimo, unidad_medida, activo,
+                           precio_venta_actual, precio_costo_actual, stock_minimo, unidad_medida, activo,
                            ubicacion_preferida_id, ubicacion_codigo, created_at, updated_at
                     FROM producto
                     ORDER BY updated_at DESC, id DESC
@@ -620,7 +692,7 @@ namespace mi_ferreteria.Data
                 EnsureProductExtras(conn);
                 using var cmd = new NpgsqlCommand(@"
                     SELECT id, sku, nombre, descripcion, categoria_id,
-                           precio_venta_actual, stock_minimo, unidad_medida, activo,
+                           precio_venta_actual, precio_costo_actual, stock_minimo, unidad_medida, activo,
                            ubicacion_preferida_id, ubicacion_codigo, created_at, updated_at
                     FROM producto
                     WHERE activo = false
@@ -651,13 +723,14 @@ namespace mi_ferreteria.Data
                 Descripcion = reader.IsDBNull(3) ? null : reader.GetString(3),
                 CategoriaId = reader.IsDBNull(4) ? (long?)null : reader.GetInt64(4),
                 PrecioVentaActual = reader.GetDecimal(5),
-                StockMinimo = reader.GetInt32(6),
-                UnidadMedida = reader.IsDBNull(7) ? "unidad" : reader.GetString(7),
-                Activo = reader.GetBoolean(8),
-                UbicacionPreferidaId = reader.IsDBNull(9) ? (long?)null : reader.GetInt64(9),
-                UbicacionCodigo = reader.IsDBNull(10) ? null : reader.GetString(10),
-                CreatedAt = reader.GetFieldValue<DateTimeOffset>(11),
-                UpdatedAt = reader.GetFieldValue<DateTimeOffset>(12)
+                PrecioCostoActual = reader.IsDBNull(6) ? (decimal?)null : reader.GetDecimal(6),
+                StockMinimo = reader.GetInt32(7),
+                UnidadMedida = reader.IsDBNull(8) ? "unidad" : reader.GetString(8),
+                Activo = reader.GetBoolean(9),
+                UbicacionPreferidaId = reader.IsDBNull(10) ? (long?)null : reader.GetInt64(10),
+                UbicacionCodigo = reader.IsDBNull(11) ? null : reader.GetString(11),
+                CreatedAt = reader.GetFieldValue<DateTimeOffset>(12),
+                UpdatedAt = reader.GetFieldValue<DateTimeOffset>(13)
             };
         }
 

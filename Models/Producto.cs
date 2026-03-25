@@ -10,6 +10,7 @@ namespace mi_ferreteria.Models
         public string? Descripcion { get; set; }
         public long? CategoriaId { get; set; }
         public decimal PrecioVentaActual { get; set; }
+        public decimal? PrecioCostoActual { get; set; }
         public int StockMinimo { get; set; }
         public string UnidadMedida { get; set; } = "unidad";
         public bool Activo { get; set; } = true;

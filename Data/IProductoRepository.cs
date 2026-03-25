@@ -22,6 +22,9 @@ namespace mi_ferreteria.Data
         IEnumerable<mi_ferreteria.Models.ProductoCodigoBarra> GetBarcodes(long productoId);
         void ReplaceBarcodes(long productoId, IEnumerable<mi_ferreteria.Models.ProductoCodigoBarra> codigos);
         bool BarcodeExists(string codigo, long? excludeProductId = null);
+        Producto? GetByBarcode(string codigo);
+        Producto? GetBySku(string sku);
+        void ActualizarPrecioCosto(long id, decimal precio);
         int CountInactive();
         IEnumerable<Producto> GetLastCreated(int top);
         IEnumerable<Producto> GetLastUpdated(int top);

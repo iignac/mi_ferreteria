@@ -1,0 +1,150 @@
+@model mi_ferreteria.ViewModels.ImportarProductosViewModel
+@{
+    ViewData["Title"] = "Importar productos desde Excel";
+}
+
+<div class="sm:flex sm:items-center sm:justify-between mb-6">
+    <div>
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+            Importar productos desde Excel
+        </h2>
+        <p class="mt-2 text-sm text-gray-700">
+            Subí un archivo <strong>.xlsx</strong> para crear o actualizar productos en masa.
+        </p>
+    </div>
+    <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+        <a href="@Url.Action("Index")" class="inline-flex items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">
+            Volver a productos
+        </a>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    {{-- Formulario de carga --}}
+    <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-xl p-6">
+        <h3 class="text-base font-semibold leading-6 text-gray-900 mb-4">Subir archivo</h3>
+
+        <form method="post" enctype="multipart/form-data" action="@Url.Action("ImportarExcel")">
+            @Html.AntiForgeryToken()
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium leading-6 text-gray-900 mb-2">
+                        Archivo Excel (.xlsx)
+                    </label>
+                    <div x-data="{ fileName: '' }" class="flex items-center gap-3">
+                        <label class="cursor-pointer inline-flex items-center gap-x-2 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 transition-colors">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                            </svg>
+                            Seleccionar archivo
+                            <input type="file" name="Archivo" accept=".xlsx" class="sr-only"
+                                   x-on:change="fileName = $event.target.files[0]?.name ?? ''" required />
+                        </label>
+                        <span class="text-sm text-gray-500" x-text="fileName || 'Ningún archivo seleccionado'"></span>
+                    </div>
+                    @if (!ViewData.ModelState.IsValid && ViewData.ModelState["Archivo"]?.Errors.Count > 0)
+                    {
+                        <p class="mt-2 text-sm text-red-600">@ViewData.ModelState["Archivo"].Errors[0].ErrorMessage</p>
+                    }
+                </div>
+
+                <button type="submit"
+                        class="w-full rounded-md bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-500 transition-colors">
+                    Importar productos
+                </button>
+            </div>
+        </form>
+    </div>
+
+    {{-- Instrucciones / formato esperado --}}
+    <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-xl p-6">
+        <h3 class="text-base font-semibold leading-6 text-gray-900 mb-4">Formato del archivo</h3>
+        <p class="text-sm text-gray-600 mb-4">
+            El archivo debe tener una fila de encabezado y las siguientes columnas en orden:
+        </p>
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-xs">
+                <thead>
+                    <tr class="bg-gray-50">
+                        <th class="px-3 py-2 text-left font-semibold text-gray-700">Col.</th>
+                        <th class="px-3 py-2 text-left font-semibold text-gray-700">Campo</th>
+                        <th class="px-3 py-2 text-left font-semibold text-gray-700">Oblig.</th>
+                        <th class="px-3 py-2 text-left font-semibold text-gray-700">Notas</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    <tr>
+                        <td class="px-3 py-2 text-gray-500">A</td>
+                        <td class="px-3 py-2 font-medium text-gray-900">Nombre</td>
+                        <td class="px-3 py-2"><span class="text-red-600 font-bold">Sí</span></td>
+                        <td class="px-3 py-2 text-gray-500">Nombre del producto</td>
+                    </tr>
+                    <tr>
+                        <td class="px-3 py-2 text-gray-500">B</td>
+                        <td class="px-3 py-2 font-medium text-gray-900">CodigoBarra</td>
+                        <td class="px-3 py-2"><span class="text-red-600 font-bold">Sí</span></td>
+                        <td class="px-3 py-2 text-gray-500">Código de barras principal</td>
+                    </tr>
+                    <tr>
+                        <td class="px-3 py-2 text-gray-500">C</td>
+                        <td class="px-3 py-2 font-medium text-gray-900">Precio</td>
+                        <td class="px-3 py-2"><span class="text-red-600 font-bold">Sí</span></td>
+                        <td class="px-3 py-2 text-gray-500">Precio de venta (número)</td>
+                    </tr>
+                    <tr>
+                        <td class="px-3 py-2 text-gray-500">D</td>
+                        <td class="px-3 py-2 font-medium text-gray-900">Cantidad</td>
+                        <td class="px-3 py-2"><span class="text-red-600 font-bold">Sí</span></td>
+                        <td class="px-3 py-2 text-gray-500">Unidades a ingresar al stock</td>
+                    </tr>
+                    <tr>
+                        <td class="px-3 py-2 text-gray-500">E</td>
+                        <td class="px-3 py-2 font-medium text-gray-900">SKU</td>
+                        <td class="px-3 py-2 text-gray-400">No</td>
+                        <td class="px-3 py-2 text-gray-500">Si está vacío, se genera automáticamente</td>
+                    </tr>
+                    <tr>
+                        <td class="px-3 py-2 text-gray-500">F</td>
+                        <td class="px-3 py-2 font-medium text-gray-900">Descripcion</td>
+                        <td class="px-3 py-2 text-gray-400">No</td>
+                        <td class="px-3 py-2 text-gray-500">Descripción del producto</td>
+                    </tr>
+                    <tr>
+                        <td class="px-3 py-2 text-gray-500">G</td>
+                        <td class="px-3 py-2 font-medium text-gray-900">Categoria</td>
+                        <td class="px-3 py-2 text-gray-400">No</td>
+                        <td class="px-3 py-2 text-gray-500">Nombre exacto de la categoría</td>
+                    </tr>
+                    <tr>
+                        <td class="px-3 py-2 text-gray-500">H</td>
+                        <td class="px-3 py-2 font-medium text-gray-900">StockMinimo</td>
+                        <td class="px-3 py-2 text-gray-400">No</td>
+                        <td class="px-3 py-2 text-gray-500">Número entero</td>
+                    </tr>
+                    <tr>
+                        <td class="px-3 py-2 text-gray-500">I</td>
+                        <td class="px-3 py-2 font-medium text-gray-900">UnidadMedida</td>
+                        <td class="px-3 py-2 text-gray-400">No</td>
+                        <td class="px-3 py-2 text-gray-500">unidad, kilos, litro, etc.</td>
+                    </tr>
+                    <tr>
+                        <td class="px-3 py-2 text-gray-500">J</td>
+                        <td class="px-3 py-2 font-medium text-gray-900">Ubicacion</td>
+                        <td class="px-3 py-2 text-gray-400">No</td>
+                        <td class="px-3 py-2 text-gray-500">Formato: A1, B3, etc.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4 rounded-md bg-amber-50 border border-amber-200 p-3">
+            <p class="text-xs text-amber-800">
+                <strong>Lógica de importación:</strong> Si ya existe un producto con el mismo código de barra o SKU,
+                se <strong>actualiza</strong> su precio y se registra el stock como ingreso.
+                Si no existe, se <strong>crea</strong> como producto nuevo.
+            </p>
+        </div>
+    </div>
+
+</div>

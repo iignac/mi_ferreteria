@@ -4,7 +4,8 @@
       "Bash(grep -r \"async\\\\|await\" /c/Users/santi/Desktop/mi_ferreteria/mi_ferreteria/Data/*.cs)",
       "Bash(grep:*)",
       "Bash(dotnet build:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(dotnet restore:*)"
     ]
   }
 }
