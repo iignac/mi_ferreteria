@@ -71,25 +71,12 @@ namespace mi_ferreteria.Data
             }
 
             using (var cmdMargen = new NpgsqlCommand(@"
-                WITH avg_compra AS (
-                    SELECT producto_id, AVG(precio_compra) AS avg_precio
-                    FROM producto_stock_mov
-                    WHERE tipo = 'INGRESO' AND precio_compra IS NOT NULL
-                    GROUP BY producto_id
-                ),
-                ventas_costo AS (
-                    SELECT vd.producto_id,
-                           SUM(vd.cantidad) AS cantidad,
-                           SUM(vd.subtotal) AS total_venta,
-                           ac.avg_precio AS avg_costo
-                    FROM venta_detalle vd
-                    JOIN venta v ON v.id = vd.venta_id
-                    JOIN avg_compra ac ON ac.producto_id = vd.producto_id
-                    GROUP BY vd.producto_id, ac.avg_precio
-                )
-                SELECT COALESCE(SUM(total_venta),0) AS total_venta,
-                       COALESCE(SUM(cantidad * avg_costo),0) AS costo_total
-                FROM ventas_costo;", conn))
+                SELECT COALESCE(SUM(vd.subtotal),0) AS total_venta,
+                       COALESCE(SUM(vd.cantidad * p.precio_costo_actual),0) AS costo_total
+                FROM venta_detalle vd
+                JOIN venta v ON v.id = vd.venta_id
+                JOIN public.producto p ON p.id = vd.producto_id
+                WHERE p.precio_costo_actual IS NOT NULL AND p.precio_costo_actual > 0;", conn))
             {
                 using var r = cmdMargen.ExecuteReader();
                 if (r.Read())

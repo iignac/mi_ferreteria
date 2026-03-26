@@ -66,6 +66,13 @@ namespace mi_ferreteria.Data
                         mov.Parameters.AddWithValue("@precio", DBNull.Value);
                     mov.ExecuteNonQuery();
                 }
+                if (precioCompra.HasValue)
+                {
+                    using var updCosto = new NpgsqlCommand("UPDATE public.producto SET precio_costo_actual=@precio WHERE id=@id", conn);
+                    updCosto.Parameters.AddWithValue("@precio", precioCompra.Value);
+                    updCosto.Parameters.AddWithValue("@id", productoId);
+                    updCosto.ExecuteNonQuery();
+                }
             }
             catch (Exception ex)
             {
