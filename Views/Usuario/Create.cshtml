@@ -74,6 +74,77 @@ else
         opacity: 0;
     }
 
+    .password-tooltip {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .password-tooltip__button {
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 9999px;
+        border: 1px solid #c7d2fe;
+        background: #eef2ff;
+        color: #4338ca;
+        font-size: .75rem;
+        font-weight: 600;
+        transition: background .2s ease, color .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .password-tooltip__button:hover,
+    .password-tooltip__button:focus-visible {
+        background: #4338ca;
+        color: #fff;
+        border-color: #4338ca;
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, .3);
+    }
+
+    .password-tooltip__panel {
+        position: absolute;
+        top: calc(100% + .5rem);
+        left: calc(100% + .75rem);
+        width: min(20rem, 75vw);
+        padding: .75rem;
+        border-radius: .75rem;
+        background: rgba(17, 24, 39, .96);
+        color: #f9fafb;
+        font-size: .85rem;
+        box-shadow: 0 20px 30px -20px rgba(15, 23, 42, .65);
+        line-height: 1.4;
+        opacity: 0;
+        visibility: hidden;
+        transform: translate(-4px, -4px);
+        transition: opacity .2s ease, transform .2s ease, visibility .2s ease;
+        z-index: 10;
+    }
+
+    .password-tooltip__panel strong {
+        display: block;
+        color: #c7d2fe;
+        margin-bottom: .5rem;
+        font-size: .8rem;
+        letter-spacing: .02em;
+        text-transform: uppercase;
+    }
+
+    .password-tooltip__panel ul {
+        list-style: disc;
+        padding-left: 1.2rem;
+        margin: 0;
+    }
+
+    .password-tooltip__panel li + li {
+        margin-top: .35rem;
+    }
+
+    .password-tooltip:focus-within .password-tooltip__panel,
+    .password-tooltip:hover .password-tooltip__panel {
+        opacity: 1;
+        visibility: visible;
+        transform: translate(0, 0);
+    }
+
 </style>
 
 <div class="@(Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? "" : "bg-white shadow sm:rounded-lg mb-8")">
@@ -100,9 +171,30 @@ else
                 </div>
 
                 <div>
-                    <label asp-for="Password" class="block text-sm font-medium leading-6 text-gray-900">Contraseña</label>
+                    <div class="flex items-center gap-2">
+                        <label asp-for="Password" class="block text-sm font-medium leading-6 text-gray-900">Contraseña</label>
+                        <span class="password-tooltip">
+                            <button type="button"
+                                    class="password-tooltip__button"
+                                    aria-describedby="password-tooltip-create"
+                                    aria-label="Ver requisitos de contraseña">i</button>
+                            <div id="password-tooltip-create" role="tooltip" class="password-tooltip__panel">
+                                <strong>Requisitos</strong>
+                                <ul>
+                                    <li>Mínimo 10 caracteres.</li>
+                                    <li>Al menos una mayúscula, una minúscula y un número.</li>
+                                    <li>Al menos un carácter especial.</li>
+                                    <li>No repetir el mismo carácter en más de la mitad del total.</li>
+                                </ul>
+                            </div>
+                        </span>
+                    </div>
                     <div class="mt-2 text-red-600">
-                        <input asp-for="Password" type="password" autocomplete="new-password" class="data-pw block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                        <input asp-for="Password"
+                               type="password"
+                               autocomplete="new-password"
+                               title="La contraseña debe incluir:&#10;• Mínimo 10 caracteres.&#10;• Al menos una mayúscula, una minúscula y un número.&#10;• Al menos un carácter especial.&#10;• No repetir el mismo carácter en más de la mitad del total."
+                               class="data-pw block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
                         <span asp-validation-for="Password" class="text-sm mt-1 block"></span>
                     </div>
                 </div>
@@ -177,7 +269,23 @@ else
 
             <div class="border-t border-gray-200 pt-6">
                 <div class="flex items-start gap-2">
-                    <h3 class="text-sm font-semibold leading-6 text-gray-900">Seleccione permisos manuales</h3>
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-sm font-semibold leading-6 text-gray-900">Seleccione permisos manuales</h3>
+                        <span class="password-tooltip">
+                            <button type="button"
+                                    class="password-tooltip__button"
+                                    aria-describedby="manual-perms-tooltip-create"
+                                    aria-label="Ver ayuda para permisos manuales">i</button>
+                            <div id="manual-perms-tooltip-create" role="tooltip" class="password-tooltip__panel">
+                                <strong>Permisos manuales</strong>
+                                <ul>
+                                    <li>Los permisos heredados aparecen marcados, deshabilitados y con la etiqueta “Heredado”.</li>
+                                    <li>Puedes sumar permisos manuales activando los interruptores disponibles.</li>
+                                    <li>Al quitar un rol, los permisos heredados que dependían de él vuelven a su estado manual anterior.</li>
+                                </ul>
+                            </div>
+                        </span>
+                    </div>
                 </div>
 
                 @if (Model.TodosLosPermisos != null && Model.TodosLosPermisos.Any())
