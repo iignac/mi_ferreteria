@@ -54,6 +54,7 @@
                 @if (!User.IsInRole("Stock"))
                 {
                     <a asp-controller="Venta" asp-action="Index" class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-[#FC651F] hover:text-white transition-colors whitespace-nowrap">Caja / Ventas</a>
+                    <a asp-controller="Venta" asp-action="Historial" class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-[#FC651F] hover:text-white transition-colors whitespace-nowrap">Historial de Ventas</a>
                     <a asp-controller="Cliente" asp-action="Index" class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-[#FC651F] hover:text-white transition-colors whitespace-nowrap">Clientes</a>
                 }
                 <a asp-controller="Stock" asp-action="Index" class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-[#FC651F] hover:text-white transition-colors whitespace-nowrap">Control de Stock</a>

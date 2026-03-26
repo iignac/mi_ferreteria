@@ -260,6 +260,25 @@ body {
   box-shadow: 0 1px 4px rgba(252,101,31,.2);
 }
 
+/* Scrollbar del menú lateral */
+aside nav::-webkit-scrollbar {
+  width: 4px;
+}
+aside nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+aside nav::-webkit-scrollbar-thumb {
+  background-color: rgba(252, 101, 31, 0.35);
+  border-radius: 999px;
+}
+aside nav::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(252, 101, 31, 0.7);
+}
+aside nav {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(252, 101, 31, 0.35) transparent;
+}
+
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
   color: var(--bs-secondary-color);
   text-align: end;

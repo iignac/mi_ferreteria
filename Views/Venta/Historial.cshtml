@@ -13,7 +13,7 @@
         </h2>
     </div>
     <div class="mt-4 flex sm:ml-4 sm:mt-0">
-        <a asp-action="Index" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors">
+        <a asp-action="Index" class="block rounded-md px-3 py-2 text-center text-sm font-semibold text-white shadow-sm transition-colors" style="background-color:#FC651F;" onmouseover="this.style.backgroundColor='#e0541a'" onmouseout="this.style.backgroundColor='#FC651F'">
             Nueva Venta
         </a>
     </div>
@@ -131,46 +131,34 @@ else
         var start = System.Math.Max(1, page - 2);
         var end = System.Math.Min(totalPages, page + 2);
 
-        <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 mt-4">
+        <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 mt-2 rounded-b-lg">
             <div class="flex flex-1 justify-between sm:hidden">
-                <a asp-action="Historial" asp-route-page="@(page - 1)" class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 @(page <= 1 ? "pointer-events-none opacity-50" : "")">Anterior</a>
-                <a asp-action="Historial" asp-route-page="@(page + 1)" class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 @(page >= totalPages ? "pointer-events-none opacity-50" : "")">Siguiente</a>
+                <a asp-action="Historial" asp-route-page="@(page - 1)" class="relative inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(page <= 1 ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">Anterior</a>
+                <a asp-action="Historial" asp-route-page="@(page + 1)" class="relative ml-3 inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(page >= totalPages ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">Siguiente</a>
             </div>
             <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-                <div>
-                    <p class="text-sm text-gray-700">
-                        Mostrando página <span class="font-medium">@(page)</span> de <span class="font-medium">@totalPages</span>
-                    </p>
-                </div>
-                <div>
-                    <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                        <a asp-action="Historial" asp-route-page="@(page - 1)" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 @(page <= 1 ? "pointer-events-none opacity-50" : "")">
-                            <span class="sr-only">Anterior</span>
-                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
-                            </svg>
-                        </a>
-                        
-                        @for (var i = start; i <= end; i++)
+                <p class="text-sm text-gray-700">Página <span class="font-medium">@(page)</span> de <span class="font-medium">@totalPages</span></p>
+                <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                    <a asp-action="Historial" asp-route-page="@(page - 1)" class="relative inline-flex items-center rounded-l-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(page <= 1 ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
+                        <span class="sr-only">Anterior</span>
+                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" /></svg>
+                    </a>
+                    @for (var i = start; i <= end; i++)
+                    {
+                        if (i == page)
                         {
-                            if (i == page)
-                            {
-                                <span class="relative z-10 inline-flex items-center bg-indigo-600 px-4 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">@i</span>
-                            }
-                            else
-                            {
-                                <a asp-action="Historial" asp-route-page="@i" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">@i</a>
-                            }
+                            <a href="#" aria-current="page" class="relative z-10 inline-flex items-center px-4 py-2 text-sm font-semibold text-white focus:z-20" style="background-color:#FC651F;">@i</a>
                         }
-
-                        <a asp-action="Historial" asp-route-page="@(page + 1)" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 @(page >= totalPages ? "pointer-events-none opacity-50" : "")">
-                            <span class="sr-only">Siguiente</span>
-                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
-                            </svg>
-                        </a>
-                    </nav>
-                </div>
+                        else
+                        {
+                            <a asp-action="Historial" asp-route-page="@i" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 hover:text-[#FC651F] focus:z-20">@i</a>
+                        }
+                    }
+                    <a asp-action="Historial" asp-route-page="@(page + 1)" class="relative inline-flex items-center rounded-r-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(page >= totalPages ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
+                        <span class="sr-only">Siguiente</span>
+                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
+                    </a>
+                </nav>
             </div>
         </div>
     }
