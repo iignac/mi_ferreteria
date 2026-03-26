@@ -83,6 +83,8 @@
         }
         else
         {
+            var pgStart = System.Math.Max(1, page - 2);
+            var pgEnd = System.Math.Min(totalPages, page + 2);
             <div class="table-responsive">
                 <table class="table table-striped table-hover table-bordered align-middle">
                     <thead>
@@ -138,25 +140,36 @@
                 </table>
             </div>
 
-            <nav id="paginacionProductos" aria-label="Paginacion de productos" class="mb-2">
-                <ul class="pagination justify-content-center mb-0">
-                    <li class="page-item @(page <= 1 ? "disabled" : "")">
-                        <a class="page-link"
-                           asp-action="Index"
-                           asp-route-q="@q"
-                           asp-route-page="@(page - 1)">Anterior</a>
-                    </li>
-                    <li class="page-item disabled">
-                        <span class="page-link">Pagina @(page) de @totalPages</span>
-                    </li>
-                    <li class="page-item @(page >= totalPages ? "disabled" : "")">
-                        <a class="page-link"
-                           asp-action="Index"
-                           asp-route-q="@q"
-                           asp-route-page="@(page + 1)">Siguiente</a>
-                    </li>
-                </ul>
-            </nav>
+            <div id="paginacionProductos" class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 mt-2 rounded-b-lg">
+                <div class="flex flex-1 justify-between sm:hidden">
+                    <a asp-action="Index" asp-route-q="@q" asp-route-page="@(page - 1)" class="relative inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(page <= 1 ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">Anterior</a>
+                    <a asp-action="Index" asp-route-q="@q" asp-route-page="@(page + 1)" class="relative ml-3 inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(page >= totalPages ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">Siguiente</a>
+                </div>
+                <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                    <p class="text-sm text-gray-700">Página <span class="font-medium">@(page)</span> de <span class="font-medium">@totalPages</span></p>
+                    <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                        <a asp-action="Index" asp-route-q="@q" asp-route-page="@(page - 1)" class="relative inline-flex items-center rounded-l-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(page <= 1 ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
+                            <span class="sr-only">Anterior</span>
+                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" /></svg>
+                        </a>
+                        @for (var i = pgStart; i <= pgEnd; i++)
+                        {
+                            if (i == page)
+                            {
+                                <a href="#" aria-current="page" class="relative z-10 inline-flex items-center px-4 py-2 text-sm font-semibold text-white focus:z-20" style="background-color:#FC651F;">@i</a>
+                            }
+                            else
+                            {
+                                <a asp-action="Index" asp-route-q="@q" asp-route-page="@i" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 hover:text-[#FC651F] focus:z-20">@i</a>
+                            }
+                        }
+                        <a asp-action="Index" asp-route-q="@q" asp-route-page="@(page + 1)" class="relative inline-flex items-center rounded-r-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(page >= totalPages ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
+                            <span class="sr-only">Siguiente</span>
+                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
+                        </a>
+                    </nav>
+                </div>
+            </div>
         }
     </div>
 </div>

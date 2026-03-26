@@ -117,12 +117,12 @@
                         <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 px-4">
                             <div class="inline-block min-w-full py-2 align-middle">
                                 <table class="min-w-full divide-y divide-gray-300 border border-gray-200 sm:rounded-lg">
-                                    <thead class="bg-gray-50">
+                                    <thead style="background: linear-gradient(90deg, #FC651F, #e0541a);">
                                         <tr>
-                                            <th scope="col" class="py-3 pl-4 pr-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 sm:pl-3">SKU</th>
-                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Nombre</th>
-                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Precio</th>
-                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Stock</th>
+                                            <th scope="col" class="py-3 pl-4 pr-3 text-left text-xs font-medium uppercase tracking-wide text-white sm:pl-3">SKU</th>
+                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-white">Nombre</th>
+                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-white">Precio</th>
+                                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-white">Stock</th>
                                             <th scope="col" class="relative py-3 pl-3 pr-4 sm:pr-3 text-right">
                                                 <span class="sr-only">Agregar</span>
                                             </th>
@@ -173,14 +173,14 @@
                         var end = System.Math.Min(totalPages, page + 2);
                         <div id="paginacionProductos" class="flex items-center justify-between border-t border-gray-200 bg-white px-2 py-3 mt-4">
                             <div class="flex flex-1 justify-between sm:hidden">
-                                <a asp-action="Index" asp-route-q="@q" asp-route-page="@(page - 1)" class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 @(page <= 1 ? "pointer-events-none opacity-50" : "")">Anterior</a>
-                                <a asp-action="Index" asp-route-q="@q" asp-route-page="@(page + 1)" class="relative ml-2 inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 @(page >= totalPages ? "pointer-events-none opacity-50" : "")">Siguiente</a>
+                                <a asp-action="Index" asp-route-q="@q" asp-route-page="@(page - 1)" class="relative inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(page <= 1 ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">Anterior</a>
+                                <a asp-action="Index" asp-route-q="@q" asp-route-page="@(page + 1)" class="relative ml-2 inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(page >= totalPages ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">Siguiente</a>
                             </div>
                             <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                                 <div><p class="text-sm text-gray-700">Página <span class="font-medium">@(page)</span> de <span class="font-medium">@totalPages</span></p></div>
                                 <div>
                                     <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                                        <a asp-action="Index" asp-route-q="@q" asp-route-page="@(page - 1)" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 @(page <= 1 ? "pointer-events-none opacity-50" : "")">
+                                        <a asp-action="Index" asp-route-q="@q" asp-route-page="@(page - 1)" class="relative inline-flex items-center rounded-l-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(page <= 1 ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
                                             <span class="sr-only">Anterior</span>
                                             <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" /></svg>
                                         </a>
@@ -188,14 +188,14 @@
                                         {
                                             if (i == page)
                                             {
-                                                <span class="relative z-10 inline-flex items-center bg-indigo-600 px-3 py-2 text-sm font-semibold text-white focus:z-20">@i</span>
+                                                <a href="#" aria-current="page" class="relative z-10 inline-flex items-center px-4 py-2 text-sm font-semibold text-white focus:z-20" style="background-color:#FC651F;">@i</a>
                                             }
                                             else
                                             {
-                                                <a asp-action="Index" asp-route-q="@q" asp-route-page="@i" class="relative inline-flex items-center px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20">@i</a>
+                                                <a asp-action="Index" asp-route-q="@q" asp-route-page="@i" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 hover:text-[#FC651F] focus:z-20">@i</a>
                                             }
                                         }
-                                        <a asp-action="Index" asp-route-q="@q" asp-route-page="@(page + 1)" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 @(page >= totalPages ? "pointer-events-none opacity-50" : "")">
+                                        <a asp-action="Index" asp-route-q="@q" asp-route-page="@(page + 1)" class="relative inline-flex items-center rounded-r-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(page >= totalPages ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
                                             <span class="sr-only">Siguiente</span>
                                             <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
                                         </a>
@@ -231,11 +231,11 @@
                 <div class="p-0 sm:p-0">
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
+                            <thead style="background: linear-gradient(90deg, #FC651F, #e0541a);">
                                 <tr>
-                                    <th scope="col" class="py-2 pl-4 pr-3 text-left text-xs font-semibold text-gray-900">Producto / Precio</th>
-                                    <th scope="col" class="px-2 py-2 text-center text-xs font-semibold text-gray-900">Cant. / Perm.</th>
-                                    <th scope="col" class="relative py-2 pl-3 pr-4 text-right text-xs font-semibold text-gray-900"></th>
+                                    <th scope="col" class="py-2 pl-4 pr-3 text-left text-xs font-semibold text-white">Producto / Precio</th>
+                                    <th scope="col" class="px-2 py-2 text-center text-xs font-semibold text-white">Cant. / Perm.</th>
+                                    <th scope="col" class="relative py-2 pl-3 pr-4 text-right text-xs font-semibold text-white"></th>
                                 </tr>
                             </thead>
                             <tbody id="carritoBody" class="divide-y divide-gray-200 bg-white">

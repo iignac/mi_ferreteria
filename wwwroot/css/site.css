@@ -83,7 +83,7 @@ body {
   table-layout: auto; /* evita recortes de contenido (botones) */
 }
 .table-products thead th {
-  background: linear-gradient(135deg, #3484f3, #053b8d);
+  background: linear-gradient(90deg, #FC651F, #e0541a);
   color: #fff;
   border-color: rgba(255,255,255,.2) !important;
   font-weight: 600;
@@ -226,6 +226,38 @@ body {
   transform: translateY(-1px);
   box-shadow: 0 .35rem .85rem rgba(0,0,0,.18);
   filter: brightness(0.98);
+}
+
+/* Botones secundarios de acción — paleta nueva */
+.btn-action-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+  padding: .4rem .75rem;
+  font-size: .875rem;
+  font-weight: 600;
+  border-radius: .375rem;
+  border: 1.5px solid #FC651F;
+  background-color: transparent;
+  color: #FC651F;
+  box-shadow: 0 1px 3px rgba(252,101,31,.15);
+  transition: background-color .18s ease, color .18s ease, transform .15s ease, box-shadow .18s ease;
+}
+.btn-action-secondary svg {
+  transition: transform .2s ease;
+}
+.btn-action-secondary:hover {
+  background-color: #FC651F;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(252,101,31,.35);
+}
+.btn-action-secondary:hover svg {
+  transform: scale(1.15);
+}
+.btn-action-secondary:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(252,101,31,.2);
 }
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
