@@ -32,12 +32,49 @@ namespace mi_ferreteria.Controllers
             _permisoRepository = permisoRepository;
         }
 
-        public IActionResult Index()
+        public IActionResult Index(int page = 1, string? q = null, string? activo = null, string? rol = null, string? permiso = null)
         {
             try
             {
                 _logger.LogInformation("Listando usuarios");
-                var usuarios = _usuarioRepository.GetAll();
+                const int pageSize = 10;
+                var todos = _usuarioRepository.GetAll().ToList();
+
+                if (!string.IsNullOrWhiteSpace(q))
+                {
+                    var term = q.Trim().ToLowerInvariant();
+                    todos = todos.Where(u =>
+                        u.Nombre.ToLowerInvariant().Contains(term) ||
+                        u.Email.ToLowerInvariant().Contains(term)).ToList();
+                }
+                if (!string.IsNullOrWhiteSpace(activo))
+                {
+                    bool esActivo = activo == "true";
+                    todos = todos.Where(u => u.Activo == esActivo).ToList();
+                }
+                if (!string.IsNullOrWhiteSpace(rol))
+                {
+                    todos = todos.Where(u => u.Roles.Any(r =>
+                        r.Nombre.Equals(rol, System.StringComparison.OrdinalIgnoreCase))).ToList();
+                }
+                if (!string.IsNullOrWhiteSpace(permiso))
+                {
+                    todos = todos.Where(u => u.Roles.Any(r =>
+                        r.Permisos.Any(p => p.Nombre.Equals(permiso, System.StringComparison.OrdinalIgnoreCase)))).ToList();
+                }
+
+                var totalPages = (int)System.Math.Ceiling(todos.Count / (double)pageSize);
+                page = System.Math.Max(1, System.Math.Min(page, System.Math.Max(1, totalPages)));
+                var usuarios = todos.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+                ViewBag.Page = page;
+                ViewBag.TotalPages = totalPages;
+                ViewBag.Q = q;
+                ViewBag.Activo = activo;
+                ViewBag.Rol = rol;
+                ViewBag.Permiso = permiso;
+                ViewBag.Roles = _rolRepository.GetAll();
+                ViewBag.Permisos = _permisoRepository.GetAll();
                 return View(usuarios);
             }
             catch (System.Exception ex)

@@ -1,6 +1,18 @@
 @model IEnumerable<mi_ferreteria.Models.Usuario>
+@using mi_ferreteria.Models
 @{
     ViewData["Title"] = "Gestión de Usuarios";
+    int page = ViewBag.Page is int p ? p : 1;
+    int totalPages = ViewBag.TotalPages is int tp ? tp : 1;
+    var pgStart = System.Math.Max(1, page - 2);
+    var pgEnd = System.Math.Min(totalPages, page + 2);
+    string q = ViewBag.Q as string ?? string.Empty;
+    string activo = ViewBag.Activo as string ?? string.Empty;
+    string rolFiltro = ViewBag.Rol as string ?? string.Empty;
+    string permisoFiltro = ViewBag.Permiso as string ?? string.Empty;
+    var roles = ViewBag.Roles as List<Rol> ?? new List<Rol>();
+    var permisos = ViewBag.Permisos as List<Permiso> ?? new List<Permiso>();
+    bool hayFiltro = !string.IsNullOrWhiteSpace(q) || !string.IsNullOrWhiteSpace(activo) || !string.IsNullOrWhiteSpace(rolFiltro) || !string.IsNullOrWhiteSpace(permisoFiltro);
 }
 
 <div class="sm:flex sm:items-center sm:justify-between mb-8">
@@ -17,6 +29,30 @@
             Crear usuario
         </button>
     </div>
+</div>
+
+<div class="mb-6 bg-white p-4 shadow-sm rounded-lg border border-gray-200">
+    <form method="get" asp-action="Index" class="flex items-center gap-2">
+        <input type="hidden" name="page" value="1" />
+        <div class="relative flex-1">
+            <input type="search" name="q" value="@q"
+                   class="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-4 pr-10 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-[#FC651F] focus:outline-none focus:ring-1 focus:ring-[#FC651F]"
+                   placeholder="Buscar por nombre o email..." />
+        </div>
+        <button type="submit"
+                class="group flex items-center justify-center rounded-lg bg-gray-900 p-2.5 text-white shadow-sm transition-colors duration-200 hover:bg-[#FC651F] focus:outline-none"
+                title="Buscar">
+            <svg class="h-5 w-5 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+            </svg>
+        </button>
+        @if (!string.IsNullOrWhiteSpace(q))
+        {
+            <a asp-action="Index" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900">
+                Limpiar
+            </a>
+        }
+    </form>
 </div>
 
 @if (Model == null || !Model.Any())
@@ -98,6 +134,40 @@ else
             </div>
         </div>
     </div>
+
+    @if (totalPages > 1)
+    {
+        <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 mt-2 rounded-b-lg">
+            <div class="flex flex-1 justify-between sm:hidden">
+                <a asp-action="Index" asp-route-page="@(page - 1)" asp-route-q="@q" asp-route-activo="@activo" asp-route-rol="@rolFiltro" asp-route-permiso="@permisoFiltro" class="relative inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(page <= 1 ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">Anterior</a>
+                <a asp-action="Index" asp-route-page="@(page + 1)" asp-route-q="@q" asp-route-activo="@activo" asp-route-rol="@rolFiltro" asp-route-permiso="@permisoFiltro" class="relative ml-3 inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(page >= totalPages ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">Siguiente</a>
+            </div>
+            <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                <p class="text-sm text-gray-700">Página <span class="font-medium">@(page)</span> de <span class="font-medium">@(totalPages)</span></p>
+                <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                    <a asp-action="Index" asp-route-page="@(page - 1)" asp-route-q="@q" asp-route-activo="@activo" asp-route-rol="@rolFiltro" asp-route-permiso="@permisoFiltro" class="relative inline-flex items-center rounded-l-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(page <= 1 ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
+                        <span class="sr-only">Anterior</span>
+                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" /></svg>
+                    </a>
+                    @for (var i = pgStart; i <= pgEnd; i++)
+                    {
+                        if (i == page)
+                        {
+                            <a href="#" aria-current="page" class="relative z-10 inline-flex items-center px-4 py-2 text-sm font-semibold text-white focus:z-20" style="background-color:#FC651F;">@i</a>
+                        }
+                        else
+                        {
+                            <a asp-action="Index" asp-route-page="@i" asp-route-q="@q" asp-route-activo="@activo" asp-route-rol="@rolFiltro" asp-route-permiso="@permisoFiltro" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 hover:text-[#FC651F] focus:z-20">@i</a>
+                        }
+                    }
+                    <a asp-action="Index" asp-route-page="@(page + 1)" asp-route-q="@q" asp-route-activo="@activo" asp-route-rol="@rolFiltro" asp-route-permiso="@permisoFiltro" class="relative inline-flex items-center rounded-r-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(page >= totalPages ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
+                        <span class="sr-only">Siguiente</span>
+                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
+                    </a>
+                </nav>
+            </div>
+        </div>
+    }
 }
 
 <!-- AJX Modal Container -->
