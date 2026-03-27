@@ -369,6 +369,51 @@ namespace mi_ferreteria.Data
             }
         }
 
+        public IEnumerable<Venta> GetParaExportar(DateTime? desde, DateTime? hasta)
+        {
+            var list = new List<Venta>();
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureSchema(conn);
+                var conds = new List<string>();
+                if (desde.HasValue) conds.Add("fecha >= @desde");
+                if (hasta.HasValue) conds.Add("fecha < @hasta");
+                var where = conds.Count > 0 ? "WHERE " + string.Join(" AND ", conds) : "";
+                using var cmd = new NpgsqlCommand($@"
+                    SELECT id, fecha, cliente_id, tipo_cliente, tipo_pago,
+                           total, total_en_letras, usuario_id, estado, observaciones
+                    FROM venta {where}
+                    ORDER BY fecha DESC, id DESC", conn);
+                if (desde.HasValue) cmd.Parameters.AddWithValue("@desde", desde.Value);
+                if (hasta.HasValue) cmd.Parameters.AddWithValue("@hasta", hasta.Value.AddDays(1));
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                {
+                    list.Add(new Venta
+                    {
+                        Id = r.GetInt64(0),
+                        Fecha = r.GetFieldValue<DateTimeOffset>(1),
+                        ClienteId = r.IsDBNull(2) ? (long?)null : r.GetInt64(2),
+                        TipoCliente = r.GetString(3),
+                        TipoPago = r.GetString(4),
+                        Total = r.GetDecimal(5),
+                        TotalEnLetras = r.GetString(6),
+                        UsuarioId = r.GetInt32(7),
+                        Estado = r.GetString(8),
+                        Observaciones = r.IsDBNull(9) ? null : r.GetString(9)
+                    });
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener ventas para exportar");
+                throw;
+            }
+        }
+
         public IEnumerable<Venta> GetPendientes()
         {
             var list = new List<Venta>();

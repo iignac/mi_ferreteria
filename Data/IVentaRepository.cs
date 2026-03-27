@@ -36,5 +36,10 @@ namespace mi_ferreteria.Data
         /// Marca una venta pendiente como rechazada.
         /// </summary>
         bool RechazarVentaPendiente(long ventaId, int usuarioId, string? motivo);
+
+        /// <summary>
+        /// Devuelve todas las ventas en el rango de fechas indicado (para exportación).
+        /// </summary>
+        IEnumerable<Venta> GetParaExportar(DateTime? desde, DateTime? hasta);
     }
 }

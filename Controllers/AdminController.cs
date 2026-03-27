@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Security.Claims;
+using ClosedXML.Excel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -388,6 +390,233 @@ namespace mi_ferreteria.Controllers
                 return Problem("No se pudo cargar el tablero financiero.");
             }
         }
+
+        // ── REPORTES ──────────────────────────────────────────────────────────────
+
+        public IActionResult Reportes()
+        {
+            ViewData["Title"] = "Exportar Reportes";
+            return View();
+        }
+
+        // ── Excel exports ─────────────────────────────────────────────────────────
+
+        public IActionResult ExportarFinanzasExcel()
+        {
+            var resumen = _finanzasRepo.ObtenerResumen();
+            using var wb = new XLWorkbook();
+
+            // Hoja 1: Resumen
+            var ws1 = wb.Worksheets.Add("Resumen General");
+            ws1.Cell(1, 1).Value = "Indicador"; ws1.Cell(1, 2).Value = "Valor";
+            ws1.Row(1).Style.Font.Bold = true;
+            ws1.Cell(2, 1).Value = "Total vendido (histórico)"; ws1.Cell(2, 2).Value = (double)resumen.TotalVendido;
+            ws1.Cell(3, 1).Value = "Ventas del día";             ws1.Cell(3, 2).Value = (double)resumen.VentasDia;
+            ws1.Cell(4, 1).Value = "Ventas de la semana";        ws1.Cell(4, 2).Value = (double)resumen.VentasSemana;
+            ws1.Cell(5, 1).Value = "Ventas del mes";             ws1.Cell(5, 2).Value = (double)resumen.VentasMes;
+            ws1.Cell(6, 1).Value = "Ventas del año";             ws1.Cell(6, 2).Value = (double)resumen.VentasAnio;
+            ws1.Cell(7, 1).Value = "Margen bruto (%)";           ws1.Cell(7, 2).Value = (double)resumen.MargenBrutoPorcentaje;
+            ws1.Cell(8, 1).Value = "Promedio días cobro CC";     ws1.Cell(8, 2).Value = resumen.PromedioCobroDias.HasValue ? (double)resumen.PromedioCobroDias.Value : 0;
+            ws1.Cell(9, 1).Value = "Deuda total clientes CC";    ws1.Cell(9, 2).Value = (double)resumen.DeudaTotal;
+            for (int r = 2; r <= 9; r++)
+            {
+                ws1.Cell(r, 2).Style.NumberFormat.Format = "#,##0.00";
+            }
+            ws1.Columns().AdjustToContents();
+
+            // Hoja 2: Top Productos
+            var ws2 = wb.Worksheets.Add("Top Productos");
+            ws2.Cell(1, 1).Value = "Producto"; ws2.Cell(1, 2).Value = "Cantidad vendida"; ws2.Cell(1, 3).Value = "Importe total";
+            ws2.Row(1).Style.Font.Bold = true;
+            for (int i = 0; i < resumen.TopProductos.Count; i++)
+            {
+                var tp = resumen.TopProductos[i];
+                ws2.Cell(i + 2, 1).Value = tp.Nombre;
+                ws2.Cell(i + 2, 2).Value = (double)tp.CantidadVendida;
+                ws2.Cell(i + 2, 3).Value = (double)tp.ImporteTotal;
+                ws2.Cell(i + 2, 3).Style.NumberFormat.Format = "#,##0.00";
+            }
+            ws2.Columns().AdjustToContents();
+
+            // Hoja 3: Top Clientes
+            var ws3 = wb.Worksheets.Add("Top Clientes");
+            ws3.Cell(1, 1).Value = "Cliente"; ws3.Cell(1, 2).Value = "Compras"; ws3.Cell(1, 3).Value = "Importe total";
+            ws3.Row(1).Style.Font.Bold = true;
+            for (int i = 0; i < resumen.TopClientes.Count; i++)
+            {
+                var tc = resumen.TopClientes[i];
+                ws3.Cell(i + 2, 1).Value = tc.Nombre;
+                ws3.Cell(i + 2, 2).Value = tc.CantidadCompras;
+                ws3.Cell(i + 2, 3).Value = (double)tc.ImporteTotal;
+                ws3.Cell(i + 2, 3).Style.NumberFormat.Format = "#,##0.00";
+            }
+            ws3.Columns().AdjustToContents();
+
+            // Hoja 4: Deudores
+            var ws4 = wb.Worksheets.Add("Clientes Deudores");
+            ws4.Cell(1, 1).Value = "Cliente"; ws4.Cell(1, 2).Value = "Deuda total"; ws4.Cell(1, 3).Value = "Límite crédito"; ws4.Cell(1, 4).Value = "% Uso";
+            ws4.Row(1).Style.Font.Bold = true;
+            for (int i = 0; i < resumen.Deudores.Count; i++)
+            {
+                var d = resumen.Deudores[i];
+                ws4.Cell(i + 2, 1).Value = d.Nombre;
+                ws4.Cell(i + 2, 2).Value = (double)d.DeudaTotal;
+                ws4.Cell(i + 2, 3).Value = (double)d.LimiteCredito;
+                var pct = d.LimiteCredito > 0 ? Math.Round((double)(d.DeudaTotal / d.LimiteCredito * 100), 1) : 0;
+                ws4.Cell(i + 2, 4).Value = pct;
+                ws4.Cell(i + 2, 2).Style.NumberFormat.Format = "#,##0.00";
+                ws4.Cell(i + 2, 3).Style.NumberFormat.Format = "#,##0.00";
+            }
+            ws4.Columns().AdjustToContents();
+
+            using var ms = new MemoryStream();
+            wb.SaveAs(ms);
+            return File(ms.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"finanzas_{DateTime.Now:yyyyMMdd}.xlsx");
+        }
+
+        public IActionResult ExportarHistorialExcel(string? desde, string? hasta)
+        {
+            var fechaDesde = ParseDate(desde)?.DateTime;
+            var fechaHasta = ParseDate(hasta)?.DateTime;
+            var ventas = _ventaRepo.GetParaExportar(fechaDesde, fechaHasta).ToList();
+
+            using var wb = new XLWorkbook();
+            var ws = wb.Worksheets.Add("Historial de Ventas");
+            ws.Cell(1, 1).Value = "ID";
+            ws.Cell(1, 2).Value = "Fecha";
+            ws.Cell(1, 3).Value = "Tipo cliente";
+            ws.Cell(1, 4).Value = "Tipo pago";
+            ws.Cell(1, 5).Value = "Total";
+            ws.Cell(1, 6).Value = "Estado";
+            ws.Row(1).Style.Font.Bold = true;
+            for (int i = 0; i < ventas.Count; i++)
+            {
+                var v = ventas[i];
+                ws.Cell(i + 2, 1).Value = v.Id;
+                ws.Cell(i + 2, 2).Value = v.Fecha.LocalDateTime.ToString("dd/MM/yyyy HH:mm");
+                ws.Cell(i + 2, 3).Value = v.TipoCliente == "CONSUMIDOR_FINAL" ? "Consumidor final" : "Cliente registrado";
+                ws.Cell(i + 2, 4).Value = v.TipoPago == "CUENTA_CORRIENTE" ? "Cuenta corriente" : "Contado";
+                ws.Cell(i + 2, 5).Value = (double)v.Total;
+                ws.Cell(i + 2, 5).Style.NumberFormat.Format = "#,##0.00";
+                ws.Cell(i + 2, 6).Value = v.Estado switch
+                {
+                    "PENDIENTE_AUTORIZACION" => "Pendiente",
+                    "RECHAZADA" => "Rechazada",
+                    "ANULADA" => "Anulada",
+                    _ => "Confirmada"
+                };
+            }
+            ws.Columns().AdjustToContents();
+
+            using var ms = new MemoryStream();
+            wb.SaveAs(ms);
+            return File(ms.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"historial_ventas_{DateTime.Now:yyyyMMdd}.xlsx");
+        }
+
+        public IActionResult ExportarDeudoresExcel()
+        {
+            var resumen = _finanzasRepo.ObtenerResumen();
+            using var wb = new XLWorkbook();
+            var ws = wb.Worksheets.Add("Clientes Deudores");
+            ws.Cell(1, 1).Value = "Cliente";
+            ws.Cell(1, 2).Value = "Deuda total";
+            ws.Cell(1, 3).Value = "Límite crédito";
+            ws.Cell(1, 4).Value = "% Uso del límite";
+            ws.Row(1).Style.Font.Bold = true;
+            for (int i = 0; i < resumen.Deudores.Count; i++)
+            {
+                var d = resumen.Deudores[i];
+                ws.Cell(i + 2, 1).Value = d.Nombre;
+                ws.Cell(i + 2, 2).Value = (double)d.DeudaTotal;
+                ws.Cell(i + 2, 3).Value = (double)d.LimiteCredito;
+                ws.Cell(i + 2, 4).Value = d.LimiteCredito > 0 ? Math.Round((double)(d.DeudaTotal / d.LimiteCredito * 100), 1) : 0;
+                ws.Cell(i + 2, 2).Style.NumberFormat.Format = "#,##0.00";
+                ws.Cell(i + 2, 3).Style.NumberFormat.Format = "#,##0.00";
+            }
+            // Fila totales
+            int tot = resumen.Deudores.Count + 2;
+            ws.Cell(tot, 1).Value = "TOTAL";
+            ws.Cell(tot, 2).Value = (double)resumen.DeudaTotal;
+            ws.Cell(tot, 2).Style.Font.Bold = true;
+            ws.Cell(tot, 2).Style.NumberFormat.Format = "#,##0.00";
+            ws.Columns().AdjustToContents();
+
+            using var ms = new MemoryStream();
+            wb.SaveAs(ms);
+            return File(ms.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"deudores_{DateTime.Now:yyyyMMdd}.xlsx");
+        }
+
+        public IActionResult ExportarStockCriticoExcel()
+        {
+            var productos = _stockRepo.GetProductosStockCritico(null, 1, int.MaxValue, out _).ToList();
+            using var wb = new XLWorkbook();
+            var ws = wb.Worksheets.Add("Stock Crítico");
+            ws.Cell(1, 1).Value = "SKU";
+            ws.Cell(1, 2).Value = "Nombre";
+            ws.Cell(1, 3).Value = "Stock actual";
+            ws.Cell(1, 4).Value = "Stock mínimo";
+            ws.Cell(1, 5).Value = "Unidad";
+            ws.Cell(1, 6).Value = "Ubicación";
+            ws.Cell(1, 7).Value = "Precio venta";
+            ws.Row(1).Style.Font.Bold = true;
+            for (int i = 0; i < productos.Count; i++)
+            {
+                var p = productos[i];
+                ws.Cell(i + 2, 1).Value = p.Sku;
+                ws.Cell(i + 2, 2).Value = p.Nombre;
+                ws.Cell(i + 2, 3).Value = p.StockActual;
+                ws.Cell(i + 2, 4).Value = p.StockMinimo;
+                ws.Cell(i + 2, 5).Value = p.UnidadMedida;
+                ws.Cell(i + 2, 6).Value = p.UbicacionCodigo ?? "-";
+                ws.Cell(i + 2, 7).Value = (double)p.PrecioVentaActual;
+                ws.Cell(i + 2, 7).Style.NumberFormat.Format = "#,##0.00";
+            }
+            ws.Columns().AdjustToContents();
+
+            using var ms = new MemoryStream();
+            wb.SaveAs(ms);
+            return File(ms.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"stock_critico_{DateTime.Now:yyyyMMdd}.xlsx");
+        }
+
+        // ── Print / PDF ────────────────────────────────────────────────────────────
+
+        public IActionResult ImprimirFinanzas()
+        {
+            var resumen = _finanzasRepo.ObtenerResumen();
+            ViewData["FechaGeneracion"] = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+            return View(resumen);
+        }
+
+        public IActionResult ImprimirHistorial(string? desde, string? hasta)
+        {
+            var fechaDesde = ParseDate(desde)?.DateTime;
+            var fechaHasta = ParseDate(hasta)?.DateTime;
+            var ventas = _ventaRepo.GetParaExportar(fechaDesde, fechaHasta).ToList();
+            ViewBag.Desde = desde;
+            ViewBag.Hasta = hasta;
+            ViewData["FechaGeneracion"] = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+            return View(ventas);
+        }
+
+        public IActionResult ImprimirDeudores()
+        {
+            var resumen = _finanzasRepo.ObtenerResumen();
+            ViewData["FechaGeneracion"] = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+            return View(resumen);
+        }
+
+        public IActionResult ImprimirStockCritico()
+        {
+            var productos = _stockRepo.GetProductosStockCritico(null, 1, int.MaxValue, out _).ToList();
+            ViewData["FechaGeneracion"] = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+            return View(productos);
+        }
+
+        // ── helpers ────────────────────────────────────────────────────────────────
 
         private static string? NormalizeModulo(string? modulo)
         {

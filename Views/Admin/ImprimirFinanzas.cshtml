@@ -1,0 +1,115 @@
+@model mi_ferreteria.Models.ReporteFinancieroResumen
+@{
+    Layout = null;
+    var fecha = ViewData["FechaGeneracion"]?.ToString();
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Resumen Financiero - Mi Ferretería</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; font-size: 11px; color: #111; padding: 24px; }
+        h1 { font-size: 18px; font-weight: bold; margin-bottom: 2px; }
+        .subtitle { font-size: 11px; color: #555; margin-bottom: 20px; }
+        h2 { font-size: 13px; font-weight: bold; margin: 18px 0 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+        th { background: #FC651F; color: white; text-align: left; padding: 5px 8px; font-size: 10px; }
+        td { padding: 4px 8px; border-bottom: 1px solid #eee; }
+        tr:nth-child(even) td { background: #fafafa; }
+        .kv td:first-child { font-weight: bold; width: 55%; }
+        .total-row td { font-weight: bold; background: #fff3ee !important; }
+        @@media print {
+            @@page { margin: 1.5cm; }
+            button { display: none !important; }
+        }
+        .no-print { margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <button onclick="window.print()" style="background:#FC651F;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:12px;">
+            Imprimir / Guardar PDF
+        </button>
+    </div>
+
+    <h1>Resumen Financiero</h1>
+    <p class="subtitle">Mi Ferretería &mdash; Generado el @fecha</p>
+
+    <h2>Indicadores Generales</h2>
+    <table class="kv">
+        <tr><td>Total vendido (histórico)</td><td>@Model.TotalVendido.ToString("C")</td></tr>
+        <tr><td>Ventas del día</td><td>@Model.VentasDia.ToString("C")</td></tr>
+        <tr><td>Ventas de la semana</td><td>@Model.VentasSemana.ToString("C")</td></tr>
+        <tr><td>Ventas del mes</td><td>@Model.VentasMes.ToString("C")</td></tr>
+        <tr><td>Ventas del año</td><td>@Model.VentasAnio.ToString("C")</td></tr>
+        <tr><td>Margen bruto</td><td>@Model.MargenBrutoPorcentaje.ToString("0.##")%</td></tr>
+        <tr><td>Promedio días cobro (CC)</td><td>@(Model.PromedioCobroDias.HasValue ? Model.PromedioCobroDias.Value.ToString("0.#") + " días" : "Sin datos")</td></tr>
+        <tr><td>Deuda total clientes CC</td><td>@Model.DeudaTotal.ToString("C")</td></tr>
+    </table>
+
+    @if (Model.TopProductos.Any())
+    {
+        <h2>Top Productos Más Vendidos</h2>
+        <table>
+            <thead><tr><th>Producto</th><th>Cantidad vendida</th><th>Importe total</th></tr></thead>
+            <tbody>
+                @foreach (var tp in Model.TopProductos)
+                {
+                    <tr>
+                        <td>@tp.Nombre</td>
+                        <td>@tp.CantidadVendida.ToString("0.##")</td>
+                        <td>@tp.ImporteTotal.ToString("C")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @if (Model.TopClientes.Any())
+    {
+        <h2>Top Clientes por Facturación</h2>
+        <table>
+            <thead><tr><th>Cliente</th><th>Compras</th><th>Importe total</th></tr></thead>
+            <tbody>
+                @foreach (var tc in Model.TopClientes)
+                {
+                    <tr>
+                        <td>@tc.Nombre</td>
+                        <td>@tc.CantidadCompras</td>
+                        <td>@tc.ImporteTotal.ToString("C")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @if (Model.Deudores.Any())
+    {
+        <h2>Clientes con Saldo Deudor</h2>
+        <table>
+            <thead><tr><th>Cliente</th><th>Deuda total</th><th>Límite crédito</th><th>% Uso</th></tr></thead>
+            <tbody>
+                @foreach (var d in Model.Deudores)
+                {
+                    var pct = d.LimiteCredito > 0 ? Math.Round(d.DeudaTotal / d.LimiteCredito * 100, 1) : 0;
+                    <tr>
+                        <td>@d.Nombre</td>
+                        <td>@d.DeudaTotal.ToString("C")</td>
+                        <td>@d.LimiteCredito.ToString("C")</td>
+                        <td>@pct%</td>
+                    </tr>
+                }
+                <tr class="total-row">
+                    <td>TOTAL</td>
+                    <td>@Model.DeudaTotal.ToString("C")</td>
+                    <td></td><td></td>
+                </tr>
+            </tbody>
+        </table>
+    }
+
+    <script>window.onload = function() { window.print(); };</script>
+</body>
+</html>

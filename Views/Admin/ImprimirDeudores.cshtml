@@ -1,0 +1,76 @@
+@model mi_ferreteria.Models.ReporteFinancieroResumen
+@{
+    Layout = null;
+    var fecha = ViewData["FechaGeneracion"]?.ToString();
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Clientes Deudores - Mi Ferretería</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; font-size: 11px; color: #111; padding: 24px; }
+        h1 { font-size: 18px; font-weight: bold; margin-bottom: 2px; }
+        .subtitle { font-size: 11px; color: #555; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+        th { background: #FC651F; color: white; text-align: left; padding: 5px 8px; font-size: 10px; }
+        td { padding: 4px 8px; border-bottom: 1px solid #eee; }
+        tr:nth-child(even) td { background: #fafafa; }
+        .total-row td { font-weight: bold; background: #fff3ee !important; }
+        .text-right { text-align: right; }
+        @@media print {
+            @@page { margin: 1.5cm; }
+            button { display: none !important; }
+        }
+        .no-print { margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <button onclick="window.print()" style="background:#FC651F;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:12px;">
+            Imprimir / Guardar PDF
+        </button>
+    </div>
+
+    <h1>Clientes con Saldo Deudor</h1>
+    <p class="subtitle">Mi Ferretería &mdash; Generado el @fecha</p>
+
+    @if (!Model.Deudores.Any())
+    {
+        <p style="color:#555;">No hay clientes con saldo deudor al momento de la consulta.</p>
+    }
+    else
+    {
+        <table>
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th class="text-right">Deuda total</th>
+                    <th class="text-right">Límite crédito</th>
+                    <th class="text-right">% Uso</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var d in Model.Deudores)
+                {
+                    var pct = d.LimiteCredito > 0 ? Math.Round(d.DeudaTotal / d.LimiteCredito * 100, 1) : 0;
+                    <tr>
+                        <td>@d.Nombre</td>
+                        <td class="text-right">@d.DeudaTotal.ToString("C")</td>
+                        <td class="text-right">@d.LimiteCredito.ToString("C")</td>
+                        <td class="text-right">@pct%</td>
+                    </tr>
+                }
+                <tr class="total-row">
+                    <td>TOTAL (@Model.Deudores.Count clientes)</td>
+                    <td class="text-right">@Model.DeudaTotal.ToString("C")</td>
+                    <td></td><td></td>
+                </tr>
+            </tbody>
+        </table>
+    }
+
+    <script>window.onload = function() { window.print(); };</script>
+</body>
+</html>

@@ -1,0 +1,167 @@
+@{
+    ViewData["Title"] = "Exportar Reportes";
+}
+
+<div class="sm:flex sm:items-center sm:justify-between mb-8">
+    <div>
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+            Exportar Reportes
+        </h2>
+        <p class="mt-1 text-sm text-gray-500">
+            Generá y exportá los informes del sistema en Excel o PDF.
+        </p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+
+    @* Resumen Financiero *@
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col gap-4">
+        <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 rounded-lg p-2.5" style="background-color:#FC651F20;">
+                <svg class="h-6 w-6" style="color:#FC651F;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-base font-semibold text-gray-900">Resumen Financiero</h3>
+                <p class="mt-1 text-sm text-gray-500">
+                    Margen bruto, ventas por período, top productos, top clientes y deudores de cuenta corriente.
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3 mt-auto pt-2 border-t border-gray-100">
+            <a asp-action="ExportarFinanzasExcel"
+               class="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm transition-colors"
+               style="background-color:#FC651F;" onmouseover="this.style.backgroundColor='#e0541a'" onmouseout="this.style.backgroundColor='#FC651F'">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Exportar Excel
+            </a>
+            <a asp-action="ImprimirFinanzas" target="_blank"
+               class="btn-action-secondary inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                Imprimir / PDF
+            </a>
+        </div>
+    </div>
+
+    @* Historial de Ventas *@
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col gap-4">
+        <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 rounded-lg p-2.5" style="background-color:#FC651F20;">
+                <svg class="h-6 w-6" style="color:#FC651F;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-base font-semibold text-gray-900">Historial de Ventas</h3>
+                <p class="mt-1 text-sm text-gray-500">
+                    Todas las ventas con fecha, tipo de pago, total y estado. Filtrá por rango de fechas.
+                </p>
+                <div class="mt-3 flex items-center gap-2">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Desde</label>
+                        <input type="date" id="historial-desde" class="block rounded-md border border-gray-300 bg-white py-1.5 px-2.5 text-sm text-gray-900 shadow-sm focus:border-[#FC651F] focus:outline-none focus:ring-1 focus:ring-[#FC651F]" />
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Hasta</label>
+                        <input type="date" id="historial-hasta" class="block rounded-md border border-gray-300 bg-white py-1.5 px-2.5 text-sm text-gray-900 shadow-sm focus:border-[#FC651F] focus:outline-none focus:ring-1 focus:ring-[#FC651F]" />
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-3 mt-auto pt-2 border-t border-gray-100">
+            <button type="button" onclick="exportarHistorialExcel()"
+               class="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm transition-colors"
+               style="background-color:#FC651F;" onmouseover="this.style.backgroundColor='#e0541a'" onmouseout="this.style.backgroundColor='#FC651F'">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Exportar Excel
+            </button>
+            <button type="button" onclick="imprimirHistorial()"
+               class="btn-action-secondary inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                Imprimir / PDF
+            </button>
+        </div>
+    </div>
+
+    @* Clientes Deudores *@
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col gap-4">
+        <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 rounded-lg p-2.5" style="background-color:#FC651F20;">
+                <svg class="h-6 w-6" style="color:#FC651F;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-base font-semibold text-gray-900">Clientes Deudores</h3>
+                <p class="mt-1 text-sm text-gray-500">
+                    Listado de clientes con saldo deudor en cuenta corriente, deuda individual y total acumulado.
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3 mt-auto pt-2 border-t border-gray-100">
+            <a asp-action="ExportarDeudoresExcel"
+               class="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm transition-colors"
+               style="background-color:#FC651F;" onmouseover="this.style.backgroundColor='#e0541a'" onmouseout="this.style.backgroundColor='#FC651F'">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Exportar Excel
+            </a>
+            <a asp-action="ImprimirDeudores" target="_blank"
+               class="btn-action-secondary inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                Imprimir / PDF
+            </a>
+        </div>
+    </div>
+
+    @* Stock Crítico *@
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col gap-4">
+        <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 rounded-lg p-2.5" style="background-color:#FC651F20;">
+                <svg class="h-6 w-6" style="color:#FC651F;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-base font-semibold text-gray-900">Stock Crítico</h3>
+                <p class="mt-1 text-sm text-gray-500">
+                    Productos con stock igual o por debajo del mínimo configurado, con ubicación y precio de venta.
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3 mt-auto pt-2 border-t border-gray-100">
+            <a asp-action="ExportarStockCriticoExcel"
+               class="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm transition-colors"
+               style="background-color:#FC651F;" onmouseover="this.style.backgroundColor='#e0541a'" onmouseout="this.style.backgroundColor='#FC651F'">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Exportar Excel
+            </a>
+            <a asp-action="ImprimirStockCritico" target="_blank"
+               class="btn-action-secondary inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                Imprimir / PDF
+            </a>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+<script>
+    function buildHistorialUrl(action) {
+        var desde = document.getElementById('historial-desde').value;
+        var hasta = document.getElementById('historial-hasta').value;
+        var url = action + '?';
+        if (desde) url += 'desde=' + encodeURIComponent(desde) + '&';
+        if (hasta) url += 'hasta=' + encodeURIComponent(hasta);
+        return url;
+    }
+    function exportarHistorialExcel() {
+        window.location.href = buildHistorialUrl('@Url.Action("ExportarHistorialExcel")');
+    }
+    function imprimirHistorial() {
+        window.open(buildHistorialUrl('@Url.Action("ImprimirHistorial")'), '_blank');
+    }
+</script>
+}

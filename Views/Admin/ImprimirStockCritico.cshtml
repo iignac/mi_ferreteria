@@ -1,0 +1,77 @@
+@model IEnumerable<mi_ferreteria.Models.ProductoStockCritico>
+@{
+    Layout = null;
+    var fecha = ViewData["FechaGeneracion"]?.ToString();
+    var productos = Model.ToList();
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Stock Crítico - Mi Ferretería</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; font-size: 11px; color: #111; padding: 24px; }
+        h1 { font-size: 18px; font-weight: bold; margin-bottom: 2px; }
+        .subtitle { font-size: 11px; color: #555; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+        th { background: #FC651F; color: white; text-align: left; padding: 5px 8px; font-size: 10px; }
+        td { padding: 4px 8px; border-bottom: 1px solid #eee; }
+        tr:nth-child(even) td { background: #fafafa; }
+        .text-right { text-align: right; }
+        .badge-zero { color: #b91c1c; font-weight: bold; }
+        @@media print {
+            @@page { margin: 1.5cm; }
+            button { display: none !important; }
+        }
+        .no-print { margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <button onclick="window.print()" style="background:#FC651F;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:12px;">
+            Imprimir / Guardar PDF
+        </button>
+    </div>
+
+    <h1>Productos con Stock Crítico</h1>
+    <p class="subtitle">Mi Ferretería &mdash; Generado el @fecha &mdash; @productos.Count producto(s)</p>
+
+    @if (!productos.Any())
+    {
+        <p style="color:#555;">No hay productos con stock crítico al momento de la consulta.</p>
+    }
+    else
+    {
+        <table>
+            <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>Nombre</th>
+                    <th class="text-right">Stock actual</th>
+                    <th class="text-right">Stock mínimo</th>
+                    <th>Unidad</th>
+                    <th>Ubicación</th>
+                    <th class="text-right">Precio venta</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in productos)
+                {
+                    <tr>
+                        <td>@p.Sku</td>
+                        <td>@p.Nombre</td>
+                        <td class="text-right @(p.StockActual == 0 ? "badge-zero" : "")">@p.StockActual</td>
+                        <td class="text-right">@p.StockMinimo</td>
+                        <td>@p.UnidadMedida</td>
+                        <td>@(p.UbicacionCodigo ?? "-")</td>
+                        <td class="text-right">@p.PrecioVentaActual.ToString("C")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <script>window.onload = function() { window.print(); };</script>
+</body>
+</html>
