@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using mi_ferreteria.Data;
 using mi_ferreteria.Models;
 using mi_ferreteria.ViewModels;
+using mi_ferreteria.Helpers;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -629,7 +630,7 @@ namespace mi_ferreteria.Controllers
         }
         private void NormalizarYValidarCliente(ClienteCreateViewModel model)
         {
-            model.Nombre = model.Nombre?.Trim() ?? string.Empty;
+            model.Nombre = InputSanitizer.NormalizeName(model.Nombre) ?? string.Empty;
             model.Apellido = string.IsNullOrWhiteSpace(model.Apellido) ? null : model.Apellido.Trim();
             var tipoDocNorm = string.IsNullOrWhiteSpace(model.TipoDocumento) ? null : model.TipoDocumento.Trim().ToUpperInvariant();
             model.TipoDocumento = tipoDocNorm;
