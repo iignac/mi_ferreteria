@@ -75,7 +75,7 @@ namespace mi_ferreteria.Data
                        COALESCE(SUM(vd.cantidad * p.precio_costo_actual),0) AS costo_total
                 FROM venta_detalle vd
                 JOIN venta v ON v.id = vd.venta_id
-                JOIN public.producto p ON p.id = vd.producto_id
+                JOIN producto p ON p.id = vd.producto_id
                 WHERE p.precio_costo_actual IS NOT NULL AND p.precio_costo_actual > 0;", conn))
             {
                 using var r = cmdMargen.ExecuteReader();
