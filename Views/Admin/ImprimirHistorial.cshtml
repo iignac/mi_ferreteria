@@ -1,0 +1,95 @@
+@model IEnumerable<mi_ferreteria.Models.Venta>
+@{
+    Layout = null;
+    var fecha = ViewData["FechaGeneracion"]?.ToString();
+    string? desde = ViewBag.Desde as string;
+    string? hasta = ViewBag.Hasta as string;
+    var ventas = Model.ToList();
+    var total = ventas.Where(v => (v.Estado ?? "CONFIRMADA") == "CONFIRMADA").Sum(v => v.Total);
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Historial de Ventas - Mi Ferretería</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; font-size: 11px; color: #111; padding: 24px; }
+        h1 { font-size: 18px; font-weight: bold; margin-bottom: 2px; }
+        .subtitle { font-size: 11px; color: #555; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+        th { background: #FC651F; color: white; text-align: left; padding: 5px 8px; font-size: 10px; }
+        td { padding: 4px 8px; border-bottom: 1px solid #eee; }
+        tr:nth-child(even) td { background: #fafafa; }
+        .total-row td { font-weight: bold; background: #fff3ee !important; }
+        @@media print {
+            @@page { margin: 1.5cm; }
+            button { display: none !important; }
+        }
+        .no-print { margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <button onclick="window.print()" style="background:#FC651F;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:12px;">
+            Imprimir / Guardar PDF
+        </button>
+    </div>
+
+    <h1>Historial de Ventas</h1>
+    <p class="subtitle">
+        Mi Ferretería &mdash; Generado el @fecha
+        @if (!string.IsNullOrWhiteSpace(desde) || !string.IsNullOrWhiteSpace(hasta))
+        {
+            <span>&mdash; Período: @(desde ?? "inicio") al @(hasta ?? "hoy")</span>
+        }
+    </p>
+
+    @if (!ventas.Any())
+    {
+        <p style="color:#555;">No se encontraron ventas en el período seleccionado.</p>
+    }
+    else
+    {
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Fecha</th>
+                    <th>Tipo cliente</th>
+                    <th>Tipo pago</th>
+                    <th style="text-align:right;">Total</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var v in ventas)
+                {
+                    var estado = v.Estado switch {
+                        "PENDIENTE_AUTORIZACION" => "Pendiente",
+                        "RECHAZADA" => "Rechazada",
+                        "ANULADA" => "Anulada",
+                        _ => "Confirmada"
+                    };
+                    <tr>
+                        <td>@v.Id</td>
+                        <td>@v.Fecha.LocalDateTime.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@(v.TipoCliente == "CONSUMIDOR_FINAL" ? "Cons. final" : "Registrado")</td>
+                        <td>@(v.TipoPago == "CUENTA_CORRIENTE" ? "Cta. corriente" : "Contado")</td>
+                        <td style="text-align:right;">@v.Total.ToString("C")</td>
+                        <td>@estado</td>
+                    </tr>
+                }
+                <tr class="total-row">
+                    <td colspan="4">TOTAL CONFIRMADAS</td>
+                    <td style="text-align:right;">@total.ToString("C")</td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+        <p style="font-size:10px;color:#555;">@ventas.Count registros. Total confirmadas: @total.ToString("C")</p>
+    }
+
+    <script>window.onload = function() { window.print(); };</script>
+</body>
+</html>
