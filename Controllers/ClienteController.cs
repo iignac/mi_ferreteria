@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authorization;
 using mi_ferreteria.Data;
@@ -59,100 +59,38 @@ namespace mi_ferreteria.Controllers
 
         public IActionResult Create()
         {
-            var c = new Cliente
+            var vm = new ClienteCreateViewModel
             {
                 Activo = true,
                 TipoCliente = "CONSUMIDOR_FINAL",
                 CuentaCorrienteHabilitada = false,
-                LimiteCredito = 0
+                LimiteCredito = 0,
+                SaldoInicialCuentaCorriente = 0
             };
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(c);
-            return View(c);
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(vm);
+            return View(vm);
         }
 
         [HttpPost]
-        public IActionResult Create([Required] string Nombre, string? Apellido, string? TipoDocumento, string? NumeroDocumento,
-                                    string? DireccionCalle, string? DireccionNumero, string? DireccionLocalidad,
-                                    string? Telefono, string? Email,
-                                    string TipoCliente, bool CuentaCorrienteHabilitada,
-                                    decimal LimiteCredito, decimal SaldoInicialCuentaCorriente, bool Activo = true)
+        public IActionResult Create(ClienteCreateViewModel model)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(Nombre))
+                if (model == null)
                 {
-                    ModelState.AddModelError("Nombre", "El nombre o razón social es obligatorio.");
+                    model = new ClienteCreateViewModel();
+                    ModelState.AddModelError(string.Empty, "No se recibieron los datos del cliente.");
                 }
 
-                var tipoDocNorm = TipoDocumento?.Trim().ToUpperInvariant();
-                if (tipoDocNorm == "DNI")
-                {
-                    if (string.IsNullOrWhiteSpace(Apellido))
-                    {
-                        ModelState.AddModelError("Apellido", "El apellido es obligatorio cuando el tipo de documento es DNI.");
-                    }
-                    if (string.IsNullOrWhiteSpace(NumeroDocumento))
-                    {
-                        ModelState.AddModelError("NumeroDocumento", "El DNI es obligatorio.");
-                    }
-                    else if (NumeroDocumento.Trim().Length > 8)
-                    {
-                        ModelState.AddModelError("NumeroDocumento", "El DNI no puede tener más de 8 caracteres.");
-                    }
-                }
-                else if (tipoDocNorm == "CUIT")
-                {
-                    if (string.IsNullOrWhiteSpace(NumeroDocumento))
-                    {
-                        ModelState.AddModelError("NumeroDocumento", "El CUIT es obligatorio.");
-                    }
-                    else if (NumeroDocumento.Trim().Length > 11)
-                    {
-                        ModelState.AddModelError("NumeroDocumento", "El CUIT no puede tener más de 11 caracteres.");
-                    }
-                }
-
-                if (!string.IsNullOrWhiteSpace(Email))
-                {
-                    var emailAttr = new EmailAddressAttribute();
-                    if (!emailAttr.IsValid(Email))
-                    {
-                        ModelState.AddModelError("Email", "El email no tiene un formato válido.");
-                    }
-                }
-
-                if (TipoCliente != "CONSUMIDOR_FINAL" && TipoCliente != "CUENTA_CORRIENTE")
-                {
-                    ModelState.AddModelError("TipoCliente", "Tipo de cliente inválido.");
-                }
-
-                if (CuentaCorrienteHabilitada && LimiteCredito < 0)
-                {
-                    ModelState.AddModelError("LimiteCredito", "El límite de crédito no puede ser negativo.");
-                }
-
-                var direccion = BuildDireccion(DireccionCalle, DireccionNumero, DireccionLocalidad);
-
-                var cliente = new Cliente
-                {
-                    Nombre = Nombre,
-                    Apellido = string.IsNullOrWhiteSpace(Apellido) ? null : Apellido,
-                    TipoDocumento = string.IsNullOrWhiteSpace(TipoDocumento) ? null : TipoDocumento,
-                    NumeroDocumento = string.IsNullOrWhiteSpace(NumeroDocumento) ? null : NumeroDocumento,
-                    Direccion = direccion,
-                    Telefono = string.IsNullOrWhiteSpace(Telefono) ? null : Telefono,
-                    Email = string.IsNullOrWhiteSpace(Email) ? null : Email,
-                    TipoCliente = TipoCliente,
-                    CuentaCorrienteHabilitada = CuentaCorrienteHabilitada,
-                    LimiteCredito = CuentaCorrienteHabilitada ? LimiteCredito : 0,
-                    Activo = Activo
-                };
+                NormalizarYValidarCliente(model);
 
                 if (!ModelState.IsValid)
                 {
-                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(cliente);
-                    return View(cliente);
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(model);
+                    return View(model);
                 }
+
+                var cliente = MapearCliente(model);
 
                 _repo.Add(cliente);
 
@@ -162,8 +100,7 @@ namespace mi_ferreteria.Controllers
                         $"Alta de cliente #{cliente.Id}: {ResumenCliente(cliente)}");
                 }
 
-                // Saldo inicial de cuenta corriente como ajuste, si corresponde
-                if (CuentaCorrienteHabilitada && SaldoInicialCuentaCorriente != 0)
+                if (model.CuentaCorrienteHabilitada && model.SaldoInicialCuentaCorriente != 0)
                 {
                     try
                     {
@@ -179,7 +116,7 @@ namespace mi_ferreteria.Controllers
                                 (cliente_id, venta_id, tipo, monto, descripcion, usuario_id)
                             VALUES (@cid, NULL, 'AJUSTE', @monto, @desc, NULL)", conn);
                         cmdAdj.Parameters.AddWithValue("@cid", cliente.Id);
-                        cmdAdj.Parameters.AddWithValue("@monto", SaldoInicialCuentaCorriente);
+                        cmdAdj.Parameters.AddWithValue("@monto", model.SaldoInicialCuentaCorriente);
                         cmdAdj.Parameters.AddWithValue("@desc", (object)"Saldo inicial" ?? (object)System.DBNull.Value);
                         cmdAdj.ExecuteNonQuery();
                     }
@@ -196,51 +133,59 @@ namespace mi_ferreteria.Controllers
             {
                 _logger.LogError(ex, "Error al crear cliente");
                 ModelState.AddModelError(string.Empty, "Ocurrió un error al crear el cliente.");
-                var direccion = BuildDireccion(DireccionCalle, DireccionNumero, DireccionLocalidad);
-                var modelEx = new Cliente
+                if (model == null)
                 {
-                    Nombre = Nombre ?? string.Empty,
-                    Apellido = Apellido,
-                    TipoDocumento = TipoDocumento,
-                    NumeroDocumento = NumeroDocumento,
-                    Direccion = direccion,
-                    Telefono = Telefono,
-                    Email = Email,
-                    TipoCliente = TipoCliente,
-                    CuentaCorrienteHabilitada = CuentaCorrienteHabilitada,
-                    LimiteCredito = LimiteCredito,
-                    Activo = Activo
-                };
-                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(modelEx);
-                return View(modelEx);
+                    model = new ClienteCreateViewModel();
+                }
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(model);
+                return View(model);
             }
         }
+        [HttpGet]
 
-        [HttpGet]
-        public IActionResult MovimientoComprobante(long clienteId, long movimientoId)
-        {
-            var cliente = _repo.GetById(clienteId);
-            if (cliente == null) return NotFound();
-            var movimiento = _repo.GetMovimiento(movimientoId);
-            if (movimiento == null || movimiento.ClienteId != clienteId)
-            {
-                return NotFound();
-            }
-
-            var vm = new ClienteMovimientoComprobanteViewModel
-            {
-                Cliente = cliente,
-                Movimiento = movimiento
-            };
-            return View("MovimientoComprobante", vm);
-        }
-
+        public IActionResult MovimientoComprobante(long clienteId, long movimientoId)
+
+        {
+
+            var cliente = _repo.GetById(clienteId);
+
+            if (cliente == null) return NotFound();
+
+            var movimiento = _repo.GetMovimiento(movimientoId);
+
+            if (movimiento == null || movimiento.ClienteId != clienteId)
+
+            {
+
+                return NotFound();
+
+            }
+
+
+
+            var vm = new ClienteMovimientoComprobanteViewModel
+
+            {
+
+                Cliente = cliente,
+
+                Movimiento = movimiento
+
+            };
+
+            return View("MovimientoComprobante", vm);
+
+        }
+
+
+
         public IActionResult Edit(long id)
         {
-            var c = _repo.GetById(id);
-            if (c == null) return NotFound();
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(c);
-            return View(c);
+            var cliente = _repo.GetById(id);
+            if (cliente == null) return NotFound();
+            var vm = ConstruirClienteViewModel(cliente);
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(vm);
+            return View(vm);
         }
 
         public IActionResult Details(long id)
@@ -291,14 +236,14 @@ namespace mi_ferreteria.Controllers
                 if (cliente == null) return NotFound();
                 if (!cliente.CuentaCorrienteHabilitada)
                 {
-                    TempData["CuentaCorrienteError"] = "La cuenta corriente no estケ habilitada para este cliente.";
+                    TempData["CuentaCorrienteError"] = "La cuenta corriente no estã‚± habilitada para este cliente.";
                     return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
                 }
 
                 var movimiento = _repo.GetMovimiento(movimientoDeudaId);
                 if (movimiento == null || movimiento.ClienteId != clienteId || movimiento.Tipo != "DEUDA")
                 {
-                    TempData["CuentaCorrienteError"] = "El movimiento de deuda seleccionado no es vケlido.";
+                    TempData["CuentaCorrienteError"] = "El movimiento de deuda seleccionado no es vã‚±lido.";
                     return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
                 }
 
@@ -306,7 +251,7 @@ namespace mi_ferreteria.Controllers
                 var facturaObjetivo = facturasPendientes.FirstOrDefault(f => f.MovimientoDeudaId == movimientoDeudaId);
                 if (facturaObjetivo == null || facturaObjetivo.FechaVencimiento >= DateTimeOffset.UtcNow)
                 {
-                    TempData["CuentaCorrienteError"] = "La factura seleccionada no estケ vencida o ya fue cancelada.";
+                    TempData["CuentaCorrienteError"] = "La factura seleccionada no estã‚± vencida o ya fue cancelada.";
                     return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
                 }
 
@@ -324,7 +269,7 @@ namespace mi_ferreteria.Controllers
                 }
 
                 var descripcionFinal = string.IsNullOrWhiteSpace(descripcion)
-                    ? $"Nota de débito por factura vencida {(facturaObjetivo.Comprobante ?? $"Venta {facturaObjetivo.VentaId}")}"
+                    ? $"Nota de dÃ©bito por factura vencida {(facturaObjetivo.Comprobante ?? $"Venta {facturaObjetivo.VentaId}")}"
                     : descripcion.Trim();
 
                 var usuarioNombre = User?.Identity?.Name ?? $"Usuario {userId}";
@@ -342,8 +287,8 @@ namespace mi_ferreteria.Controllers
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Error al registrar nota de débito para cliente {ClienteId}", clienteId);
-                TempData["CuentaCorrienteError"] = "Ocurrió un error al registrar la nota de dИbito.";
+                _logger.LogError(ex, "Error al registrar nota de dÃ©bito para cliente {ClienteId}", clienteId);
+                TempData["CuentaCorrienteError"] = "OcurriÃ³ un error al registrar la nota de dÐ˜bito.";
                 return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
             }
         }
@@ -476,7 +421,7 @@ namespace mi_ferreteria.Controllers
                 if (cliente == null) return NotFound();
                 if (!cliente.CuentaCorrienteHabilitada)
                 {
-                    TempData["CuentaCorrienteError"] = "La cuenta corriente no estケ habilitada para este cliente.";
+                    TempData["CuentaCorrienteError"] = "La cuenta corriente no estã‚± habilitada para este cliente.";
                     return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
                 }
 
@@ -530,139 +475,66 @@ namespace mi_ferreteria.Controllers
             catch (System.Exception ex)
             {
                 _logger.LogError(ex, "Error al registrar pago de cuenta corriente para cliente {ClienteId}", clienteId);
-                TempData["CuentaCorrienteError"] = "Ocurri籀 un error al registrar el pago.";
+                TempData["CuentaCorrienteError"] = "Ocurriç±€ un error al registrar el pago.";
                 return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
             }
         }
 
         [HttpPost]
-        public IActionResult Edit(long Id, [Required] string Nombre, string? Apellido, string? TipoDocumento, string? NumeroDocumento,
-                                  string? DireccionCalle, string? DireccionNumero, string? DireccionLocalidad,
-                                  string? Telefono, string? Email,
-                                  string TipoCliente, bool CuentaCorrienteHabilitada,
-                                  decimal LimiteCredito, bool Activo = true)
+        public IActionResult Edit(long id, ClienteCreateViewModel model)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(Nombre))
+                if (model == null)
                 {
-                    ModelState.AddModelError("Nombre", "El nombre o razón social es obligatorio.");
+                    model = new ClienteCreateViewModel { Id = id };
+                    ModelState.AddModelError(string.Empty, "No se recibieron los datos del cliente.");
                 }
 
-                var tipoDocNorm = TipoDocumento?.Trim().ToUpperInvariant();
-                if (tipoDocNorm == "DNI")
+                model.Id ??= id;
+                if (!model.Id.HasValue || model.Id.Value <= 0)
                 {
-                    if (string.IsNullOrWhiteSpace(Apellido))
-                    {
-                        ModelState.AddModelError("Apellido", "El apellido es obligatorio cuando el tipo de documento es DNI.");
-                    }
-                    if (string.IsNullOrWhiteSpace(NumeroDocumento))
-                    {
-                        ModelState.AddModelError("NumeroDocumento", "El DNI es obligatorio.");
-                    }
-                    else if (NumeroDocumento.Trim().Length > 8)
-                    {
-                        ModelState.AddModelError("NumeroDocumento", "El DNI no puede tener más de 8 caracteres.");
-                    }
-                }
-                else if (tipoDocNorm == "CUIT")
-                {
-                    if (string.IsNullOrWhiteSpace(NumeroDocumento))
-                    {
-                        ModelState.AddModelError("NumeroDocumento", "El CUIT es obligatorio.");
-                    }
-                    else if (NumeroDocumento.Trim().Length > 11)
-                    {
-                        ModelState.AddModelError("NumeroDocumento", "El CUIT no puede tener más de 11 caracteres.");
-                    }
+                    ModelState.AddModelError(nameof(ClienteCreateViewModel.Id), "El identificador del cliente es inválido.");
                 }
 
-                if (!string.IsNullOrWhiteSpace(Email))
-                {
-                    var emailAttr = new EmailAddressAttribute();
-                    if (!emailAttr.IsValid(Email))
-                    {
-                        ModelState.AddModelError("Email", "El email no tiene un formato válido.");
-                    }
-                }
-
-                if (TipoCliente != "CONSUMIDOR_FINAL" && TipoCliente != "CUENTA_CORRIENTE")
-                {
-                    ModelState.AddModelError("TipoCliente", "Tipo de cliente inválido.");
-                }
-
-                if (CuentaCorrienteHabilitada && LimiteCredito < 0)
-                {
-                    ModelState.AddModelError("LimiteCredito", "El límite de crédito no puede ser negativo.");
-                }
-
-                var direccion = BuildDireccion(DireccionCalle, DireccionNumero, DireccionLocalidad);
-
-                var cliente = new Cliente
-                {
-                    Id = Id,
-                    Nombre = Nombre,
-                    Apellido = string.IsNullOrWhiteSpace(Apellido) ? null : Apellido,
-                    TipoDocumento = string.IsNullOrWhiteSpace(TipoDocumento) ? null : TipoDocumento,
-                    NumeroDocumento = string.IsNullOrWhiteSpace(NumeroDocumento) ? null : NumeroDocumento,
-                    Direccion = direccion,
-                    Telefono = string.IsNullOrWhiteSpace(Telefono) ? null : Telefono,
-                    Email = string.IsNullOrWhiteSpace(Email) ? null : Email,
-                    TipoCliente = TipoCliente,
-                    CuentaCorrienteHabilitada = CuentaCorrienteHabilitada,
-                    LimiteCredito = CuentaCorrienteHabilitada ? LimiteCredito : 0,
-                    Activo = Activo
-                };
+                NormalizarYValidarCliente(model);
 
                 if (!ModelState.IsValid)
                 {
-                    return View(cliente);
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(model);
+                    return View(model);
                 }
 
-                var anterior = _repo.GetById(Id);
+                var anterior = _repo.GetById(model.Id.Value);
                 if (anterior == null) return NotFound();
+
+                var cliente = MapearCliente(model);
+                cliente.Id = anterior.Id;
 
                 _repo.Update(cliente);
                 if (TryGetAuditoriaUsuario(out var userId, out var usuarioNombre))
                 {
+                    var antesCc = anterior.CuentaCorrienteHabilitada ? $"SI (limite {anterior.LimiteCredito:N2})" : "NO";
+                    var ahoraCc = cliente.CuentaCorrienteHabilitada ? $"SI (limite {cliente.LimiteCredito:N2})" : "NO";
                     RegistrarAuditoria(userId, usuarioNombre, nameof(Edit),
-                        $"Actualizacion cliente #{cliente.Id}: nombre '{anterior.Nombre}' -> '{cliente.Nombre}', tipo '{anterior.TipoCliente}' -> '{cliente.TipoCliente}', activo {anterior.Activo} -> {cliente.Activo}, CC {(anterior.CuentaCorrienteHabilitada ? $"SI (limite {anterior.LimiteCredito:N2})" : "NO")} -> {(cliente.CuentaCorrienteHabilitada ? $"SI (limite {cliente.LimiteCredito:N2})" : "NO")}.");
+                        $"Actualizacion cliente #{cliente.Id}: nombre '{anterior.Nombre}' -> '{cliente.Nombre}', tipo '{anterior.TipoCliente}' -> '{cliente.TipoCliente}', activo {anterior.Activo} -> {cliente.Activo}, CC {antesCc} -> {ahoraCc}.");
                 }
+
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return Json(new { success = true });
                 return RedirectToAction("Index");
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Error al actualizar cliente {ClienteId}", Id);
+                _logger.LogError(ex, "Error al actualizar cliente {ClienteId}", id);
                 ModelState.AddModelError(string.Empty, "Ocurrió un error al actualizar el cliente.");
-                var direccion = BuildDireccion(DireccionCalle, DireccionNumero, DireccionLocalidad);
-                var modelEx = new Cliente
+                if (model == null)
                 {
-                    Id = Id,
-                    Nombre = Nombre ?? string.Empty,
-                    Apellido = Apellido,
-                    TipoDocumento = TipoDocumento,
-                    NumeroDocumento = NumeroDocumento,
-                    Direccion = direccion,
-                    Telefono = Telefono,
-                    Email = Email,
-                    TipoCliente = TipoCliente,
-                    CuentaCorrienteHabilitada = CuentaCorrienteHabilitada,
-                    LimiteCredito = LimiteCredito,
-                    Activo = Activo
-                };
-                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(modelEx);
-                return View(modelEx);
+                    model = new ClienteCreateViewModel { Id = id };
+                }
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(model);
+                return View(model);
             }
         }
-
-        public IActionResult Delete(long id)
-        {
-            var c = _repo.GetById(id);
-            if (c == null) return NotFound();
-            return View(c);
-        }
-
         [HttpPost, ActionName("Delete")]
         public IActionResult DeleteConfirmed(long id)
         {
@@ -681,7 +553,7 @@ namespace mi_ferreteria.Controllers
             catch (System.Exception ex)
             {
                 _logger.LogError(ex, "Error al dar de baja cliente {ClienteId}", id);
-                return Problem("Ocurrió un error al dar de baja el cliente.");
+                return Problem("OcurriÃ³ un error al dar de baja el cliente.");
             }
         }
 
@@ -703,7 +575,7 @@ namespace mi_ferreteria.Controllers
             catch (System.Exception ex)
             {
                 _logger.LogError(ex, "Error al activar cliente {ClienteId}", id);
-                return Problem("Ocurrió un error al activar el cliente.");
+                return Problem("OcurriÃ³ un error al activar el cliente.");
             }
         }
 
@@ -755,6 +627,114 @@ namespace mi_ferreteria.Controllers
                 : "CC deshabilitada";
             return $"{nombre} - Tipo {cliente.TipoCliente}, {cuenta}, Email {email}, Activo={cliente.Activo}";
         }
+        private void NormalizarYValidarCliente(ClienteCreateViewModel model)
+        {
+            model.Nombre = model.Nombre?.Trim() ?? string.Empty;
+            model.Apellido = string.IsNullOrWhiteSpace(model.Apellido) ? null : model.Apellido.Trim();
+            var tipoDocNorm = string.IsNullOrWhiteSpace(model.TipoDocumento) ? null : model.TipoDocumento.Trim().ToUpperInvariant();
+            model.TipoDocumento = tipoDocNorm;
+            model.NumeroDocumento = string.IsNullOrWhiteSpace(model.NumeroDocumento) ? null : model.NumeroDocumento.Trim();
+            model.DireccionCalle = string.IsNullOrWhiteSpace(model.DireccionCalle) ? null : model.DireccionCalle.Trim();
+            model.DireccionNumero = string.IsNullOrWhiteSpace(model.DireccionNumero) ? null : model.DireccionNumero.Trim();
+            model.DireccionLocalidad = string.IsNullOrWhiteSpace(model.DireccionLocalidad) ? null : model.DireccionLocalidad.Trim();
+            model.Telefono = string.IsNullOrWhiteSpace(model.Telefono) ? null : model.Telefono.Trim();
+            model.Email = string.IsNullOrWhiteSpace(model.Email) ? null : model.Email.Trim();
+            model.TipoCliente = string.IsNullOrWhiteSpace(model.TipoCliente) ? "CONSUMIDOR_FINAL" : model.TipoCliente.Trim().ToUpperInvariant();
+
+            if (tipoDocNorm == "DNI")
+            {
+                if (string.IsNullOrWhiteSpace(model.Apellido))
+                {
+                    ModelState.AddModelError(nameof(ClienteCreateViewModel.Apellido), "El apellido es obligatorio cuando el tipo de documento es DNI.");
+                }
+                if (string.IsNullOrWhiteSpace(model.NumeroDocumento))
+                {
+                    ModelState.AddModelError(nameof(ClienteCreateViewModel.NumeroDocumento), "El DNI es obligatorio.");
+                }
+                else if (model.NumeroDocumento.Length > 8)
+                {
+                    ModelState.AddModelError(nameof(ClienteCreateViewModel.NumeroDocumento), "El DNI no puede tener más de 8 caracteres.");
+                }
+            }
+            else if (tipoDocNorm == "CUIT")
+            {
+                if (string.IsNullOrWhiteSpace(model.NumeroDocumento))
+                {
+                    ModelState.AddModelError(nameof(ClienteCreateViewModel.NumeroDocumento), "El CUIT es obligatorio.");
+                }
+                else if (model.NumeroDocumento.Length > 11)
+                {
+                    ModelState.AddModelError(nameof(ClienteCreateViewModel.NumeroDocumento), "El CUIT no puede tener más de 11 caracteres.");
+                }
+            }
+
+            if (model.CuentaCorrienteHabilitada)
+            {
+                if (model.LimiteCredito < 0)
+                {
+                    ModelState.AddModelError(nameof(ClienteCreateViewModel.LimiteCredito), "El límite de crédito no puede ser negativo.");
+                }
+            }
+            else
+            {
+                model.LimiteCredito = 0;
+            }
+        }
+
+        private Cliente MapearCliente(ClienteCreateViewModel model)
+        {
+            var direccion = BuildDireccion(model.DireccionCalle, model.DireccionNumero, model.DireccionLocalidad);
+            return new Cliente
+            {
+                Nombre = model.Nombre,
+                Apellido = model.Apellido,
+                TipoDocumento = model.TipoDocumento,
+                NumeroDocumento = model.NumeroDocumento,
+                Direccion = direccion,
+                Telefono = model.Telefono,
+                Email = model.Email,
+                TipoCliente = model.TipoCliente,
+                CuentaCorrienteHabilitada = model.CuentaCorrienteHabilitada,
+                LimiteCredito = model.CuentaCorrienteHabilitada ? model.LimiteCredito : 0,
+                Activo = model.Activo
+            };
+        }
+
+        private ClienteCreateViewModel ConstruirClienteViewModel(Cliente cliente)
+        {
+            var (calle, numero, localidad) = DescomponerDireccion(cliente.Direccion);
+            return new ClienteCreateViewModel
+            {
+                Id = cliente.Id,
+                Nombre = cliente.Nombre ?? string.Empty,
+                Apellido = cliente.Apellido,
+                TipoDocumento = cliente.TipoDocumento,
+                NumeroDocumento = cliente.NumeroDocumento,
+                DireccionCalle = calle ?? cliente.Direccion,
+                DireccionNumero = numero,
+                DireccionLocalidad = localidad,
+                Telefono = cliente.Telefono,
+                Email = cliente.Email,
+                TipoCliente = cliente.TipoCliente ?? "CONSUMIDOR_FINAL",
+                CuentaCorrienteHabilitada = cliente.CuentaCorrienteHabilitada,
+                LimiteCredito = cliente.CuentaCorrienteHabilitada ? cliente.LimiteCredito : 0,
+                Activo = cliente.Activo
+            };
+        }
+
+        private static (string? Calle, string? Numero, string? Localidad) DescomponerDireccion(string? direccion)
+        {
+            if (string.IsNullOrWhiteSpace(direccion))
+            {
+                return (null, null, null);
+            }
+
+            var parts = direccion.Split(',', 2);
+            var calle = parts.Length > 0 ? parts[0].Trim() : direccion.Trim();
+            var localidad = parts.Length > 1 ? parts[1].Trim() : null;
+            return (string.IsNullOrWhiteSpace(calle) ? null : calle, null, string.IsNullOrWhiteSpace(localidad) ? null : localidad);
+        }
+
         private static string? BuildDireccion(string? calle, string? numero, string? localidad)
         {
             calle = calle?.Trim();
@@ -783,6 +763,8 @@ namespace mi_ferreteria.Controllers
         }
     }
 }
+
+
 
 
 
