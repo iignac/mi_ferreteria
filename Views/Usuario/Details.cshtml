@@ -1,39 +1,185 @@
 @model mi_ferreteria.Models.Usuario
 @{
-    ViewData["Title"] = "Detalle de Usuario";
-}
-<h2 class="mb-3">Detalle de Usuario</h2>
-
-<div class="card">
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-md-3"><strong>ID:</strong> @Model.Id</div>
-      <div class="col-md-4"><strong>Nombre:</strong> @Model.Nombre</div>
-      <div class="col-md-5"><strong>Email:</strong> @Model.Email</div>
-      <div class="col-md-3"><strong>Estado:</strong> @(Model.Activo ? "Activo" : "Inactivo")</div>
-    </div>
-    <hr/>
-    <h5>Roles</h5>
-    @if ((Model.Roles ?? new List<mi_ferreteria.Models.Rol>()).Count == 0)
+    bool esModal = Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+    if (esModal)
     {
-        <div class="text-muted">Sin rol asignado.</div>
+        Layout = null;
     }
     else
     {
-        <ul class="list-group">
-            @foreach (var r in Model.Roles)
-            {
-                <li class="list-group-item">
-                    <div><strong>@r.Nombre</strong></div>
-                    <div class="text-muted">@r.Descripcion</div>
-                </li>
-            }
-        </ul>
+        ViewData["Title"] = "Detalle de Usuario";
     }
-  </div>
-</div>
+    var inicialLetra = !string.IsNullOrWhiteSpace(Model.Nombre) ? Model.Nombre.Substring(0, 1).ToUpper() : "?";
+}
 
-<div class="d-flex justify-content-center gap-2 mt-4">
-    <a asp-action="Index" class="btn btn-outline-secondary">Volver</a>
-    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Editar</a>
+@if (!esModal)
+{
+    <div class="sm:flex sm:items-center sm:justify-between mb-8">
+        <div>
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+                Detalle de Usuario
+            </h2>
+        </div>
+        <div class="mt-4 sm:mt-0">
+            <a asp-action="Index" class="btn-action-secondary inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold">
+                Volver al listado
+            </a>
+        </div>
+    </div>
+}
+
+<div class="@(esModal ? "" : "max-w-2xl mx-auto")">
+
+    @* Encabezado con avatar *@
+    <div class="flex items-center gap-4 mb-6 @(esModal ? "pt-1" : "")">
+        <div class="h-14 w-14 rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0"
+             style="background-color:#FC651F;">
+            @inicialLetra
+        </div>
+        <div>
+            <h3 class="text-lg font-semibold text-gray-900">@Model.Nombre</h3>
+            <p class="text-sm text-gray-500">@Model.Email</p>
+        </div>
+        <div class="ml-auto">
+            @if (Model.Activo)
+            {
+                <span class="inline-flex items-center rounded-full bg-green-50 px-3 py-1 text-sm font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                    Activo
+                </span>
+            }
+            else
+            {
+                <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
+                    Inactivo
+                </span>
+            }
+        </div>
+    </div>
+
+    @* Datos básicos *@
+    <div class="rounded-lg border border-gray-200 bg-white overflow-hidden mb-5">
+        <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+            <h4 class="text-sm font-semibold text-gray-700">Información general</h4>
+        </div>
+        <dl class="divide-y divide-gray-100">
+            <div class="px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                <dt class="text-sm font-medium text-gray-500">ID</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">#@Model.Id</dd>
+            </div>
+            <div class="px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                <dt class="text-sm font-medium text-gray-500">Nombre completo</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">@Model.Nombre</dd>
+            </div>
+            <div class="px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                <dt class="text-sm font-medium text-gray-500">Email</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">@Model.Email</dd>
+            </div>
+            <div class="px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                <dt class="text-sm font-medium text-gray-500">Estado</dt>
+                <dd class="mt-1 sm:col-span-2 sm:mt-0">
+                    @if (Model.Activo)
+                    {
+                        <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Activo</span>
+                    }
+                    else
+                    {
+                        <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">Inactivo</span>
+                    }
+                </dd>
+            </div>
+        </dl>
+    </div>
+
+    @* Roles y permisos *@
+    <div class="rounded-lg border border-gray-200 bg-white overflow-hidden mb-5">
+        <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+            <h4 class="text-sm font-semibold text-gray-700">Roles asignados</h4>
+            <span class="text-xs text-gray-400">@(Model.Roles?.Count ?? 0) rol(es)</span>
+        </div>
+        @if (Model.Roles == null || Model.Roles.Count == 0)
+        {
+            <div class="px-4 py-6 text-center text-sm text-gray-400">
+                Este usuario no tiene roles asignados.
+            </div>
+        }
+        else
+        {
+            <ul class="divide-y divide-gray-100">
+                @foreach (var rol in Model.Roles)
+                {
+                    <li class="px-4 py-3 flex items-start gap-3">
+                        <div class="mt-0.5 h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0" style="background-color:#FC651F20;">
+                            <svg class="h-4 w-4" style="color:#FC651F;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">@rol.Nombre</p>
+                            @if (!string.IsNullOrWhiteSpace(rol.Descripcion))
+                            {
+                                <p class="text-xs text-gray-500 mt-0.5">@rol.Descripcion</p>
+                            }
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+
+    @* Permisos consolidados *@
+    @{
+        var permisos = ViewBag.Permisos as List<mi_ferreteria.Models.Permiso> ?? new List<mi_ferreteria.Models.Permiso>();
+    }
+    <div class="rounded-lg border border-gray-200 bg-white overflow-hidden mb-5">
+        <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+            <h4 class="text-sm font-semibold text-gray-700">Permisos efectivos</h4>
+            <span class="text-xs text-gray-400">@permisos.Count permiso(s) — incluye roles y directos</span>
+        </div>
+        @if (!permisos.Any())
+        {
+            <div class="px-4 py-6 text-center text-sm text-gray-400">
+                Este usuario no tiene permisos asignados.
+            </div>
+        }
+        else
+        {
+            <div class="p-4 flex flex-wrap gap-2">
+                @foreach (var p in permisos.OrderBy(x => x.Nombre))
+                {
+                    <span title="@p.Descripcion"
+                          class="inline-flex items-center rounded-md bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-700 ring-1 ring-inset ring-orange-600/20 cursor-default">
+                        @p.Nombre
+                    </span>
+                }
+            </div>
+        }
+    </div>
+
+    @* Acciones *@
+    <div class="flex items-center justify-end gap-3 pt-2">
+        @if (esModal)
+        {
+            <button type="button" onclick="closeAjaxModal()"
+                    class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors">
+                Cerrar
+            </button>
+            <button type="button" onclick="closeAjaxModal(); setTimeout(() => openAjaxModal('@Url.Action("Edit", new { id = Model.Id })'), 200)"
+                    class="inline-flex items-center rounded-md px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors"
+                    style="background-color:#FC651F;" onmouseover="this.style.backgroundColor='#e0541a'" onmouseout="this.style.backgroundColor='#FC651F'">
+                Editar usuario
+            </button>
+        }
+        else
+        {
+            <a asp-action="Index" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors">
+                Volver
+            </a>
+            <a asp-action="Edit" asp-route-id="@Model.Id"
+               class="inline-flex items-center rounded-md px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors"
+               style="background-color:#FC651F;" onmouseover="this.style.backgroundColor='#e0541a'" onmouseout="this.style.backgroundColor='#FC651F'">
+                Editar usuario
+            </a>
+        }
+    </div>
+
 </div>

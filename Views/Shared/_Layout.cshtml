@@ -51,14 +51,17 @@
                 <a asp-controller="Categoria" asp-action="Index" class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-[#FC651F] hover:text-white transition-colors whitespace-nowrap">Categorías</a>
                 <a asp-controller="Producto" asp-action="Index" class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-[#FC651F] hover:text-white transition-colors whitespace-nowrap">Productos</a>
 
-                <div class="text-[0.65rem] font-bold text-white/40 uppercase tracking-wider mb-2 mt-4 px-3 whitespace-nowrap">Operativa</div>
                 @if (!User.IsInRole("Stock"))
                 {
+                    <div class="text-[0.65rem] font-bold text-white/40 uppercase tracking-wider mb-2 mt-4 px-3 whitespace-nowrap">Ventas</div>
                     <a asp-controller="Venta" asp-action="Index" class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-[#FC651F] hover:text-white transition-colors whitespace-nowrap">Caja / Ventas</a>
                     <a asp-controller="Venta" asp-action="Historial" class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-[#FC651F] hover:text-white transition-colors whitespace-nowrap">Historial de Ventas</a>
                     <a asp-controller="Cliente" asp-action="Index" class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-[#FC651F] hover:text-white transition-colors whitespace-nowrap">Clientes</a>
                 }
+                <div class="text-[0.65rem] font-bold text-white/40 uppercase tracking-wider mb-2 mt-4 px-3 whitespace-nowrap">Stock</div>
                 <a asp-controller="Stock" asp-action="Index" class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-[#FC651F] hover:text-white transition-colors whitespace-nowrap">Control de Stock</a>
+                <a asp-controller="Stock" asp-action="Movimientos" class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-[#FC651F] hover:text-white transition-colors whitespace-nowrap">Movimientos de Stock</a>
+                <a asp-controller="Stock" asp-action="Criticos" class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-[#FC651F] hover:text-white transition-colors whitespace-nowrap">Stock Crítico</a>
             </nav>
 
             <div class="p-4 bg-[#060304] border-t border-white/10 shrink-0">

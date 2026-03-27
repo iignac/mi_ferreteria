@@ -1,130 +1,191 @@
 @model mi_ferreteria.ViewModels.StockCriticosViewModel
 @using System.Linq
 @{
-    ViewData["Title"] = "Productos con stock crítico";
+    ViewData["Title"] = "Stock Crítico";
     var tieneResultados = Model?.Productos != null && Model.Productos.Any();
     var query = Model?.Query ?? string.Empty;
+    var page = Model?.Page ?? 1;
+    var totalPages = Model?.TotalPages ?? 1;
+    var pgStart = Math.Max(1, page - 2);
+    var pgEnd = Math.Min(totalPages, page + 2);
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <div>
-        <h2 class="mb-0">Productos con stock crítico</h2>
-        <p class="text-muted mb-0">
-            Se listan los productos cuyo stock actual es igual o inferior al mínimo configurado.
+<div class="sm:flex sm:items-center sm:justify-between mb-6">
+    <div class="min-w-0 flex-1">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+            Stock Crítico
+        </h2>
+        <p class="mt-1 text-sm text-gray-500">
+            Productos cuyo stock actual es igual o inferior al mínimo configurado.
         </p>
     </div>
-    <div class="btn-group">
-        <a asp-action="Index" class="btn btn-outline-secondary">Volver a gestión de stock</a>
-        <a asp-controller="Stock" asp-action="Criticos" class="btn btn-primary active">Refrescar</a>
+    <div class="mt-4 flex sm:ml-4 sm:mt-0 gap-2">
+        <a asp-action="Index"
+           class="btn-action-secondary inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Volver a stock
+        </a>
+        <a asp-action="Criticos"
+           class="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-center text-sm font-semibold text-white shadow-sm transition-colors"
+           style="background-color:#FC651F;" onmouseover="this.style.backgroundColor='#e0541a'" onmouseout="this.style.backgroundColor='#FC651F'">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refrescar
+        </a>
     </div>
 </div>
 
-<div class="alert alert-warning">
-    <strong>@Model?.TotalCount</strong> producto@(Model?.TotalCount == 1 ? string.Empty : "s") requieren reposición urgente.
+@* Banner de alerta *@
+<div class="rounded-lg bg-amber-50 border border-amber-200 p-4 mb-6 flex items-center gap-3">
+    <svg class="h-5 w-5 text-amber-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+    </svg>
+    <p class="text-sm text-amber-800">
+        <span class="font-semibold">@Model?.TotalCount</span>
+        producto@(Model?.TotalCount == 1 ? string.Empty : "s") requiere@(Model?.TotalCount == 1 ? "" : "n") reposición urgente.
+    </p>
 </div>
 
-<form method="get" asp-action="Criticos" class="mb-3">
-    <div class="input-group">
-        <input type="search"
-               class="form-control"
-               placeholder="Buscar por SKU, nombre, descripción o ubicación"
-               name="q"
-               value="@query" />
+@* Buscador *@
+<div class="mb-6 bg-white p-4 shadow-sm rounded-lg border border-gray-200">
+    <form method="get" asp-action="Criticos" class="flex items-center gap-2">
         <input type="hidden" name="page" value="1" />
-        <button class="btn btn-primary" type="submit">Buscar</button>
+        <div class="relative flex-1">
+            <input type="search" name="q" value="@query"
+                   class="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-4 pr-10 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-[#FC651F] focus:outline-none focus:ring-1 focus:ring-[#FC651F]"
+                   placeholder="Buscar por SKU, nombre, descripción o ubicación..." />
+        </div>
+        <button type="submit"
+                class="group flex items-center justify-center rounded-lg bg-gray-900 p-2.5 text-white shadow-sm transition-colors duration-200 hover:bg-[#FC651F] focus:outline-none"
+                title="Buscar">
+            <svg class="h-5 w-5 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+            </svg>
+        </button>
         @if (!string.IsNullOrWhiteSpace(query))
         {
-            <a asp-action="Criticos" class="btn btn-outline-secondary">Limpiar</a>
+            <a asp-action="Criticos"
+               class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900">
+                Limpiar
+            </a>
         }
-    </div>
-</form>
+    </form>
+</div>
 
 @if (!tieneResultados)
 {
-    <div class="alert alert-info">
-        No se encontraron productos con stock crítico para los filtros aplicados.
+    <div class="text-center rounded-md bg-gray-50 p-12 border border-dashed border-gray-300">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h3 class="mt-2 text-sm font-semibold text-gray-900">Sin resultados</h3>
+        <p class="mt-1 text-sm text-gray-500">No se encontraron productos con stock crítico para los filtros aplicados.</p>
     </div>
 }
 else
 {
-    <div class="table-responsive">
-        <table class="table table-striped table-hover table-bordered align-middle">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>SKU</th>
-                    <th>Nombre</th>
-                    <th>Stock actual</th>
-                    <th>Stock mínimo</th>
-                    <th>Unidad</th>
-                    <th>Ubicación</th>
-                    <th>Precio venta</th>
-                    <th class="text-end">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-            @foreach (var p in Model!.Productos)
-            {
-                <tr class="table-warning">
-                    <td>@p.Id</td>
-                    <td>@p.Sku</td>
-                    <td>@p.Nombre</td>
-                    <td>
-                        @p.StockActual
-                        <span class="badge bg-danger ms-1">Crítico</span>
-                    </td>
-                    <td>@p.StockMinimo</td>
-                    <td>@p.UnidadMedida</td>
-                    <td>@(string.IsNullOrWhiteSpace(p.UbicacionCodigo) ? "-" : p.UbicacionCodigo)</td>
-                    <td>$ @p.PrecioVentaActual.ToString("0.00")</td>
-                    <td class="text-end">
-                        <a asp-controller="StockProducto"
-                           asp-action="Manage"
-                           asp-route-id="@p.Id"
-                           class="btn btn-sm btn-outline-primary">
-                            Ajustar stock
-                        </a>
-                        <a asp-controller="Producto"
-                           asp-action="Edit"
-                           asp-route-id="@p.Id"
-                           class="btn btn-sm btn-outline-secondary">
-                            Editar producto
-                        </a>
-                    </td>
-                </tr>
-            }
-            </tbody>
-        </table>
+    <div class="flow-root">
+        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-300">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">SKU</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Nombre</th>
+                                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Stock actual</th>
+                                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Mínimo</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Unidad</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Ubicación</th>
+                                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Precio venta</th>
+                                <th scope="col" class="relative py-3.5 pl-3 pr-4 text-right text-sm font-semibold text-gray-900 sm:pr-6">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 bg-white">
+                            @foreach (var p in Model!.Productos)
+                            {
+                                <tr class="hover:bg-amber-50/40 transition-colors">
+                                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">@p.Sku</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900">@p.Nombre</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-right">
+                                        @if (p.StockActual == 0)
+                                        {
+                                            <span class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 ring-1 ring-inset ring-red-600/10">
+                                                Sin stock
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center rounded-md bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                                                @p.StockActual
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 text-right">@p.StockMinimo</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">@p.UnidadMedida</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">@(string.IsNullOrWhiteSpace(p.UbicacionCodigo) ? "-" : p.UbicacionCodigo)</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900 font-medium text-right">@p.PrecioVentaActual.ToString("C")</td>
+                                    <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <a asp-controller="StockProducto" asp-action="Manage" asp-route-id="@p.Id"
+                                               class="inline-flex items-center rounded-md px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors"
+                                               style="background-color:#FC651F;" onmouseover="this.style.backgroundColor='#e0541a'" onmouseout="this.style.backgroundColor='#FC651F'">
+                                                Ajustar stock
+                                            </a>
+                                            <a asp-controller="Producto" asp-action="Edit" asp-route-id="@p.Id"
+                                               class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors">
+                                                Editar
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
-    if (Model.TotalPages > 1)
+    @if (totalPages > 1)
     {
-        var start = Math.Max(1, Model.Page - 2);
-        var end = Math.Min(Model.TotalPages, Model.Page + 2);
-        <nav aria-label="Productos críticos" class="mt-3">
-            <ul class="pagination justify-content-center">
-                <li class="page-item @(Model.Page <= 1 ? "disabled" : string.Empty)">
-                    <a class="page-link"
-                       asp-action="Criticos"
-                       asp-route-q="@query"
-                       asp-route-page="@(Model.Page - 1)">Anterior</a>
-                </li>
-                @for (var i = start; i <= end; i++)
-                {
-                    <li class="page-item @(i == Model.Page ? "active" : string.Empty)">
-                        <a class="page-link"
-                           asp-action="Criticos"
-                           asp-route-q="@query"
-                           asp-route-page="@i">@i</a>
-                    </li>
-                }
-                <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : string.Empty)">
-                    <a class="page-link"
-                       asp-action="Criticos"
-                       asp-route-q="@query"
-                       asp-route-page="@(Model.Page + 1)">Siguiente</a>
-                </li>
-            </ul>
-        </nav>
+        <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 mt-2 rounded-b-lg">
+            <div class="flex flex-1 justify-between sm:hidden">
+                <a asp-action="Criticos" asp-route-q="@query" asp-route-page="@(page - 1)"
+                   class="relative inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(page <= 1 ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">Anterior</a>
+                <a asp-action="Criticos" asp-route-q="@query" asp-route-page="@(page + 1)"
+                   class="relative ml-3 inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(page >= totalPages ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">Siguiente</a>
+            </div>
+            <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                <p class="text-sm text-gray-700">Página <span class="font-medium">@(page)</span> de <span class="font-medium">@(totalPages)</span></p>
+                <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                    <a asp-action="Criticos" asp-route-q="@query" asp-route-page="@(page - 1)"
+                       class="relative inline-flex items-center rounded-l-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(page <= 1 ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
+                        <span class="sr-only">Anterior</span>
+                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" /></svg>
+                    </a>
+                    @for (var i = pgStart; i <= pgEnd; i++)
+                    {
+                        if (i == page)
+                        {
+                            <a href="#" aria-current="page" class="relative z-10 inline-flex items-center px-4 py-2 text-sm font-semibold text-white focus:z-20" style="background-color:#FC651F;">@i</a>
+                        }
+                        else
+                        {
+                            <a asp-action="Criticos" asp-route-q="@query" asp-route-page="@i"
+                               class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 hover:text-[#FC651F] focus:z-20">@i</a>
+                        }
+                    }
+                    <a asp-action="Criticos" asp-route-q="@query" asp-route-page="@(page + 1)"
+                       class="relative inline-flex items-center rounded-r-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(page >= totalPages ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
+                        <span class="sr-only">Siguiente</span>
+                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
+                    </a>
+                </nav>
+            </div>
+        </div>
     }
 }

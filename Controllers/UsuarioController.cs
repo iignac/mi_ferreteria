@@ -380,6 +380,9 @@ namespace mi_ferreteria.Controllers
             {
                 var usuario = _usuarioRepository.GetAll().FirstOrDefault(u => u.Id == id);
                 if (usuario == null) return NotFound();
+                ViewBag.Permisos = _permisoRepository.GetPermisosConsolidados(id);
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return PartialView(usuario);
                 return View(usuario);
             }
             catch (System.Exception ex)

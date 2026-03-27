@@ -19,42 +19,54 @@
     var totalCriticos = ViewBag.StockCriticosCount is int sc ? sc : detalleCriticos.Count;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <div>
-        <h2 class="mb-0">Gestion de Stock</h2>
-        <p class="text-muted mb-0">
-            Selecciona productos desde el listado, define las cantidades y registra ingresos o egresos.
+<div class="sm:flex sm:items-center sm:justify-between mb-6">
+    <div class="min-w-0 flex-1">
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+            Gestión de Stock
+        </h2>
+        <p class="mt-1 text-sm text-gray-500">
+            Seleccioná productos desde el listado, definí las cantidades y registrá ingresos o egresos.
             El precio de compra solo aplica para los ingresos.
         </p>
     </div>
-    <div class="d-flex gap-2">
-        <a asp-action="Movimientos" class="btn btn-outline-primary">
-            <i class="bi bi-clock-history me-1"></i>Últimos movimientos
+    <div class="mt-4 flex sm:ml-4 sm:mt-0 gap-2">
+        <a asp-action="Movimientos"
+           class="btn-action-secondary inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Últimos movimientos
         </a>
-        <a asp-action="Criticos" class="btn btn-outline-danger">
-            <i class="bi bi-exclamation-triangle me-1"></i>Stock crítico
+        <a asp-action="Criticos"
+           class="btn-action-secondary inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            Stock crítico
         </a>
     </div>
 </div>
 
 @if (TempData["StockOk"] != null)
 {
-    <div class="alert alert-success">@TempData["StockOk"]</div>
+    <div class="rounded-lg bg-green-50 border border-green-200 p-4 mb-4 text-sm text-green-800">@TempData["StockOk"]</div>
 }
 @if (TempData["StockError"] != null)
 {
-    <div class="alert alert-danger">@TempData["StockError"]</div>
+    <div class="rounded-lg bg-red-50 border border-red-200 p-4 mb-4 text-sm text-red-700">@TempData["StockError"]</div>
 }
 @if (totalCriticos > 0)
 {
     var resumenCriticos = string.Join(", ", detalleCriticos.Take(5).Select(d => d.Nombre));
-    if (detalleCriticos.Count > 5)
-    {
-        resumenCriticos += $" y {detalleCriticos.Count - 5} más";
-    }
-    <a asp-action="Criticos" class="alert alert-warning d-block text-decoration-none" style="cursor:pointer;">
-        <strong>Prioridad:</strong> @totalCriticos producto@(totalCriticos == 1 ? "" : "s") están en stock crítico. Revisa los niveles mínimos antes de registrar movimientos.
-        <span class="d-block small text-muted">@resumenCriticos</span>
+    if (detalleCriticos.Count > 5) resumenCriticos += $" y {detalleCriticos.Count - 5} más";
+    <a asp-action="Criticos" class="flex items-start gap-3 rounded-lg bg-amber-50 border border-amber-200 p-4 mb-4 hover:bg-amber-100 transition-colors no-underline">
+        <svg class="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+        </svg>
+        <div>
+            <p class="text-sm font-semibold text-amber-800">Prioridad: @totalCriticos producto@(totalCriticos == 1 ? "" : "s") en stock crítico</p>
+            <p class="text-xs text-amber-700 mt-0.5">@resumenCriticos</p>
+        </div>
     </a>
 }
 
@@ -110,7 +122,7 @@
                                         <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-white">Stock</th>
                                         <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-white">Precio venta</th>
                                         <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-white">Ult. compra</th>
-                                        <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6 text-right text-sm font-semibold text-white">Agregar</th>
+                                        <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6 text-right text-sm font-semibold text-white">Acción</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200 bg-white" id="productosBody">
@@ -135,7 +147,9 @@
                                         <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">@(preciosCompra.TryGetValue(p.Id, out var pc) && pc.HasValue ? pc.Value.ToString("0.00") : "-")</td>
                                         <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                                             <button type="button"
-                                                    class="inline-flex items-center rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-green-500 transition-colors"
+                                                    class="btn-producto inline-flex items-center rounded-md px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors"
+                                                    style="background-color:#FC651F;"
+                                                    onmouseover="this.style.backgroundColor='#e0541a'" onmouseout="this.style.backgroundColor='#FC651F'"
                                                     data-id="@p.Id"
                                                     data-sku="@p.Sku"
                                                     data-nombre="@p.Nombre"
@@ -145,7 +159,7 @@
                                                     data-precioventa="@p.PrecioVentaActual"
                                                     data-preciocompra="@(preciosCompra.TryGetValue(p.Id, out var pc2) && pc2.HasValue ? pc2.Value.ToString() : string.Empty)"
                                                     onclick="agregarProductoDesdeBoton(this)">
-                                                Agregar
+                                                Modificar
                                             </button>
                                         </td>
                                     </tr>
@@ -190,62 +204,61 @@
         }
 </div>
 
-<div class="card mt-4">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-        <div>
-            <h4 class="mb-0">Carga seleccionada</h4>
-        </div>
+<div class="rounded-xl border border-gray-200 bg-white shadow-sm mt-6">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+        <h3 class="text-sm font-semibold text-gray-900">Carga seleccionada</h3>
     </div>
-    <div class="card-body">
+    <div class="p-5">
         <form asp-action="Cargar" method="post" id="formCargas">
             @Html.AntiForgeryToken()
-            <div class="row g-3 align-items-end mb-3">
-                <div class="col-md-4">
-                    <label asp-for="TipoMovimiento" class="form-label">Tipo de movimiento</label>
-                    <select asp-for="TipoMovimiento" class="form-select" id="tipoMovimientoSelect">
+
+            <div class="flex flex-wrap items-end gap-4 mb-5">
+                <div class="flex-1 min-w-[200px] max-w-xs">
+                    <label asp-for="TipoMovimiento" class="block text-sm font-medium text-gray-700 mb-1">Tipo de movimiento</label>
+                    <select asp-for="TipoMovimiento" id="tipoMovimientoSelect"
+                            class="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm text-gray-900 shadow-sm focus:border-[#FC651F] focus:outline-none focus:ring-1 focus:ring-[#FC651F]">
                         <option value="INGRESO">Ingreso</option>
                         <option value="EGRESO">Egreso</option>
                     </select>
-                    <span asp-validation-for="TipoMovimiento" class="text-danger"></span>
+                    <span asp-validation-for="TipoMovimiento" class="text-xs text-red-600 mt-1"></span>
                 </div>
-                <div class="col-md-8">
-                    <small id="tipoMovimientoInfo" class="text-muted">
-                        @(esIngreso
-                            ? "Cada linea se registrara como un ingreso de stock."
-                            : "Cada linea se registrara como un egreso de stock.")
-                    </small>
-                </div>
+                <p id="tipoMovimientoInfo" class="text-sm text-gray-500 pb-1">
+                    @(esIngreso ? "Cada línea se registrará como un ingreso de stock." : "Cada línea se registrará como un egreso de stock.")
+                </p>
             </div>
-            <div class="table-responsive">
-                <table class="table table-striped align-middle">
-                    <thead>
+
+            <div class="overflow-x-auto rounded-lg border border-gray-200 mb-5">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
                         <tr>
-                            <th>Producto</th>
-                            <th>Unidad</th>
-                            <th style="width: 120px;">Cantidad</th>
-                            <th>Precio venta</th>
-                            <th style="width: 150px;">Precio compra</th>
-                            <th>Stock actual</th>
-                            <th style="width: 90px;"></th>
+                            <th class="py-3 pl-4 pr-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Producto</th>
+                            <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Unidad</th>
+                            <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-28">Cantidad</th>
+                            <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Precio venta</th>
+                            <th class="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-36">Precio compra</th>
+                            <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Stock actual</th>
+                            <th class="px-3 py-3 pr-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-20"></th>
                         </tr>
                     </thead>
-                    <tbody id="cargasBody">
-                        <tr><td colspan="6" class="text-center text-muted">No hay productos seleccionados.</td></tr>
+                    <tbody id="cargasBody" class="divide-y divide-gray-100 bg-white">
+                        <tr><td colspan="7" class="py-8 text-center text-sm text-gray-400">No hay productos seleccionados.</td></tr>
                     </tbody>
                 </table>
             </div>
 
-            <div class="row g-3 align-items-end">
-                <div class="col-md-6">
-                    <label asp-for="Motivo" class="form-label">Motivo (opcional)</label>
-                    <input asp-for="Motivo" class="form-control" placeholder="Compra a proveedor, ajuste, inventario, etc." />
-                    <span asp-validation-for="Motivo" class="text-danger"></span>
+            <div class="flex flex-wrap items-end gap-4">
+                <div class="flex-1 min-w-[200px]">
+                    <label asp-for="Motivo" class="block text-sm font-medium text-gray-700 mb-1">Motivo (opcional)</label>
+                    <input asp-for="Motivo"
+                           class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-[#FC651F] focus:outline-none focus:ring-1 focus:ring-[#FC651F]"
+                           placeholder="Compra a proveedor, ajuste, inventario, etc." />
+                    <span asp-validation-for="Motivo" class="text-xs text-red-600 mt-1"></span>
                 </div>
-                <div class="col-md-6 text-md-end">
-                    <div class="mb-2 text-danger">
-                        @Html.ValidationSummary()
-                    </div>
-                    <button type="submit" class="btn btn-primary" id="btnConfirmar" disabled>
+                <div class="flex flex-col items-end gap-2">
+                    <div class="text-xs text-red-600">@Html.ValidationSummary()</div>
+                    <button type="submit" id="btnConfirmar" disabled
+                            class="inline-flex items-center rounded-md px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            style="background-color:#FC651F;" onmouseover="if(!this.disabled)this.style.backgroundColor='#e0541a'" onmouseout="this.style.backgroundColor='#FC651F'">
                         @(esIngreso ? "Registrar ingresos" : "Registrar egresos")
                     </button>
                 </div>
@@ -268,7 +281,7 @@
             if (!tbodyCargas) return;
             tbodyCargas.innerHTML = '';
             if (!lineas.length) {
-                tbodyCargas.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No hay productos seleccionados.</td></tr>';
+                tbodyCargas.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-sm text-gray-400">No hay productos seleccionados.</td></tr>';
                 if (btnConfirmar) btnConfirmar.disabled = true;
                 return;
             }
@@ -283,34 +296,37 @@
                 const precio = typeof l.PrecioCompra === 'number' ? l.PrecioCompra : (ultimoCompra !== null ? ultimoCompra : '');
                 const stockActual = typeof l.StockActual === 'number' ? l.StockActual : 0;
 
+                const inputCls = 'block w-full rounded-md border border-gray-300 bg-white py-1.5 px-2.5 text-sm text-gray-900 shadow-sm focus:border-[#FC651F] focus:outline-none focus:ring-1 focus:ring-[#FC651F]';
                 tr.innerHTML = `
-                    <td>
+                    <td class="whitespace-nowrap py-3 pl-4 pr-3 text-sm text-gray-900">
                         <input type="hidden" name="Lineas[${idx}].ProductoId" value="${l.ProductoId}" />
                         <input type="hidden" name="Lineas[${idx}].ProductoNombre" value="${nombre.replace(/\"/g, '')}" />
                         <input type="hidden" name="Lineas[${idx}].UnidadMedida" value="${unidad}" />
                         <input type="hidden" name="Lineas[${idx}].StockActual" value="${stockActual}" />
                         ${nombre}
                     </td>
-                    <td>${unidad}</td>
-                    <td>
-                        <input type="number" class="form-control" min="1" step="1"
+                    <td class="whitespace-nowrap px-3 py-3 text-sm text-gray-500">${unidad}</td>
+                    <td class="whitespace-nowrap px-3 py-3">
+                        <input type="number" class="${inputCls}" min="1" step="1"
                                name="Lineas[${idx}].Cantidad"
                                value="${cantidad}"
                                data-idx="${idx}"
                                oninput="actualizarCantidad(this)" />
                     </td>
-                    <td>${precioVenta > 0 ? precioVenta.toFixed(2) : '-'}</td>
-                    <td>
-                        <input type="number" class="form-control" min="0" step="0.01"
+                    <td class="whitespace-nowrap px-3 py-3 text-sm text-gray-900 text-right">${precioVenta > 0 ? precioVenta.toFixed(2) : '-'}</td>
+                    <td class="whitespace-nowrap px-3 py-3">
+                        <input type="number" class="${inputCls}" min="0" step="0.01"
                                name="Lineas[${idx}].PrecioCompra"
                                value="${precio !== '' ? precio : ''}"
                                data-idx="${idx}"
                                oninput="actualizarPrecio(this)" />
-                        ${ultimoCompra !== null ? `<div class="text-muted small">Ult. compra: ${ultimoCompra.toFixed(2)}</div>` : ''}
+                        ${ultimoCompra !== null ? `<p class="text-xs text-gray-400 mt-1">Ult: ${ultimoCompra.toFixed(2)}</p>` : ''}
                     </td>
-                    <td>${stockActual}</td>
-                    <td class="text-end">
-                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="quitarLinea(${l.ProductoId})">Quitar</button>
+                    <td class="whitespace-nowrap px-3 py-3 text-sm text-gray-900 text-right">${stockActual}</td>
+                    <td class="whitespace-nowrap px-3 py-3 pr-4 text-right">
+                        <button type="button"
+                                class="inline-flex items-center rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-600 shadow-sm hover:bg-red-50 hover:border-red-300 transition-colors"
+                                onclick="quitarLinea(${l.ProductoId})">Quitar</button>
                     </td>
                 `;
                 tbodyCargas.appendChild(tr);
@@ -466,7 +482,9 @@
                                         <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">${(typeof precioCompra === 'number') ? precioCompra.toFixed(2) : '-'}</td>
                                         <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                                             <button type="button"
-                                                    class="inline-flex items-center rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-green-500 transition-colors"
+                                                    class="btn-producto inline-flex items-center rounded-md px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors"
+                                                    style="background-color:#FC651F;"
+                                                    onmouseover="this.style.backgroundColor='#e0541a'" onmouseout="this.style.backgroundColor='#FC651F'"
                                                     data-id="${p.id}"
                                                     data-sku="${p.sku || ''}"
                                                     data-nombre="${p.nombre || ''}"
@@ -476,7 +494,7 @@
                                                     data-precioventa="${precioVenta}"
                                                     data-preciocompra="${(typeof precioCompra === 'number') ? precioCompra : ''}"
                                                     onclick="agregarProductoDesdeBoton(this)">
-                                                Agregar
+                                                Modificar
                                             </button>
                                         </td>`;
                                     tbodyProductos.appendChild(tr);
