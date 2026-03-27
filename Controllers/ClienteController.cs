@@ -659,6 +659,7 @@ namespace mi_ferreteria.Controllers
             }
             else if (tipoDocNorm == "CUIT")
             {
+                model.Apellido = null;
                 if (string.IsNullOrWhiteSpace(model.NumeroDocumento))
                 {
                     ModelState.AddModelError(nameof(ClienteCreateViewModel.NumeroDocumento), "El CUIT es obligatorio.");
@@ -667,6 +668,10 @@ namespace mi_ferreteria.Controllers
                 {
                     ModelState.AddModelError(nameof(ClienteCreateViewModel.NumeroDocumento), "El CUIT no puede tener más de 11 caracteres.");
                 }
+            }
+            else
+            {
+                model.Apellido = null;
             }
 
             if (model.CuentaCorrienteHabilitada)

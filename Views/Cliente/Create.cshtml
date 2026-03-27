@@ -50,6 +50,7 @@ else
                     <div class="mt-2">
                         <input asp-for="Apellido" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
                         <span asp-validation-for="Apellido" class="mt-2 text-sm text-red-600"></span>
+                        <p class="mt-1 text-xs text-gray-500">Se completa solo para DNI; si elegís CUIT se limpia automáticamente.</p>
                     </div>
                 </div>
 
@@ -217,6 +218,29 @@ else
                 e.returnValue = 'Tiene cambios sin guardar. Si vuelve atrás, se perderán.';
             });
         })();
+        (function () {
+            const tipoSelect = document.querySelector('select[name="TipoDocumento"]');
+            const apellidoInput = document.querySelector('input[name="Apellido"]');
+            const validationSpan = document.querySelector('[data-valmsg-for="Apellido"]');
+            if (!tipoSelect || !apellidoInput) return;
+
+            const toggleApellido = () => {
+                const isCuit = (tipoSelect.value || '').toUpperCase() === 'CUIT';
+                apellidoInput.disabled = isCuit;
+                if (isCuit) {
+                    if (apellidoInput.value) {
+                        apellidoInput.value = '';
+                        apellidoInput.dispatchEvent(new Event('input'));
+                    }
+                    if (validationSpan) {
+                        validationSpan.textContent = '';
+                    }
+                }
+            };
+
+            tipoSelect.addEventListener('change', toggleApellido);
+            toggleApellido();
+        })();
     </script>
 }
 }
@@ -230,6 +254,29 @@ else
             form.addEventListener('change', function () { isDirty = true; });
             form.addEventListener('submit', function () { isDirty = false; });
         })();
+        (function () {
+            const container = document.querySelector('#ajaxModal form') || document;
+            const tipoSelect = container.querySelector('select[name="TipoDocumento"]');
+            const apellidoInput = container.querySelector('input[name="Apellido"]');
+            const validationSpan = container.querySelector('[data-valmsg-for="Apellido"]');
+            if (!tipoSelect || !apellidoInput) return;
+
+            const toggleApellido = () => {
+                const isCuit = (tipoSelect.value || '').toUpperCase() === 'CUIT';
+                apellidoInput.disabled = isCuit;
+                if (isCuit) {
+                    if (apellidoInput.value) {
+                        apellidoInput.value = '';
+                        apellidoInput.dispatchEvent(new Event('input'));
+                    }
+                    if (validationSpan) {
+                        validationSpan.textContent = '';
+                    }
+                }
+            };
+
+            tipoSelect.addEventListener('change', toggleApellido);
+            toggleApellido();
+        })();
     </script>
 }
-
