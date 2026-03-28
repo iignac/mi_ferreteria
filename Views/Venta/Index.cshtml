@@ -260,10 +260,13 @@
                                             <div class="flex flex-col items-center gap-2">
                                                 @Html.TextBoxFor(m => m.Lineas[i].Cantidad, new { @class = "block w-20 rounded-md border-0 py-1 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm cantidad-input text-center", type = "number", step = "1", min = "1" })
                                                 
-                                                <div class="flex items-center" title="Permitir venta sin stock">
-                                                    @Html.CheckBoxFor(m => m.Lineas[i].PermitirVentaSinStock, new { @class = "h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" })
-                                                    <label class="ml-1 text-[10px] text-gray-500">Sin stock</label>
-                                                </div>
+                                                @if (User.IsInRole("Administrador") && Model.Lineas[i].StockDisponible == 0)
+                                                {
+                                                    <div class="flex items-center" title="Permitir venta sin stock">
+                                                        @Html.CheckBoxFor(m => m.Lineas[i].PermitirVentaSinStock, new { @class = "h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" })
+                                                        <label class="ml-1 text-[10px] text-gray-500">Sin stock</label>
+                                                    </div>
+                                                }
                                             </div>
                                         </td>
                                         <td class="whitespace-nowrap py-3 pl-3 pr-4 text-right text-sm font-medium align-middle">
@@ -365,6 +368,7 @@
     <script>
         const STORAGE_KEY = 'ventaCarrito';
         let carritoIndex = 0;
+        const esAdmin = @(User.IsInRole("Administrador") ? "true" : "false");
 
         document.addEventListener('DOMContentLoaded', () => {
             const carrito = obtenerCarrito();
@@ -575,30 +579,31 @@
             inputCant.step = '1';
             divCont.appendChild(inputCant);
 
-            const divPerm = document.createElement('div');
-            divPerm.className = "flex items-center";
-            divPerm.title = "Permitir venta sin stock";
-            const chk = document.createElement('input');
-            chk.type = 'checkbox';
-            chk.className = 'h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600';
-            chk.name = `Lineas[${index}].PermitirVentaSinStock`;
-            chk.value = 'true';
-            chk.checked = !!item.permitirSinStock;
-            chk.addEventListener('change', () => {
-                const carrito = obtenerCarrito();
-                const existente = carrito.find(x => x.productoId === item.productoId);
-                if (existente) {
-                    existente.permitirSinStock = chk.checked;
-                    guardarCarrito(carrito);
-                }
-            });
-            divPerm.appendChild(chk);
-            const lblPerm = document.createElement('label');
-            lblPerm.className = "ml-1 text-[10px] text-gray-500";
-            lblPerm.textContent = "Sin stock";
-            divPerm.appendChild(lblPerm);
-
-            divCont.appendChild(divPerm);
+            if (esAdmin && item.stock === 0) {
+                const divPerm = document.createElement('div');
+                divPerm.className = "flex items-center";
+                divPerm.title = "Permitir venta sin stock";
+                const chk = document.createElement('input');
+                chk.type = 'checkbox';
+                chk.className = 'h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600';
+                chk.name = `Lineas[${index}].PermitirVentaSinStock`;
+                chk.value = 'true';
+                chk.checked = !!item.permitirSinStock;
+                chk.addEventListener('change', () => {
+                    const carrito = obtenerCarrito();
+                    const existente = carrito.find(x => x.productoId === item.productoId);
+                    if (existente) {
+                        existente.permitirSinStock = chk.checked;
+                        guardarCarrito(carrito);
+                    }
+                });
+                divPerm.appendChild(chk);
+                const lblPerm = document.createElement('label');
+                lblPerm.className = "ml-1 text-[10px] text-gray-500";
+                lblPerm.textContent = "Sin stock";
+                divPerm.appendChild(lblPerm);
+                divCont.appendChild(divPerm);
+            }
             tdCant.appendChild(divCont);
             tr.appendChild(tdCant);
 
