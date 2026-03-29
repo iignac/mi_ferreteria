@@ -247,7 +247,7 @@
                             <tbody id="carritoBody" class="divide-y divide-gray-200 bg-white">
                                 @for (var i = 0; i < Model.Lineas.Count; i++)
                                 {
-                                    <tr data-producto-id="@Model.Lineas[i].ProductoId" data-precio-unitario="@Model.Lineas[i].PrecioUnitario.ToString(System.Globalization.CultureInfo.InvariantCulture)" class="hover:bg-gray-50">
+                                    <tr data-producto-id="@Model.Lineas[i].ProductoId" data-precio-unitario="@Model.Lineas[i].PrecioUnitario.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-stock="@Model.Lineas[i].StockDisponible" class="hover:bg-gray-50">
                                         <td class="py-3 pl-4 pr-3 text-sm">
                                             <input type="hidden" name="Lineas[@i].ProductoId" value="@Model.Lineas[i].ProductoId" />
                                             <div class="font-medium text-gray-900 truncate max-w-[12rem]" title="@Model.Lineas[i].ProductoNombre">@Model.Lineas[i].ProductoNombre</div>
@@ -260,9 +260,10 @@
                                             <div class="flex flex-col items-center gap-2">
                                                 @Html.TextBoxFor(m => m.Lineas[i].Cantidad, new { @class = "block w-20 rounded-md border-0 py-1 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm cantidad-input text-center", type = "number", step = "1", min = "1" })
                                                 
-                                                @if (User.IsInRole("Administrador") && Model.Lineas[i].StockDisponible == 0)
+                                                @if (User.IsInRole("Administrador"))
                                                 {
-                                                    <div class="flex items-center" title="Permitir venta sin stock">
+                                                    var sinStockHidden = Model.Lineas[i].Cantidad <= Model.Lineas[i].StockDisponible ? "hidden" : "";
+                                                    <div class="flex items-center @sinStockHidden" title="Permitir venta sin stock">
                                                         @Html.CheckBoxFor(m => m.Lineas[i].PermitirVentaSinStock, new { @class = "h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" })
                                                         <label class="ml-1 text-[10px] text-gray-500">Sin stock</label>
                                                     </div>
@@ -533,6 +534,7 @@
             const tr = document.createElement('tr');
             tr.setAttribute('data-producto-id', item.productoId);
             tr.setAttribute('data-precio-unitario', precioUnitario.toString());
+            tr.setAttribute('data-stock', (item.stock ?? 0).toString());
             tr.className = "hover:bg-gray-50";
 
             // Col 1: Prod & Precio
@@ -579,9 +581,11 @@
             inputCant.step = '1';
             divCont.appendChild(inputCant);
 
-            if (esAdmin && item.stock === 0) {
+            if (esAdmin) {
+                const cantidadInicial = (item.cantidad && item.cantidad > 0) ? item.cantidad : 1;
+                const stockItem = item.stock ?? 0;
                 const divPerm = document.createElement('div');
-                divPerm.className = "flex items-center";
+                divPerm.className = "flex items-center" + (cantidadInicial > stockItem ? "" : " hidden");
                 divPerm.title = "Permitir venta sin stock";
                 const chk = document.createElement('input');
                 chk.type = 'checkbox';
@@ -654,6 +658,19 @@
                 if (existente) {
                     existente.cantidad = val;
                     guardarCarrito(carrito);
+                }
+            }
+            if (esAdmin && fila) {
+                const stock = parseInt(fila.getAttribute('data-stock') || '0', 10);
+                const divPerm = fila.querySelector('[title="Permitir venta sin stock"]');
+                if (divPerm) {
+                    if (val > stock) {
+                        divPerm.classList.remove('hidden');
+                    } else {
+                        divPerm.classList.add('hidden');
+                        const chk = divPerm.querySelector('input[type="checkbox"]');
+                        if (chk) chk.checked = false;
+                    }
                 }
             }
             recalcularTotalCarrito();
