@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 
 namespace mi_ferreteria.Controllers
 {
@@ -19,6 +20,7 @@ namespace mi_ferreteria.Controllers
         private readonly IClienteRepository _repo;
         private readonly IAuditoriaRepository _auditoriaRepo;
         private readonly ILogger<ClienteController> _logger;
+        private static readonly Regex NombreSoloLetrasRegex = new Regex(ValidationConstants.NombreSoloLetrasPattern, RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         public ClienteController(IClienteRepository repo, IAuditoriaRepository auditoriaRepo, ILogger<ClienteController> logger)
         {
@@ -645,10 +647,20 @@ namespace mi_ferreteria.Controllers
 
             if (tipoDocNorm == "DNI")
             {
+                if (!NombreSoloLetrasRegex.IsMatch(model.Nombre ?? string.Empty))
+                {
+                    ModelState.AddModelError(nameof(ClienteCreateViewModel.Nombre), "El nombre solo puede contener letras, espacios, apóstrofes o guiones.");
+                }
+
                 if (string.IsNullOrWhiteSpace(model.Apellido))
                 {
                     ModelState.AddModelError(nameof(ClienteCreateViewModel.Apellido), "El apellido es obligatorio cuando el tipo de documento es DNI.");
                 }
+                else if (!NombreSoloLetrasRegex.IsMatch(model.Apellido))
+                {
+                    ModelState.AddModelError(nameof(ClienteCreateViewModel.Apellido), "El apellido solo puede contener letras, espacios, apóstrofes o guiones.");
+                }
+
                 if (string.IsNullOrWhiteSpace(model.NumeroDocumento))
                 {
                     ModelState.AddModelError(nameof(ClienteCreateViewModel.NumeroDocumento), "El DNI es obligatorio.");
