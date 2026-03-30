@@ -21,6 +21,7 @@ namespace mi_ferreteria.Controllers
         private readonly IAuditoriaRepository _auditoriaRepo;
         private readonly ILogger<ClienteController> _logger;
         private static readonly Regex NombreSoloLetrasRegex = new Regex(ValidationConstants.NombreSoloLetrasPattern, RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        private static readonly Regex NumeroDocumentoSoloDigitosRegex = new Regex(@"^\d+$", RegexOptions.Compiled);
 
         public ClienteController(IClienteRepository repo, IAuditoriaRepository auditoriaRepo, ILogger<ClienteController> logger)
         {
@@ -656,6 +657,10 @@ namespace mi_ferreteria.Controllers
             var tipoDocNorm = string.IsNullOrWhiteSpace(model.TipoDocumento) ? null : model.TipoDocumento.Trim().ToUpperInvariant();
             model.TipoDocumento = tipoDocNorm;
             model.NumeroDocumento = string.IsNullOrWhiteSpace(model.NumeroDocumento) ? null : model.NumeroDocumento.Trim();
+            if (!string.IsNullOrWhiteSpace(model.NumeroDocumento) && !NumeroDocumentoSoloDigitosRegex.IsMatch(model.NumeroDocumento))
+            {
+                ModelState.AddModelError(nameof(ClienteCreateViewModel.NumeroDocumento), "El número de DNI/CUIT debe tener solo dígitos (sin puntos ni guiones).");
+            }
             model.DireccionCalle = string.IsNullOrWhiteSpace(model.DireccionCalle) ? null : model.DireccionCalle.Trim();
             model.DireccionNumero = string.IsNullOrWhiteSpace(model.DireccionNumero) ? null : model.DireccionNumero.Trim();
             model.DireccionLocalidad = string.IsNullOrWhiteSpace(model.DireccionLocalidad) ? null : model.DireccionLocalidad.Trim();
