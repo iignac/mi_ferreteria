@@ -7,9 +7,16 @@ namespace mi_ferreteria.Security
     /// </summary>
     public class PasswordPolicyValidationAttribute : ValidationAttribute
     {
+        public bool AllowEmpty { get; set; }
+
         protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
         {
             var password = value as string;
+            if (AllowEmpty && string.IsNullOrWhiteSpace(password))
+            {
+                return ValidationResult.Success;
+            }
+
             if (PasswordPolicy.IsStrong(password, out var message))
             {
                 return ValidationResult.Success;

@@ -10,17 +10,17 @@ namespace mi_ferreteria.ViewModels
     {
         public int Id { get; set; }
         [Required(ErrorMessage = "El nombre es obligatorio")]
-        [StringLength(100, ErrorMessage = "El nombre debe tener hasta 100 caracteres")]
+        [StringLength(120, ErrorMessage = "El nombre debe tener hasta 120 caracteres")]
         [RegularExpression(ValidationConstants.NombreSoloLetrasPattern, ErrorMessage = "El nombre solo puede contener letras, espacios, apostrofes o guiones.")]
         public string Nombre { get; set; }
 
         [Required(ErrorMessage = "El email es obligatorio")]
         [EmailAddress(ErrorMessage = "El email no tiene un formato válido")]
-        [StringLength(100, ErrorMessage = "El email debe tener hasta 100 caracteres")]
+        [StringLength(120, ErrorMessage = "El email debe tener hasta 120 caracteres")]
         public string Email { get; set; }
         public bool Activo { get; set; }
         // Para creación y cambio de contraseña
-        [PasswordPolicyValidation]
+        [PasswordPolicyValidation(AllowEmpty = true)]
         public string? Password { get; set; }
 
         [Compare("Password", ErrorMessage = "Las contraseñas no coinciden")]
