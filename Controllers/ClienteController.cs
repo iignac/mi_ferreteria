@@ -29,8 +29,9 @@ namespace mi_ferreteria.Controllers
             _logger = logger;
         }
 
-        public IActionResult Index(string? q = null, int page = 1)
+        public IActionResult Index(string? q = null, int page = 1, string? sort = null)
         {
+            var normalizedSort = NormalizeClienteSort(sort);
             try
             {
                 const int pageSize = 10;
@@ -39,13 +40,14 @@ namespace mi_ferreteria.Controllers
                 int totalPages = (int)System.Math.Ceiling(total / (double)pageSize);
                 if (totalPages == 0) totalPages = 1;
                 if (page > totalPages) page = totalPages;
-                var clientes = _repo.GetPage(q, page, pageSize).ToList();
+                var clientes = _repo.GetPage(q, page, pageSize, normalizedSort).ToList();
 
                 ViewBag.Page = page;
                 ViewBag.PageSize = pageSize;
                 ViewBag.TotalCount = total;
                 ViewBag.TotalPages = totalPages;
                 ViewBag.Query = q;
+                ViewBag.Sort = normalizedSort;
                 return View(clientes);
             }
             catch (System.Exception ex)
@@ -56,6 +58,7 @@ namespace mi_ferreteria.Controllers
                 ViewBag.TotalCount = 0;
                 ViewBag.TotalPages = 1;
                 ViewBag.Query = q;
+                ViewBag.Sort = normalizedSort;
                 return View(Enumerable.Empty<Cliente>());
             }
         }
@@ -602,6 +605,21 @@ namespace mi_ferreteria.Controllers
             var finalAccion = BuildAccionNombre(accion);
             _auditoriaRepo.Registrar(userId, usuarioNombre, finalAccion, detalle);
             HttpContext.Items["AuditLogged"] = true;
+        }
+
+        private static string NormalizeClienteSort(string? sort)
+        {
+            return sort switch
+            {
+                "nombre_desc" => "nombre_desc",
+                "tipocliente_asc" => "tipocliente_asc",
+                "tipocliente_desc" => "tipocliente_desc",
+                "limite_asc" => "limite_asc",
+                "limite_desc" => "limite_desc",
+                "estado_asc" => "estado_asc",
+                "estado_desc" => "estado_desc",
+                _ => "nombre_asc"
+            };
         }
 
         private static string BuildAccionNombre(string accion)

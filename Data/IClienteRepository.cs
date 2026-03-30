@@ -22,6 +22,6 @@ namespace mi_ferreteria.Data
 
         // Listado paginado y bA-squeda
         int Count(string? q = null);
-        IEnumerable<Cliente> GetPage(string? q, int page, int pageSize);
+        IEnumerable<Cliente> GetPage(string? q, int page, int pageSize, string sort);
     }
 }

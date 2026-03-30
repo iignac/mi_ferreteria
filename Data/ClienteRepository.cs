@@ -52,7 +52,7 @@ namespace mi_ferreteria.Data
             }
         }
 
-        public IEnumerable<Cliente> GetPage(string? q, int page, int pageSize)
+        public IEnumerable<Cliente> GetPage(string? q, int page, int pageSize, string sort)
         {
             var list = new List<Cliente>();
             try
@@ -75,7 +75,7 @@ namespace mi_ferreteria.Data
                            " OR lower(coalesce(numero_documento,'')) LIKE lower(@q)" +
                            " OR lower(coalesce(email,'')) LIKE lower(@q))";
                 }
-                sql += " ORDER BY nombre ASC, apellido ASC NULLS LAST, id ASC LIMIT @limit OFFSET @offset";
+                sql += BuildOrderClause(sort) + " LIMIT @limit OFFSET @offset";
                 using var cmd = new NpgsqlCommand(sql, conn);
                 if (!string.IsNullOrWhiteSpace(q))
                 {
@@ -147,7 +147,7 @@ namespace mi_ferreteria.Data
             ", conn);
             cmd.ExecuteNonQuery();
 
-            // Asegura columnas nuevas si la tabla ya existA-a sin estas
+            // Asegura columnas nuevas si la tabla ya existía sin estas
             using var alt = new NpgsqlCommand(@"
                 ALTER TABLE IF EXISTS cliente ADD COLUMN IF NOT EXISTS apellido TEXT NULL;
                 ALTER TABLE IF EXISTS cliente ADD COLUMN IF NOT EXISTS tipo_documento TEXT NULL;
@@ -166,6 +166,36 @@ namespace mi_ferreteria.Data
             alt.ExecuteNonQuery();
         }
 
+        private static string NormalizeSort(string? sort)
+        {
+            return sort switch
+            {
+                "nombre_desc" => "nombre_desc",
+                "tipocliente_asc" => "tipocliente_asc",
+                "tipocliente_desc" => "tipocliente_desc",
+                "limite_asc" => "limite_asc",
+                "limite_desc" => "limite_desc",
+                "estado_asc" => "estado_asc",
+                "estado_desc" => "estado_desc",
+                _ => "nombre_asc"
+            };
+        }
+
+        private static string BuildOrderClause(string? sort)
+        {
+            var normalized = NormalizeSort(sort);
+            return normalized switch
+            {
+                "nombre_desc" => " ORDER BY unaccent(lower(nombre)) DESC, unaccent(lower(coalesce(apellido,''))) DESC NULLS LAST, id DESC",
+                "tipocliente_asc" => " ORDER BY tipo_cliente ASC, unaccent(lower(nombre)) ASC, id ASC",
+                "tipocliente_desc" => " ORDER BY tipo_cliente DESC, unaccent(lower(nombre)) ASC, id ASC",
+                "limite_asc" => " ORDER BY limite_credito ASC, unaccent(lower(nombre)) ASC, id ASC",
+                "limite_desc" => " ORDER BY limite_credito DESC, unaccent(lower(nombre)) ASC, id ASC",
+                "estado_asc" => " ORDER BY activo ASC, unaccent(lower(nombre)) ASC, id ASC",
+                "estado_desc" => " ORDER BY activo DESC, unaccent(lower(nombre)) ASC, id ASC",
+                _ => " ORDER BY unaccent(lower(nombre)) ASC, unaccent(lower(coalesce(apellido,''))) ASC NULLS LAST, id ASC"
+            };
+        }
         public IEnumerable<Cliente> GetAllActivos()
         {
             var list = new List<Cliente>();
