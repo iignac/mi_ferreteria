@@ -631,7 +631,8 @@ namespace mi_ferreteria.Controllers
         private void NormalizarYValidarCliente(ClienteCreateViewModel model)
         {
             model.Nombre = InputSanitizer.NormalizeName(model.Nombre) ?? string.Empty;
-            model.Apellido = string.IsNullOrWhiteSpace(model.Apellido) ? null : model.Apellido.Trim();
+            var normalizedApellido = InputSanitizer.NormalizeName(model.Apellido);
+            model.Apellido = string.IsNullOrWhiteSpace(normalizedApellido) ? null : normalizedApellido;
             var tipoDocNorm = string.IsNullOrWhiteSpace(model.TipoDocumento) ? null : model.TipoDocumento.Trim().ToUpperInvariant();
             model.TipoDocumento = tipoDocNorm;
             model.NumeroDocumento = string.IsNullOrWhiteSpace(model.NumeroDocumento) ? null : model.NumeroDocumento.Trim();
