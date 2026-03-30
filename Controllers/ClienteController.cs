@@ -688,9 +688,9 @@ namespace mi_ferreteria.Controllers
                 {
                     ModelState.AddModelError(nameof(ClienteCreateViewModel.NumeroDocumento), "El DNI es obligatorio.");
                 }
-                else if (model.NumeroDocumento.Length > 8)
+                else if (model.NumeroDocumento.Length < 7 || model.NumeroDocumento.Length > 8)
                 {
-                    ModelState.AddModelError(nameof(ClienteCreateViewModel.NumeroDocumento), "El DNI no puede tener más de 8 caracteres.");
+                    ModelState.AddModelError(nameof(ClienteCreateViewModel.NumeroDocumento), "El DNI debe tener 7 u 8 dígitos.");
                 }
             }
             else if (tipoDocNorm == "CUIT")
@@ -700,9 +700,9 @@ namespace mi_ferreteria.Controllers
                 {
                     ModelState.AddModelError(nameof(ClienteCreateViewModel.NumeroDocumento), "El CUIT es obligatorio.");
                 }
-                else if (model.NumeroDocumento.Length > 11)
+                else if (model.NumeroDocumento.Length != 11)
                 {
-                    ModelState.AddModelError(nameof(ClienteCreateViewModel.NumeroDocumento), "El CUIT no puede tener más de 11 caracteres.");
+                    ModelState.AddModelError(nameof(ClienteCreateViewModel.NumeroDocumento), "El CUIT debe tener 11 dígitos.");
                 }
             }
             else
