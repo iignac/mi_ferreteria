@@ -5,7 +5,16 @@
       "Bash(grep:*)",
       "Bash(dotnet build:*)",
       "Bash(npm run:*)",
-      "Bash(dotnet restore:*)"
+      "Bash(dotnet restore:*)",
+      "Bash(powershell -command \":*)",
+      "Bash(pandoc --version)",
+      "Bash(python3 -c \"import docx; print\\(''ok''\\)\")",
+      "Bash(python -c \"import docx; print\\(''ok''\\)\")",
+      "Bash(node -e \"require\\(''docx''\\)\")",
+      "Bash(npm list:*)",
+      "Bash(npm install:*)",
+      "Bash(node -e \"require\\(''docx''\\); console.log\\(''ok''\\)\")",
+      "Bash(node generar_docx.mjs)"
     ]
   }
 }
