@@ -5,6 +5,7 @@ using mi_ferreteria.Data;
 
 namespace mi_ferreteria.Controllers
 {
+    [Authorize(Roles = "Administrador,Stock")]
     public class StockProductoController : Controller
     {
         private readonly IProductoRepository _prodRepo;
@@ -46,8 +47,6 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
-                if (!PuedeMoverStock()) return Forbid();
-
                 if (cantidad <= 0)
                 {
                     TempData["StockError"] = "La cantidad debe ser mayor a 0.";
@@ -69,11 +68,6 @@ namespace mi_ferreteria.Controllers
                 TempData["StockError"] = "Ocurrió un error al ajustar el stock.";
                 return RedirectToAction("Manage", new { id });
             }
-        }
-
-        private bool PuedeMoverStock()
-        {
-            return User.IsInRole("Administrador") || User.IsInRole("Stock");
         }
     }
 }

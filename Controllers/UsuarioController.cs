@@ -12,23 +12,22 @@ using mi_ferreteria.Helpers;
 namespace mi_ferreteria.Controllers
 {
     [Authorize(Policy = mi_ferreteria.Security.Permisos.Usuarios.Ver)]
-    public class UsuarioController : Controller
+    public class UsuarioController : BaseController
     {
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IRolRepository _rolRepository;
         private readonly ILogger<UsuarioController> _logger;
-        private readonly IAuditoriaRepository _auditoriaRepository;
         private readonly IPermisoRepository _permisoRepository;
         private const string RolAdministradorNombre = "ADMINISTRADOR";
         private const string RolVendedorNombre = "VENDEDOR";
         private const string RolStockNombre = "STOCK";
 
         public UsuarioController(IUsuarioRepository usuarioRepository, IRolRepository rolRepository, ILogger<UsuarioController> logger, IAuditoriaRepository auditoriaRepository, IPermisoRepository permisoRepository)
+            : base(auditoriaRepository)
         {
             _usuarioRepository = usuarioRepository;
             _rolRepository = rolRepository;
             _logger = logger;
-            _auditoriaRepository = auditoriaRepository;
             _permisoRepository = permisoRepository;
         }
 
@@ -328,19 +327,7 @@ namespace mi_ferreteria.Controllers
                     }
                     _usuarioRepository.Update(usuario, newPwd);
                     
-                    // Match the incoming Permiso Nombre (from PermisosIds which are actually IDs)
-                    // Wait, we need to map the Permiso.Nombre to ID from the Db.
-                    // The UI will post PermisoIds. If we bind by ID, we just save it.
-                    var permisosDb = _permisoRepository.GetAll();
-                    var savedPermisoIds = new System.Collections.Generic.List<int>();
-                    if (model.PermisosIds != null)
-                    {
-                        foreach (var pid in model.PermisosIds)
-                        {
-                            savedPermisoIds.Add(pid);
-                        }
-                    }
-                    _permisoRepository.AsignarPermisosDirectos(usuario.Id, savedPermisoIds);
+                    _permisoRepository.AsignarPermisosDirectos(usuario.Id, model.PermisosIds ?? new List<int>());
 
                     var rolesAntes = FormatearRoles(dbUsuario.Roles);
                     var rolesDespues = FormatearRoles(rolesSeleccionados);
@@ -426,31 +413,6 @@ namespace mi_ferreteria.Controllers
             if (model == null) return;
             model.Nombre = InputSanitizer.NormalizeName(model.Nombre);
             model.Email = InputSanitizer.NormalizeEmail(model.Email);
-        }
-
-        private void RegistrarAuditoria(string accion, string detalle)
-        {
-            var userIdClaim = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            var nombre = User?.Identity?.Name ?? "Usuario desconocido";
-            if (int.TryParse(userIdClaim, out var uid) && uid > 0)
-            {
-                var finalAccion = BuildAccionNombre(accion);
-                _auditoriaRepository.Registrar(uid, nombre, finalAccion, detalle);
-                HttpContext.Items["AuditLogged"] = true;
-            }
-        }
-
-        private static string BuildAccionNombre(string accion)
-        {
-            var controller = nameof(UsuarioController).Replace("Controller", string.Empty).ToUpperInvariant();
-            if (string.IsNullOrWhiteSpace(accion))
-            {
-                return controller;
-            }
-            var normalized = accion.Contains('.')
-                ? accion
-                : $"{controller}.{accion}";
-            return normalized.ToUpperInvariant();
         }
 
         private static string FormatearRoles(IEnumerable<Rol>? roles)

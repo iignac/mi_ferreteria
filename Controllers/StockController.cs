@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using mi_ferreteria.Helpers;
 using mi_ferreteria.Data;
@@ -10,19 +11,19 @@ using mi_ferreteria.ViewModels;
 
 namespace mi_ferreteria.Controllers
 {
-    public class StockController : Controller
+    [Authorize(Roles = "Administrador,Stock")]
+    public class StockController : BaseController
     {
         private readonly ILogger<StockController> _logger;
         private readonly IStockRepository _stockRepo;
         private readonly IProductoRepository _prodRepo;
-        private readonly IAuditoriaRepository _auditoriaRepo;
 
         public StockController(ILogger<StockController> logger, IStockRepository stockRepo, IProductoRepository prodRepo, IAuditoriaRepository auditoriaRepo)
+            : base(auditoriaRepo)
         {
             _logger = logger;
             _stockRepo = stockRepo;
             _prodRepo = prodRepo;
-            _auditoriaRepo = auditoriaRepo;
         }
 
         // Muestra la pantalla de carga/egreso masivo de stock con el listado paginado de productos y alertas de stock crítico.
@@ -31,8 +32,6 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
-                if (!PuedeGestionarStock()) return Forbid();
-
                 ViewData["Title"] = "Gestion de Stock";
                 PrepararListadoProductos(q, page);
                 return View(new StockCargaViewModel());
@@ -51,7 +50,6 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
-                if (!PuedeGestionarStock()) return Forbid();
                 model ??= new StockCargaViewModel();
 
                 var lineasParaMostrar = new List<StockCargaLineaViewModel>();
@@ -136,12 +134,12 @@ namespace mi_ferreteria.Controllers
                     if (esIngreso)
                     {
                         _stockRepo.Ingresar(linea.ProductoId, linea.Cantidad, motivo, linea.PrecioCompra);
-                        RegistrarAuditoria(nameof(Index), $"Registro de ingreso de stock: {linea.Cantidad} {linea.UnidadMedida} de {linea.ProductoNombre} (ID {linea.ProductoId})");
+                        RegistrarAuditoria(nameof(Cargar), $"Registro de ingreso de stock: {linea.Cantidad} {linea.UnidadMedida} de {linea.ProductoNombre} (ID {linea.ProductoId})");
                     }
                     else
                     {
                         _stockRepo.Egresar(linea.ProductoId, linea.Cantidad, motivo);
-                        RegistrarAuditoria(nameof(Index), $"Registro de egreso de stock: {linea.Cantidad} {linea.UnidadMedida} de {linea.ProductoNombre} (ID {linea.ProductoId})");
+                        RegistrarAuditoria(nameof(Cargar), $"Registro de egreso de stock: {linea.Cantidad} {linea.UnidadMedida} de {linea.ProductoNombre} (ID {linea.ProductoId})");
                     }
                 }
 
@@ -164,7 +162,6 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
-                if (!PuedeGestionarStock()) return Forbid();
                 if (string.IsNullOrWhiteSpace(q))
                 {
                     return Json(Array.Empty<object>());
@@ -238,7 +235,6 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
-                if (!PuedeGestionarStock()) return Forbid();
                 const int pageSize = 10;
                 if (page < 1) page = 1;
 
@@ -279,7 +275,6 @@ namespace mi_ferreteria.Controllers
         {
             try
             {
-                if (!PuedeGestionarStock()) return Forbid();
                 const int pageSize = 20;
                 if (page < 1) page = 1;
                 var productos = _stockRepo.GetProductosStockCritico(q, page, pageSize, out var total).ToList();
@@ -354,35 +349,5 @@ namespace mi_ferreteria.Controllers
             ViewBag.Query = q ?? string.Empty;
         }
 
-        private bool PuedeGestionarStock()
-        {
-            return User.IsInRole("Administrador") || User.IsInRole("Stock");
-        }
-
-        private void RegistrarAuditoria(string accion, string detalle)
-        {
-            var userIdClaim = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            var nombre = User?.Identity?.Name ?? "Usuario desconocido";
-            if (int.TryParse(userIdClaim, out var uid) && uid > 0)
-            {
-                var finalAccion = BuildAccionNombre(accion);
-                _auditoriaRepo.Registrar(uid, nombre, finalAccion, detalle);
-                HttpContext.Items["AuditLogged"] = true;
-            }
-        }
-
-        private static string BuildAccionNombre(string accion)
-        {
-            var controller = nameof(StockController).Replace("Controller", string.Empty).ToUpperInvariant();
-            if (string.IsNullOrWhiteSpace(accion))
-            {
-                return controller;
-            }
-
-            var normalized = accion.Contains('.')
-                ? accion
-                : $"{controller}.{accion}";
-            return normalized.ToUpperInvariant();
-        }
     }
 }

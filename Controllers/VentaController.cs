@@ -13,7 +13,7 @@ using mi_ferreteria.ViewModels;
 namespace mi_ferreteria.Controllers
 {
     [Authorize(Roles = "Administrador,Vendedor")]
-    public class VentaController : Controller
+    public class VentaController : BaseController
     {
         private readonly IProductoRepository _productoRepo;
         private readonly IStockRepository _stockRepo;
@@ -26,7 +26,9 @@ namespace mi_ferreteria.Controllers
             IStockRepository stockRepo,
             IClienteRepository clienteRepo,
             IVentaRepository ventaRepo,
+            IAuditoriaRepository auditoriaRepo,
             ILogger<VentaController> logger)
+            : base(auditoriaRepo)
         {
             _productoRepo = productoRepo;
             _stockRepo = stockRepo;
@@ -233,6 +235,8 @@ if (!ModelState.IsValid)
 
                 if (requiereAutorizacion)
                 {
+                    RegistrarAuditoria(nameof(Crear),
+                        $"Venta #{ventaCreada.Id} quedó pendiente de autorización por exceder límite de crédito. Cliente: {cliente?.Nombre ?? "Consumidor final"}, Total: {ventaCreada.Total:C}.");
                     TempData["VentaPendiente"] = $"La venta {ventaCreada.Id} supera el limite de deuda del cliente y quedo pendiente de autorizacion.";
                     return RedirectToAction(nameof(Index));
                 }
@@ -287,8 +291,12 @@ if (!ModelState.IsValid)
                     }
                 }
 
+                var clienteDetalle = cliente != null ? $"{cliente.Nombre} (ID {cliente.Id})" : "Consumidor final";
+                var lineasDetalle = string.Join(", ", detalles.Select(d => $"{d.Descripcion} x{d.Cantidad}"));
+                RegistrarAuditoria(nameof(Crear),
+                    $"Venta #{ventaCreada.Id} confirmada. Cliente: {clienteDetalle}, Pago: {ventaCreada.TipoPago}, Total: {ventaCreada.Total:C}. Líneas: {lineasDetalle}.");
+
                 TempData["VentaOk"] = $"Venta {ventaCreada.Id} creada correctamente por un total de {ventaCreada.Total:C}.";
-                // Redirigir al comprobante para permitir impresión inmediata
                 return RedirectToAction(nameof(Comprobante), new { id = ventaCreada.Id });
             }
             catch (Exception ex)

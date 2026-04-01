@@ -221,14 +221,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
-        private static void NormalizeUsuarioDto(UsuarioCreateDto dto)
-        {
-            if (dto == null) return;
-            dto.Nombre = InputSanitizer.NormalizeName(dto.Nombre) ?? dto.Nombre;
-            dto.Email = InputSanitizer.NormalizeEmail(dto.Email) ?? dto.Email;
-        }
-
-        private static void NormalizeUsuarioDto(UsuarioUpdateDto dto)
+        private static void NormalizeUsuarioDto(UsuarioBaseDto dto)
         {
             if (dto == null) return;
             dto.Nombre = InputSanitizer.NormalizeName(dto.Nombre) ?? dto.Nombre;
