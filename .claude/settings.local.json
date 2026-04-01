@@ -14,7 +14,10 @@
       "Bash(npm list:*)",
       "Bash(npm install:*)",
       "Bash(node -e \"require\\(''docx''\\); console.log\\(''ok''\\)\")",
-      "Bash(node generar_docx.mjs)"
+      "Bash(node generar_docx.mjs)",
+      "Bash(xargs wc:*)",
+      "Bash(wc:*)",
+      "Bash(ls /c/Users/santi/Desktop/mi_ferreteria/mi_ferreteria/build*)"
     ]
   }
 }

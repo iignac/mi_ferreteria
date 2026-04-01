@@ -13,6 +13,7 @@ public class HomeController : Controller
         _logger = logger;
     }
 
+    // Redirige al usuario según su rol: Administrador al dashboard, Vendedor a ventas, Stock a stock. Si no está autenticado, redirige al login.
     public IActionResult Index()
     {
         try
@@ -35,6 +36,7 @@ public class HomeController : Controller
         }
     }
 
+    // Muestra la página de política de privacidad.
     public IActionResult Privacy()
     {
         try
@@ -49,6 +51,7 @@ public class HomeController : Controller
         }
     }
 
+    // Muestra la página de error genérica con el ID de la solicitud para facilitar el diagnóstico.
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {

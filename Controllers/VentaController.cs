@@ -35,6 +35,7 @@ namespace mi_ferreteria.Controllers
             _logger = logger;
         }
 
+        // Muestra el formulario de nueva venta con el listado paginado de productos disponibles y alertas de stock crítico.
         [HttpGet]
         public IActionResult Index(string? q = null, int page = 1)
         {
@@ -90,6 +91,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Procesa la venta: valida stock, calcula total, gestiona CC (saldo a favor, deuda, límite de crédito). Si excede el límite sin autorización, la venta queda en estado PENDIENTE_AUTORIZACION.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Crear(VentaCrearViewModel model)
@@ -299,6 +301,7 @@ if (!ModelState.IsValid)
             }
         }
 
+        // Lista el historial paginado de todas las ventas registradas.
         [HttpGet]
         public IActionResult Historial(int page = 1)
         {
@@ -333,6 +336,7 @@ if (!ModelState.IsValid)
             }
         }
 
+        // Endpoint JSON para búsqueda rápida de productos con precio de venta y stock disponible. Usado desde el formulario de venta.
         [HttpGet]
         public IActionResult BuscarProductos(string? q)
         {
@@ -456,6 +460,7 @@ if (!ModelState.IsValid)
             return $"{nombre} - {tipoDoc}: {doc} (limite: {cliente.LimiteCredito:C})";
         }
 
+        // Muestra el comprobante imprimible de una venta con su detalle de líneas y datos de factura asociada.
         [HttpGet]
         public IActionResult Comprobante(long id)
         {

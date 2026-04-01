@@ -74,6 +74,7 @@ namespace mi_ferreteria.Controllers
             _logger = logger;
         }
 
+        // Panel principal: muestra KPIs de ventas, stock, productos y alertas de seguridad.
         public IActionResult Dashboard()
         {
             try
@@ -128,6 +129,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Lista las ventas en estado PENDIENTE_AUTORIZACION con el saldo actual y proyectado de cada cliente.
         public IActionResult VentasPendientes()
         {
             try
@@ -165,6 +167,7 @@ namespace mi_ferreteria.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        // Confirma una venta pendiente: cambia el estado, genera la factura, registra el pago y descuenta el stock.
         public IActionResult AutorizarVentaPendiente(long ventaId)
         {
             try
@@ -261,6 +264,7 @@ namespace mi_ferreteria.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        // Rechaza una venta pendiente, guarda el motivo en observaciones y la deja como registro histórico sin efectos.
         public IActionResult RechazarVentaPendiente(long ventaId, string? motivo)
         {
             try
@@ -284,6 +288,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Muestra el registro de auditoría paginado, con filtros por texto, módulo, tipo de operación y rango de fechas.
         public IActionResult Auditoria(int page = 1, string? search = null, string? modulo = null, string? operacion = null, string? desde = null, string? hasta = null)
         {
             try
@@ -343,6 +348,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Tablero financiero: totales de ventas por período, margen bruto, top productos, top clientes y deudores.
         public IActionResult Finanzas(int diasTopProductos = 30, int diasTopClientes = 30, long? categoriaTopProductosId = null)
         {
             try
@@ -393,6 +399,7 @@ namespace mi_ferreteria.Controllers
 
         // ── REPORTES ──────────────────────────────────────────────────────────────
 
+        // Vista de exportación: punto de entrada para descargar reportes en Excel o verlos en formato imprimible.
         public IActionResult Reportes()
         {
             ViewData["Title"] = "Exportar Reportes";
@@ -401,6 +408,7 @@ namespace mi_ferreteria.Controllers
 
         // ── Excel exports ─────────────────────────────────────────────────────────
 
+        // Genera un .xlsx con 4 hojas: resumen general, top productos, top clientes y clientes deudores.
         public IActionResult ExportarFinanzasExcel()
         {
             var resumen = _finanzasRepo.ObtenerResumen();
@@ -475,6 +483,7 @@ namespace mi_ferreteria.Controllers
                 $"finanzas_{DateTime.Now:yyyyMMdd}.xlsx");
         }
 
+        // Exporta el historial de ventas filtrado por rango de fechas a un archivo Excel.
         public IActionResult ExportarHistorialExcel(string? desde, string? hasta)
         {
             var fechaDesde = ParseDate(desde)?.DateTime;
@@ -515,6 +524,7 @@ namespace mi_ferreteria.Controllers
                 $"historial_ventas_{DateTime.Now:yyyyMMdd}.xlsx");
         }
 
+        // Exporta la lista de clientes con saldo deudor, su límite de crédito y el porcentaje de uso a Excel.
         public IActionResult ExportarDeudoresExcel()
         {
             var resumen = _finanzasRepo.ObtenerResumen();
@@ -549,6 +559,7 @@ namespace mi_ferreteria.Controllers
                 $"deudores_{DateTime.Now:yyyyMMdd}.xlsx");
         }
 
+        // Exporta los productos con stock por debajo del mínimo configurado a un archivo Excel.
         public IActionResult ExportarStockCriticoExcel()
         {
             var productos = _stockRepo.GetProductosStockCritico(null, 1, int.MaxValue, out _).ToList();
@@ -584,6 +595,7 @@ namespace mi_ferreteria.Controllers
 
         // ── Print / PDF ────────────────────────────────────────────────────────────
 
+        // Vista imprimible del resumen financiero, sin layout ni navegación, lista para Ctrl+P o exportar a PDF.
         public IActionResult ImprimirFinanzas()
         {
             var resumen = _finanzasRepo.ObtenerResumen();
@@ -591,6 +603,7 @@ namespace mi_ferreteria.Controllers
             return View(resumen);
         }
 
+        // Vista imprimible del historial de ventas filtrado por fechas.
         public IActionResult ImprimirHistorial(string? desde, string? hasta)
         {
             var fechaDesde = ParseDate(desde)?.DateTime;
@@ -602,6 +615,7 @@ namespace mi_ferreteria.Controllers
             return View(ventas);
         }
 
+        // Vista imprimible del reporte de clientes deudores.
         public IActionResult ImprimirDeudores()
         {
             var resumen = _finanzasRepo.ObtenerResumen();
@@ -609,6 +623,7 @@ namespace mi_ferreteria.Controllers
             return View(resumen);
         }
 
+        // Vista imprimible del reporte de productos en stock crítico.
         public IActionResult ImprimirStockCritico()
         {
             var productos = _stockRepo.GetProductosStockCritico(null, 1, int.MaxValue, out _).ToList();

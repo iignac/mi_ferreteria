@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.ComponentModel.DataAnnotations;
 using System;
+using mi_ferreteria.Helpers;
 
 namespace mi_ferreteria.Controllers
 {
@@ -16,9 +17,7 @@ namespace mi_ferreteria.Controllers
     {
         private readonly IProductoRepository _repo;
         private readonly ILogger<ProductoApiController> _logger;
-        private static readonly string[] UnidadesPermitidas = new[] {
-            "unidad","gramos","kilos","metros cuadrados","juego","bolsa","placa","rollo","litro","mililitro","bidon","kit","par"
-        };
+        private static readonly string[] UnidadesPermitidas = ValidationConstants.UnidadesPermitidas;
 
         public ProductoApiController(IProductoRepository repo, ILogger<ProductoApiController> logger)
         {
@@ -26,6 +25,7 @@ namespace mi_ferreteria.Controllers
             _logger = logger;
         }
 
+        // Retorna la lista completa de productos disponibles en el sistema.
         [HttpGet("listar-productos")]
         public ActionResult<IEnumerable<Producto>> Listar()
         {
@@ -41,6 +41,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Retorna un producto por su ID. Devuelve 404 si no existe.
         [HttpGet("obtener-producto/{id:long}")]
         public ActionResult<Producto> Obtener(long id)
         {
@@ -70,6 +71,7 @@ namespace mi_ferreteria.Controllers
             [Required] public string UnidadMedida { get; set; } = "unidad";
         }
 
+        // Crea un nuevo producto. Valida que el SKU sea único y que la unidad de medida sea una de las permitidas.
         [HttpPost("crear-producto")]
         [Authorize(Roles = "Administrador,Stock")]
         public ActionResult<Producto> Crear([FromBody] ProductoCreateDto dto)
@@ -119,6 +121,7 @@ namespace mi_ferreteria.Controllers
             [Required] public long Id { get; set; }
         }
 
+        // Actualiza un producto existente. Verifica que el ID de la ruta coincida con el del cuerpo y que el SKU no esté en uso por otro producto.
         [HttpPut("actualizar-producto/{id:long}")]
         [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Actualizar(long id, [FromBody] ProductoUpdateDto dto)
@@ -163,6 +166,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Elimina físicamente un producto por su ID. Solo accesible para Administrador y Stock.
         [HttpDelete("eliminar-producto/{id:long}")]
         [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Eliminar(long id)

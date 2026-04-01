@@ -25,6 +25,7 @@ namespace mi_ferreteria.Controllers
             _auditoriaRepository = auditoriaRepository;
         }
 
+        // Muestra el formulario de login. Si el usuario ya está autenticado, redirige directamente.
         [AllowAnonymous]
         [HttpGet]
         public IActionResult Login(string? returnUrl = null)
@@ -37,6 +38,7 @@ namespace mi_ferreteria.Controllers
             return View(new LoginViewModel { ReturnUrl = returnUrl });
         }
 
+        // Muestra la pantalla de acceso denegado cuando el usuario no tiene permisos para la ruta solicitada.
         [AllowAnonymous]
         [HttpGet]
         public IActionResult AccesoDenegado()
@@ -44,6 +46,7 @@ namespace mi_ferreteria.Controllers
             return View();
         }
 
+        // Procesa el login: verifica credenciales, crea la cookie de sesión y redirige según el rol del usuario.
         [AllowAnonymous]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -88,6 +91,7 @@ namespace mi_ferreteria.Controllers
             return RedirectToLocal(model.ReturnUrl);
         }
 
+        // Cierra la sesión del usuario, registra el evento en auditoría y redirige al login.
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]

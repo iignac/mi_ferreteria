@@ -25,6 +25,7 @@ namespace mi_ferreteria.Controllers
             _auditoriaRepo = auditoriaRepo;
         }
 
+        // Muestra la pantalla de carga/egreso masivo de stock con el listado paginado de productos y alertas de stock crítico.
         [HttpGet]
         public IActionResult Index(string? q = null, int page = 1)
         {
@@ -43,6 +44,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Procesa el movimiento masivo de ingreso o egreso de stock. Valida cantidades, stock disponible y precios de compra por línea.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Cargar(StockCargaViewModel model, string? q = null, int page = 1)
@@ -156,6 +158,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Endpoint JSON para búsqueda rápida de productos con stock actual y último precio de compra. Usado desde el formulario de carga masiva.
         [HttpGet]
         public IActionResult BuscarProductos(string? q)
         {
@@ -204,6 +207,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Busca un producto por texto y redirige directamente a la gestión individual de stock del primer resultado encontrado.
         [HttpGet]
         public IActionResult Buscar(string? q)
         {
@@ -228,6 +232,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Lista el historial global paginado de todos los movimientos de stock con nombre y unidad de cada producto.
         [HttpGet]
         public IActionResult Movimientos(int page = 1)
         {
@@ -268,6 +273,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Lista los productos cuyo stock actual es igual o menor al mínimo configurado, con soporte de búsqueda y paginación.
         [HttpGet]
         public IActionResult Criticos(string? q = null, int page = 1)
         {

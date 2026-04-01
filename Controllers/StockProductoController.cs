@@ -18,6 +18,7 @@ namespace mi_ferreteria.Controllers
             _logger = logger;
         }
 
+        // Muestra el historial de movimientos paginado de un producto específico junto con su stock actual.
         [HttpGet]
         public IActionResult Manage(long id, int page = 1)
         {
@@ -38,6 +39,7 @@ namespace mi_ferreteria.Controllers
             return View();
         }
 
+        // Registra un ingreso o egreso de stock para un producto. Valida que la cantidad sea positiva y que el motivo esté completo.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Manage(long id, string tipo, long cantidad, string? motivo)

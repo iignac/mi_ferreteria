@@ -20,7 +20,9 @@ namespace mi_ferreteria.Data
         IEnumerable<ClienteCuentaCorrienteMovimiento> GetMovimientosCuentaCorriente(long clienteId);
         IEnumerable<ClienteCuentaCorrienteFacturaPendiente> GetFacturasPendientes(long clienteId);
 
-        // Listado paginado y bA-squeda
+        void RegistrarSaldoInicial(long clienteId, decimal monto);
+
+        // Listado paginado y búsqueda
         int Count(string? q = null);
         IEnumerable<Cliente> GetPage(string? q, int page, int pageSize, string sort);
     }

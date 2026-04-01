@@ -27,6 +27,7 @@ namespace mi_ferreteria.Controllers
             _logger = logger;
         }
 
+        // Retorna la lista completa de usuarios con sus roles asignados.
         [HttpGet("listar-usuarios")]
         public ActionResult<IEnumerable<UsuarioResponseDto>> GetAll()
         {
@@ -53,6 +54,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Retorna un usuario por su ID con sus roles. Devuelve 404 si no existe.
         [HttpGet("obtener-usuario/{id:int}")]
         public ActionResult<UsuarioResponseDto> GetById(int id)
         {
@@ -80,6 +82,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Crea un nuevo usuario. Verifica email único, política de contraseña segura y roles válidos.
         [HttpPost("crear-usuario")]
         public ActionResult<UsuarioResponseDto> Create([FromBody] UsuarioCreateDto dto)
         {
@@ -140,6 +143,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Actualiza un usuario existente. El cambio de contraseña es opcional. Verifica email único excluyendo el propio.
         [HttpPut("actualizar-usuario/{id:int}")]
         public IActionResult Update(int id, [FromBody] UsuarioUpdateDto dto)
         {
@@ -200,6 +204,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Elimina físicamente un usuario por su ID. Solo accesible para Administrador.
         [HttpDelete("eliminar-usuario/{id:int}")]
         public IActionResult Delete(int id)
         {

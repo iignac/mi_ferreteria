@@ -7,19 +7,19 @@ using System.ComponentModel.DataAnnotations;
 
 namespace mi_ferreteria.Controllers
 {
-    public class CategoriaController : Controller
+    public class CategoriaController : BaseController
     {
         private readonly ICategoriaRepository _repo;
-        private readonly IAuditoriaRepository _auditoriaRepo;
         private readonly ILogger<CategoriaController> _logger;
 
         public CategoriaController(ICategoriaRepository repo, IAuditoriaRepository auditoriaRepo, ILogger<CategoriaController> logger)
+            : base(auditoriaRepo)
         {
             _repo = repo;
-            _auditoriaRepo = auditoriaRepo;
             _logger = logger;
         }
 
+        // Lista las categorías paginadas con soporte de búsqueda y ordenamiento por columnas.
         public IActionResult Index(string? q = null, string? sort = null, int page = 1)
         {
             try
@@ -68,6 +68,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Muestra el formulario de alta de categoría. Soporta respuesta parcial para carga dentro de un modal AJAX.
         [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Create()
         {
@@ -77,6 +78,7 @@ namespace mi_ferreteria.Controllers
             return View(new Categoria());
         }
 
+        // Valida y persiste la nueva categoría. Verifica nombre único y que la categoría padre exista y esté activa.
         [HttpPost]
         [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Create([Required] string Nombre, long? IdPadre, string? Descripcion)
@@ -126,6 +128,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Muestra el formulario de edición con los datos actuales de la categoría. Soporta carga por modal AJAX.
         [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Edit(long id)
         {
@@ -136,6 +139,7 @@ namespace mi_ferreteria.Controllers
             return View(c);
         }
 
+        // Valida y actualiza la categoría. Evita que sea su propia padre y verifica nombre único excluyendo la propia.
         [HttpPost]
         [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Edit(long Id, [Required] string Nombre, long? IdPadre, string? Descripcion, bool Activo = true)
@@ -190,6 +194,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Muestra la pantalla de confirmación antes de eliminar la categoría.
         [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Delete(long id)
         {
@@ -198,6 +203,7 @@ namespace mi_ferreteria.Controllers
             return View(c);
         }
 
+        // Ejecuta el borrado lógico de la categoría (la marca como inactiva) y registra la acción en auditoría.
         [HttpPost, ActionName("Delete")]
         [Authorize(Roles = "Administrador,Stock")]
         public IActionResult DeleteConfirmed(long id)
@@ -219,6 +225,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Reactiva una categoría previamente dada de baja y registra la acción en auditoría.
         [HttpPost]
         [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Activate(long id)
@@ -240,6 +247,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Elimina físicamente la categoría de la base de datos. Operación irreversible.
         [HttpPost]
         [Authorize(Roles = "Administrador,Stock")]
         public IActionResult HardDelete(long id)
@@ -261,30 +269,5 @@ namespace mi_ferreteria.Controllers
             }
         }
 
-        private void RegistrarAuditoria(string accion, string detalle)
-        {
-            var userIdClaim = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            var nombre = User?.Identity?.Name ?? "Usuario desconocido";
-            if (int.TryParse(userIdClaim, out var uid) && uid > 0)
-            {
-                var finalAccion = BuildAccionNombre(accion);
-                _auditoriaRepo.Registrar(uid, nombre, finalAccion, detalle);
-                HttpContext.Items["AuditLogged"] = true;
-            }
-        }
-
-        private static string BuildAccionNombre(string accion)
-        {
-            var controller = nameof(CategoriaController).Replace("Controller", string.Empty).ToUpperInvariant();
-            if (string.IsNullOrWhiteSpace(accion))
-            {
-                return controller;
-            }
-
-            var normalized = accion.Contains('.')
-                ? accion
-                : $"{controller}.{accion}";
-            return normalized.ToUpperInvariant();
-        }
     }
 }

@@ -637,6 +637,28 @@ namespace mi_ferreteria.Data
             }
         }
 
+        public void RegistrarSaldoInicial(long clienteId, decimal monto)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureSchema(conn);
+                using var cmd = new NpgsqlCommand(@"
+                    INSERT INTO cliente_cuenta_corriente_mov
+                        (cliente_id, venta_id, tipo, monto, descripcion, usuario_id)
+                    VALUES (@cid, NULL, 'AJUSTE', @monto, 'Saldo inicial', NULL)", conn);
+                cmd.Parameters.AddWithValue("@cid", clienteId);
+                cmd.Parameters.AddWithValue("@monto", monto);
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al registrar saldo inicial para cliente {ClienteId}", clienteId);
+                throw;
+            }
+        }
+
         public IEnumerable<ClienteCuentaCorrienteFacturaPendiente> GetFacturasPendientes(long clienteId)
         {
             var list = new List<ClienteCuentaCorrienteFacturaPendiente>();

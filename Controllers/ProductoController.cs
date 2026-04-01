@@ -13,28 +13,25 @@ using ClosedXML.Excel;
 
 namespace mi_ferreteria.Controllers
 {
-    public class ProductoController : Controller
+    public class ProductoController : BaseController
     {
         private readonly IProductoRepository _repo;
         private readonly ICategoriaRepository _catRepo;
         private readonly IStockRepository _stockRepo;
-        private readonly IAuditoriaRepository _auditoriaRepo;
         private readonly ILogger<ProductoController> _logger;
 
-        private static readonly string[] UnidadesPermitidas = new[]
-        {
-            "unidad","gramos","kilos","metros cuadrados","juego","bolsa","placa","rollo","litro","mililitro","bidon","kit","par"
-        };
+        private static readonly string[] UnidadesPermitidas = ValidationConstants.UnidadesPermitidas;
 
         public ProductoController(IProductoRepository repo, ICategoriaRepository catRepo, IStockRepository stockRepo, IAuditoriaRepository auditoriaRepo, ILogger<ProductoController> logger)
+            : base(auditoriaRepo)
         {
             _repo = repo;
             _catRepo = catRepo;
             _stockRepo = stockRepo;
-            _auditoriaRepo = auditoriaRepo;
             _logger = logger;
         }
 
+        // Lista los productos paginados con soporte de búsqueda por texto y ordenamiento por columnas. Incluye alertas de stock crítico.
         public IActionResult Index(string? q = null, string? sort = null, int page = 1)
         {
             try
@@ -114,6 +111,7 @@ namespace mi_ferreteria.Controllers
             return list;
         }
 
+        // Muestra el formulario de alta de producto con categorías y unidades de medida disponibles. Soporta carga por modal AJAX.
         [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Create(int? page = null)
         {
@@ -125,6 +123,7 @@ namespace mi_ferreteria.Controllers
             return View(model);
         }
 
+        // Valida y persiste el nuevo producto. Verifica SKU único, categorías válidas y códigos de barra no duplicados.
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador,Stock")]
@@ -224,6 +223,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Muestra el formulario de edición con los datos actuales del producto, incluyendo categorías y códigos de barra. Calcula el hash de concurrencia.
         [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Edit(long id, int? page = null)
         {
@@ -261,6 +261,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Valida y actualiza el producto. Detecta ediciones simultáneas mediante hash de concurrencia y verifica SKU y códigos de barra únicos.
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador,Stock")]
@@ -326,22 +327,26 @@ namespace mi_ferreteria.Controllers
                     return View(model);
                 }
 
-                var p = _repo.GetById(model.Id);
-                if (p == null) return NotFound();
-                p.Sku = model.Sku;
-                p.Nombre = model.Nombre;
-                p.Descripcion = model.Descripcion;
-                p.CategoriaId = (model.CategoriaIds != null && model.CategoriaIds.Count > 0) ? model.CategoriaIds.First() : (long?)null;
-                p.PrecioVentaActual = model.PrecioVentaActual;
-                p.StockMinimo = model.StockMinimo;
-                p.UnidadMedida = model.UnidadMedida;
-                p.Activo = model.Activo;
-                p.UbicacionPreferidaId = model.UbicacionPreferidaId;
-                p.UbicacionCodigo = model.UbicacionCodigo;
-                _repo.Update(p);
+                var nombreAntes = actual.Nombre;
+                var precioAntes = actual.PrecioVentaActual;
+                var activoAntes = actual.Activo;
+                var stockMinAntes = actual.StockMinimo;
+                var unidadAntes = actual.UnidadMedida;
+
+                actual.Sku = model.Sku;
+                actual.Nombre = model.Nombre;
+                actual.Descripcion = model.Descripcion;
+                actual.CategoriaId = (model.CategoriaIds != null && model.CategoriaIds.Count > 0) ? model.CategoriaIds.First() : (long?)null;
+                actual.PrecioVentaActual = model.PrecioVentaActual;
+                actual.StockMinimo = model.StockMinimo;
+                actual.UnidadMedida = model.UnidadMedida;
+                actual.Activo = model.Activo;
+                actual.UbicacionPreferidaId = model.UbicacionPreferidaId;
+                actual.UbicacionCodigo = model.UbicacionCodigo;
+                _repo.Update(actual);
 
                 var catIdsEdit = (model.CategoriaIds ?? new List<long>()).Distinct().Take(3);
-                _repo.ReplaceCategorias(p.Id, catIdsEdit);
+                _repo.ReplaceCategorias(actual.Id, catIdsEdit);
 
                 var barcodes = ParseBarcodes(model.Barcodes);
                 foreach (var bc in barcodes)
@@ -359,13 +364,10 @@ namespace mi_ferreteria.Controllers
                     if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return PartialView(model);
                     return View(model);
                 }
-                _repo.ReplaceBarcodes(p.Id, barcodes);
-                if (actual != null)
-                {
-                    RegistrarAuditoria(nameof(Edit),
-                        $"Actualizacion de producto #{p.Id}: nombre '{actual.Nombre}' -> '{p.Nombre}', precio {actual.PrecioVentaActual} -> {p.PrecioVentaActual}, activo {actual.Activo} -> {p.Activo}, stockMin {actual.StockMinimo} -> {p.StockMinimo}, unidad '{actual.UnidadMedida}' -> '{p.UnidadMedida}'");
-                }
-                TempData["Success"] = $"Producto '{p.Nombre}' actualizado correctamente.";
+                _repo.ReplaceBarcodes(actual.Id, barcodes);
+                RegistrarAuditoria(nameof(Edit),
+                    $"Actualizacion de producto #{actual.Id}: nombre '{nombreAntes}' -> '{actual.Nombre}', precio {precioAntes} -> {actual.PrecioVentaActual}, activo {activoAntes} -> {actual.Activo}, stockMin {stockMinAntes} -> {actual.StockMinimo}, unidad '{unidadAntes}' -> '{actual.UnidadMedida}'");
+                TempData["Success"] = $"Producto '{actual.Nombre}' actualizado correctamente.";
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return Json(new { success = true });
                 return RedirectToAction("Index", new { page = page ?? 1 });
             }
@@ -376,6 +378,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Muestra la pantalla de confirmación antes de eliminar el producto.
         [Authorize(Roles = "Administrador,Stock")]
         public IActionResult Delete(long id, int? page = null)
         {
@@ -393,6 +396,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Muestra el detalle del producto: precio, stock actual, categorías asignadas y códigos de barra registrados.
         public IActionResult Details(long id, int? page = null)
         {
             try
@@ -422,6 +426,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Ejecuta la eliminación física del producto y registra la acción en auditoría.
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador,Stock")]
@@ -446,12 +451,14 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Muestra el formulario de importación masiva de productos desde un archivo Excel.
         [Authorize(Roles = "Administrador,Stock")]
         public IActionResult ImportarExcel()
         {
             return View(new ImportarProductosViewModel());
         }
 
+        // Procesa el archivo Excel fila a fila: crea productos nuevos o actualiza precio y stock de los existentes. Valida encabezados, códigos de barra, SKU y unidades de medida.
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Administrador,Stock")]
@@ -652,6 +659,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Actualiza el precio de costo de productos existentes a partir de un Excel de lista de precios de proveedor. Busca por código de barra o SKU.
         [Authorize(Roles = "Administrador,Stock")]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -745,10 +753,10 @@ namespace mi_ferreteria.Controllers
                                 Fila = numFila,
                                 Nombre = nombreRef,
                                 CodigoBarra = codigoRaw,
-                                Estado = "creado", // reutilizo "creado" para "no encontrado"
+                                Estado = "no_encontrado",
                                 Mensaje = "No se encontró ningún producto con ese código o SKU."
                             });
-                            resultado.TotalCreados++;
+                            resultado.TotalNoEncontrados++;
                         }
                     }
                     catch (Exception exFila)
@@ -774,6 +782,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Genera y descarga un archivo Excel de plantilla con encabezados y filas de ejemplo para la importación masiva de productos.
         [Authorize(Roles = "Administrador,Stock")]
         public IActionResult DescargarPlantillaImportacion()
         {
@@ -820,6 +829,7 @@ namespace mi_ferreteria.Controllers
             return File(ms.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "plantilla_importar_productos.xlsx");
         }
 
+        // Genera y descarga un archivo Excel de plantilla para actualización de precios de costo desde lista de proveedor.
         [Authorize(Roles = "Administrador,Stock")]
         public IActionResult DescargarPlantillaListaPrecios()
         {
@@ -882,30 +892,5 @@ namespace mi_ferreteria.Controllers
                 .ToList();
         }
 
-        private void RegistrarAuditoria(string accion, string detalle)
-        {
-            var userIdClaim = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            var nombre = User?.Identity?.Name ?? "Usuario desconocido";
-            if (int.TryParse(userIdClaim, out var uid) && uid > 0)
-            {
-                var finalAccion = BuildAccionNombre(accion);
-                _auditoriaRepo.Registrar(uid, nombre, finalAccion, detalle);
-                HttpContext.Items["AuditLogged"] = true;
-            }
-        }
-
-        private static string BuildAccionNombre(string accion)
-        {
-            var controller = nameof(ProductoController).Replace("Controller", string.Empty).ToUpperInvariant();
-            if (string.IsNullOrWhiteSpace(accion))
-            {
-                return controller;
-            }
-
-            var normalized = accion.Contains('.')
-                ? accion
-                : $"{controller}.{accion}";
-            return normalized.ToUpperInvariant();
-        }
     }
 }

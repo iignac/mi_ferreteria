@@ -13,7 +13,7 @@ namespace mi_ferreteria.ViewModels
         public int Fila { get; set; }
         public string Nombre { get; set; }
         public string CodigoBarra { get; set; }
-        public string Estado { get; set; } // "creado", "actualizado", "error"
+        public string Estado { get; set; } // "creado", "actualizado", "no_encontrado", "error"
         public string Mensaje { get; set; }
     }
 
@@ -21,6 +21,7 @@ namespace mi_ferreteria.ViewModels
     {
         public int TotalCreados { get; set; }
         public int TotalActualizados { get; set; }
+        public int TotalNoEncontrados { get; set; }
         public int TotalErrores { get; set; }
         public List<ImportarProductoResultado> Resultados { get; set; } = new();
     }

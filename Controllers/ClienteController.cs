@@ -9,27 +9,26 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Security.Claims;
 using System.Text.RegularExpressions;
 
 namespace mi_ferreteria.Controllers
 {
     [Authorize(Roles = "Administrador,Vendedor")]
-    public class ClienteController : Controller
+    public class ClienteController : BaseController
     {
         private readonly IClienteRepository _repo;
-        private readonly IAuditoriaRepository _auditoriaRepo;
         private readonly ILogger<ClienteController> _logger;
         private static readonly Regex NombreSoloLetrasRegex = new Regex(ValidationConstants.NombreSoloLetrasPattern, RegexOptions.Compiled | RegexOptions.CultureInvariant);
         private static readonly Regex NumeroDocumentoSoloDigitosRegex = new Regex(@"^\d+$", RegexOptions.Compiled);
 
         public ClienteController(IClienteRepository repo, IAuditoriaRepository auditoriaRepo, ILogger<ClienteController> logger)
+            : base(auditoriaRepo)
         {
             _repo = repo;
-            _auditoriaRepo = auditoriaRepo;
             _logger = logger;
         }
 
+        // Lista los clientes paginados con soporte de búsqueda por texto y ordenamiento por columnas.
         public IActionResult Index(string? q = null, int page = 1, string? sort = null)
         {
             var normalizedSort = NormalizeClienteSort(sort);
@@ -64,6 +63,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Muestra el formulario de alta de cliente con valores por defecto. Soporta carga por modal AJAX.
         public IActionResult Create()
         {
             var vm = new ClienteCreateViewModel
@@ -78,6 +78,7 @@ namespace mi_ferreteria.Controllers
             return View(vm);
         }
 
+        // Valida y persiste el nuevo cliente. Si tiene CC habilitada con saldo inicial, registra el ajuste de apertura.
         [HttpPost]
         public IActionResult Create(ClienteCreateViewModel model)
         {
@@ -101,31 +102,13 @@ namespace mi_ferreteria.Controllers
 
                 _repo.Add(cliente);
 
-                if (TryGetAuditoriaUsuario(out var userId, out var usuarioNombre))
-                {
-                    RegistrarAuditoria(userId, usuarioNombre, nameof(Create),
-                        $"Alta de cliente #{cliente.Id}: {ResumenCliente(cliente)}");
-                }
+                RegistrarAuditoria(nameof(Create), $"Alta de cliente #{cliente.Id}: {ResumenCliente(cliente)}");
 
                 if (model.CuentaCorrienteHabilitada && model.SaldoInicialCuentaCorriente != 0)
                 {
                     try
                     {
-                        using var conn = new Npgsql.NpgsqlConnection(
-                            (typeof(ClienteRepository)
-                                .GetField("_connectionString", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?
-                                .GetValue(_repo) as string) ?? string.Empty);
-                        conn.Open();
-                        using var set = new Npgsql.NpgsqlCommand("SET search_path TO venta, public", conn);
-                        set.ExecuteNonQuery();
-                        using var cmdAdj = new Npgsql.NpgsqlCommand(@"
-                            INSERT INTO cliente_cuenta_corriente_mov
-                                (cliente_id, venta_id, tipo, monto, descripcion, usuario_id)
-                            VALUES (@cid, NULL, 'AJUSTE', @monto, @desc, NULL)", conn);
-                        cmdAdj.Parameters.AddWithValue("@cid", cliente.Id);
-                        cmdAdj.Parameters.AddWithValue("@monto", model.SaldoInicialCuentaCorriente);
-                        cmdAdj.Parameters.AddWithValue("@desc", (object)"Saldo inicial" ?? (object)System.DBNull.Value);
-                        cmdAdj.ExecuteNonQuery();
+                        _repo.RegistrarSaldoInicial(cliente.Id, model.SaldoInicialCuentaCorriente);
                     }
                     catch (System.Exception exAdj)
                     {
@@ -149,43 +132,25 @@ namespace mi_ferreteria.Controllers
             }
         }
         [HttpGet]
-
+        // Muestra el comprobante imprimible de un movimiento de cuenta corriente (pago, nota de crédito/débito, etc.).
         public IActionResult MovimientoComprobante(long clienteId, long movimientoId)
-
         {
-
             var cliente = _repo.GetById(clienteId);
-
             if (cliente == null) return NotFound();
-
             var movimiento = _repo.GetMovimiento(movimientoId);
-
             if (movimiento == null || movimiento.ClienteId != clienteId)
-
-            {
-
                 return NotFound();
-
-            }
-
-
-
             var vm = new ClienteMovimientoComprobanteViewModel
-
             {
-
                 Cliente = cliente,
-
                 Movimiento = movimiento
-
             };
-
             return View("MovimientoComprobante", vm);
-
         }
 
 
 
+        // Muestra el formulario de edición con los datos actuales del cliente. Soporta carga por modal AJAX.
         public IActionResult Edit(long id)
         {
             var cliente = _repo.GetById(id);
@@ -195,6 +160,7 @@ namespace mi_ferreteria.Controllers
             return View(vm);
         }
 
+        // Muestra el detalle del cliente. Si tiene CC habilitada, calcula y expone el saldo actual y disponible.
         public IActionResult Details(long id)
         {
             var c = _repo.GetById(id);
@@ -211,6 +177,7 @@ namespace mi_ferreteria.Controllers
             return View(c);
         }
 
+        // Muestra el estado completo de la cuenta corriente: movimientos, facturas pendientes, vencidas y saldo actual.
         public IActionResult CuentaCorriente(long id)
         {
             var cliente = _repo.GetById(id);
@@ -235,6 +202,7 @@ namespace mi_ferreteria.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        // Genera una nota de débito sobre una factura vencida de CC. Valida que la factura esté vencida y que el monto no supere el saldo pendiente.
         public IActionResult GenerarNotaDebito(long clienteId, long movimientoDeudaId, decimal monto, string? descripcion)
         {
             try
@@ -268,28 +236,20 @@ namespace mi_ferreteria.Controllers
                     return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
                 }
 
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (!int.TryParse(userIdClaim, out var userId) || userId <= 0)
+                if (!TryGetAuditoriaUsuario(out var userId, out _))
                 {
                     TempData["CuentaCorrienteError"] = "No se pudo identificar al usuario actual.";
                     return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
                 }
 
                 var descripcionFinal = string.IsNullOrWhiteSpace(descripcion)
-                    ? $"Nota de dÃ©bito por factura vencida {(facturaObjetivo.Comprobante ?? $"Venta {facturaObjetivo.VentaId}")}"
+                    ? $"Nota de débito por factura vencida {(facturaObjetivo.Comprobante ?? $"Venta {facturaObjetivo.VentaId}")}"
                     : descripcion.Trim();
 
-                var usuarioNombre = User?.Identity?.Name ?? $"Usuario {userId}";
-                                var movimientoId = _repo.RegistrarNotaDebito(clienteId, monto, userId, descripcionFinal, movimiento.VentaId, movimiento.Id);
-
-                RegistrarAuditoria(userId, usuarioNombre, nameof(GenerarNotaDebito),
-
-                    $"Nota de debito por ${monto:N2} para cliente {cliente.Nombre} (ID {cliente.Id}).");
-
+                var movimientoId = _repo.RegistrarNotaDebito(clienteId, monto, userId, descripcionFinal, movimiento.VentaId, movimiento.Id);
+                RegistrarAuditoria(nameof(GenerarNotaDebito), $"Nota de debito por ${monto:N2} para cliente {cliente.Nombre} (ID {cliente.Id}).");
                 var comprobanteUrl = Url.Action(nameof(MovimientoComprobante), new { clienteId, movimientoId });
-
                 TempData["CuentaCorrienteOk"] = $"La nota de debito se genero con exito. <a href=\"{comprobanteUrl}\" target=\"_blank\">Imprimir comprobante</a>.";
-
                 return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
             }
             catch (System.Exception ex)
@@ -302,6 +262,7 @@ namespace mi_ferreteria.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        // Genera una nota de crédito o débito manual en CC. La nota de crédito aplica primero a deuda existente y el resto queda como saldo a favor.
         public IActionResult GenerarNotaCuentaCorriente(long clienteId, string tipoNota, decimal monto, string? descripcion)
         {
             try
@@ -366,7 +327,7 @@ namespace mi_ferreteria.Controllers
                         movimientoIdSaldo = _repo.RegistrarNotaCredito(clienteId, saldoFavor, userId, descSaldo, null, null);
                     }
 
-                    RegistrarAuditoria(userId, usuarioNombre, nameof(GenerarNotaCuentaCorriente),
+                    RegistrarAuditoria(nameof(GenerarNotaCuentaCorriente),
                         $"Nota de credito por ${monto:N2} para cliente {cliente.Nombre} (ID {cliente.Id}){(aplicadoDeuda > 0 ? $", deuda saldada ${aplicadoDeuda:N2}" : string.Empty)}{(saldoFavor > 0 ? $", saldo a favor ${saldoFavor:N2}" : string.Empty)}.");
 
                     var links = new List<string>();
@@ -405,7 +366,7 @@ namespace mi_ferreteria.Controllers
                     ? "Nota de debito en cuenta corriente"
                     : descripcion.Trim();
                 var movimientoDebitoId = _repo.RegistrarNotaDebito(clienteId, monto, userId, descripcionDebito, null, null);
-                RegistrarAuditoria(userId, usuarioNombre, nameof(GenerarNotaCuentaCorriente),
+                RegistrarAuditoria(nameof(GenerarNotaCuentaCorriente),
                     $"Nota de debito por ${monto:N2} para cliente {cliente.Nombre} (ID {cliente.Id}).");
                 var comprobanteDebitoUrl = Url.Action(nameof(MovimientoComprobante), new { clienteId, movimientoId = movimientoDebitoId });
                 TempData["NotaOk"] = $"La nota de debito se genero con exito. <a href=\"{comprobanteDebitoUrl}\" target=\"_blank\">Imprimir comprobante</a>.";
@@ -420,6 +381,7 @@ namespace mi_ferreteria.Controllers
         }
         [HttpPost]
         [ValidateAntiForgeryToken]
+        // Registra un pago en la CC del cliente. Puede aplicarse a una factura específica o al saldo general.
         public IActionResult RegistrarPagoCuentaCorriente(long clienteId, decimal monto, string? descripcion, long? movimientoDeudaId = null)
         {
             try
@@ -460,8 +422,7 @@ namespace mi_ferreteria.Controllers
                     movRelacionadoId = factura.MovimientoDeudaId;
                 }
 
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (!int.TryParse(userIdClaim, out var userId) || userId <= 0)
+                if (!TryGetAuditoriaUsuario(out var userId, out _))
                 {
                     TempData["CuentaCorrienteError"] = "No se pudo identificar al usuario actual.";
                     return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
@@ -472,8 +433,7 @@ namespace mi_ferreteria.Controllers
                     : descripcion.Trim();
 
                 var pagoMovimientoId = _repo.RegistrarPagoCuentaCorriente(clienteId, monto, userId, descripcionFinal, ventaId, movRelacionadoId);
-                var usuarioNombre = User?.Identity?.Name ?? $"Usuario {userId}";
-                RegistrarAuditoria(userId, usuarioNombre, nameof(RegistrarPagoCuentaCorriente),
+                RegistrarAuditoria(nameof(RegistrarPagoCuentaCorriente),
                     $"Pago por ${monto:N2} en cuenta corriente de cliente {cliente.Nombre} (ID {cliente.Id}){(ventaId.HasValue ? $" aplicado a venta #{ventaId}" : string.Empty)}.");
                 var pagoUrl = Url.Action(nameof(MovimientoComprobante), new { clienteId, movimientoId = pagoMovimientoId });
                 TempData["CuentaCorrienteOk"] = $"El pago se registro correctamente. <a href=\"{pagoUrl}\" target=\"_blank\">Imprimir recibo</a>.";
@@ -487,6 +447,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Valida y actualiza los datos del cliente. Registra en auditoría los cambios de nombre, tipo, estado y CC.
         [HttpPost]
         public IActionResult Edit(long id, ClienteCreateViewModel model)
         {
@@ -519,13 +480,10 @@ namespace mi_ferreteria.Controllers
                 cliente.Id = anterior.Id;
 
                 _repo.Update(cliente);
-                if (TryGetAuditoriaUsuario(out var userId, out var usuarioNombre))
-                {
-                    var antesCc = anterior.CuentaCorrienteHabilitada ? $"SI (limite {anterior.LimiteCredito:N2})" : "NO";
-                    var ahoraCc = cliente.CuentaCorrienteHabilitada ? $"SI (limite {cliente.LimiteCredito:N2})" : "NO";
-                    RegistrarAuditoria(userId, usuarioNombre, nameof(Edit),
-                        $"Actualizacion cliente #{cliente.Id}: nombre '{anterior.Nombre}' -> '{cliente.Nombre}', tipo '{anterior.TipoCliente}' -> '{cliente.TipoCliente}', activo {anterior.Activo} -> {cliente.Activo}, CC {antesCc} -> {ahoraCc}.");
-                }
+                var antesCc = anterior.CuentaCorrienteHabilitada ? $"SI (limite {anterior.LimiteCredito:N2})" : "NO";
+                var ahoraCc = cliente.CuentaCorrienteHabilitada ? $"SI (limite {cliente.LimiteCredito:N2})" : "NO";
+                RegistrarAuditoria(nameof(Edit),
+                    $"Actualizacion cliente #{cliente.Id}: nombre '{anterior.Nombre}' -> '{cliente.Nombre}', tipo '{anterior.TipoCliente}' -> '{cliente.TipoCliente}', activo {anterior.Activo} -> {cliente.Activo}, CC {antesCc} -> {ahoraCc}.");
 
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest") return Json(new { success = true });
                 return RedirectToAction("Index");
@@ -542,70 +500,34 @@ namespace mi_ferreteria.Controllers
                 return View(model);
             }
         }
+        // Realiza la baja lógica del cliente marcándolo como inactivo (no se elimina de la BD).
         [HttpPost, ActionName("Delete")]
-        public IActionResult DeleteConfirmed(long id)
-        {
-            try
-            {
-                var c = _repo.GetById(id);
-                if (c == null) return NotFound();
-                c.Activo = false;
-                _repo.Update(c);
-                if (TryGetAuditoriaUsuario(out var userId, out var usuarioNombre))
-                {
-                    RegistrarAuditoria(userId, usuarioNombre, "Delete", $"Cliente #{c.Id}: dado de baja ({c.Nombre} {c.Apellido}).");
-                }
-                return RedirectToAction("Index");
-            }
-            catch (System.Exception ex)
-            {
-                _logger.LogError(ex, "Error al dar de baja cliente {ClienteId}", id);
-                return Problem("OcurriÃ³ un error al dar de baja el cliente.");
-            }
-        }
+        public IActionResult DeleteConfirmed(long id) => CambiarEstadoCliente(id, false);
 
+        // Reactiva un cliente previamente dado de baja y registra la acción en auditoría.
         [HttpPost]
-        public IActionResult Activate(long id)
+        public IActionResult Activate(long id) => CambiarEstadoCliente(id, true);
+
+        private IActionResult CambiarEstadoCliente(long id, bool activo)
         {
             try
             {
                 var c = _repo.GetById(id);
                 if (c == null) return NotFound();
-                c.Activo = true;
+                c.Activo = activo;
                 _repo.Update(c);
-                if (TryGetAuditoriaUsuario(out var userId, out var usuarioNombre))
-                {
-                    RegistrarAuditoria(userId, usuarioNombre, nameof(Activate), $"Cliente #{c.Id}: reactivado ({c.Nombre} {c.Apellido}).");
-                }
+                var accionNombre = activo ? nameof(Activate) : "Delete";
+                var msg = activo
+                    ? $"Cliente #{c.Id}: reactivado ({c.Nombre} {c.Apellido})."
+                    : $"Cliente #{c.Id}: dado de baja ({c.Nombre} {c.Apellido}).";
+                RegistrarAuditoria(accionNombre, msg);
                 return RedirectToAction("Index");
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Error al activar cliente {ClienteId}", id);
-                return Problem("OcurriÃ³ un error al activar el cliente.");
+                _logger.LogError(ex, "Error al cambiar estado del cliente {ClienteId} a activo={Activo}", id, activo);
+                return Problem(activo ? "Ocurrió un error al activar el cliente." : "Ocurrió un error al dar de baja el cliente.");
             }
-        }
-
-        private bool TryGetAuditoriaUsuario(out int userId, out string usuarioNombre)
-        {
-            usuarioNombre = User?.Identity?.Name ?? "Usuario desconocido";
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(userIdClaim, out userId) || userId <= 0)
-            {
-                return false;
-            }
-            if (string.IsNullOrWhiteSpace(usuarioNombre))
-            {
-                usuarioNombre = $"Usuario {userId}";
-            }
-            return true;
-        }
-
-        private void RegistrarAuditoria(int userId, string usuarioNombre, string accion, string detalle)
-        {
-            var finalAccion = BuildAccionNombre(accion);
-            _auditoriaRepo.Registrar(userId, usuarioNombre, finalAccion, detalle);
-            HttpContext.Items["AuditLogged"] = true;
         }
 
         private static string NormalizeClienteSort(string? sort)
@@ -621,19 +543,6 @@ namespace mi_ferreteria.Controllers
                 "estado_desc" => "estado_desc",
                 _ => "nombre_asc"
             };
-        }
-
-        private static string BuildAccionNombre(string accion)
-        {
-            var controller = nameof(ClienteController).Replace("Controller", string.Empty).ToUpperInvariant();
-            if (string.IsNullOrWhiteSpace(accion))
-            {
-                return controller;
-            }
-            var normalized = accion.Contains('.')
-                ? accion
-                : $"{controller}.{accion}";
-            return normalized.ToUpperInvariant();
         }
 
         private static string ResumenCliente(Cliente cliente)

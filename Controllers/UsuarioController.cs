@@ -32,6 +32,7 @@ namespace mi_ferreteria.Controllers
             _permisoRepository = permisoRepository;
         }
 
+        // Lista los usuarios paginados con filtros combinables por nombre/email, estado activo, rol asignado y permiso.
         public IActionResult Index(int page = 1, string? q = null, string? activo = null, string? rol = null, string? permiso = null)
         {
             try
@@ -84,6 +85,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Muestra el formulario de alta con roles disponibles, permisos y los permisos heredados por cada rol. Soporta carga por modal AJAX.
         [Authorize(Policy = mi_ferreteria.Security.Permisos.Usuarios.Gestionar)]
         public IActionResult Create()
         {
@@ -110,6 +112,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Valida y persiste el nuevo usuario con sus roles y permisos directos. Verifica email único, contraseña segura y compatibilidad de roles.
         [Authorize(Policy = mi_ferreteria.Security.Permisos.Usuarios.Gestionar)]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -200,6 +203,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Muestra el formulario de edición con datos actuales, permisos heredados por rol y permisos directos. Calcula hash de concurrencia.
         [Authorize(Policy = mi_ferreteria.Security.Permisos.Usuarios.Gestionar)]
         public IActionResult Edit(int id)
         {
@@ -245,6 +249,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Valida y actualiza el usuario, roles y permisos directos. Detecta ediciones simultáneas con hash de concurrencia. Cambio de contraseña opcional.
         [Authorize(Policy = mi_ferreteria.Security.Permisos.Usuarios.Gestionar)]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -358,6 +363,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Muestra la pantalla de confirmación antes de eliminar el usuario.
         [Authorize(Policy = mi_ferreteria.Security.Permisos.Usuarios.Gestionar)]
         public IActionResult Delete(int id)
         {
@@ -374,6 +380,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Muestra el perfil del usuario con sus permisos consolidados (heredados por rol + directos). Soporta carga por modal AJAX.
         public IActionResult Details(int id)
         {
             try
@@ -392,6 +399,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
+        // Ejecuta la eliminación del usuario y registra la acción en auditoría.
         [Authorize(Policy = mi_ferreteria.Security.Permisos.Usuarios.Gestionar)]
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
