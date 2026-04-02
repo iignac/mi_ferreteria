@@ -579,7 +579,7 @@ namespace mi_ferreteria.Controllers
             {
                 model.Telefono = MultipleSpacesRegex.Replace(model.Telefono, " ");
             }
-            model.Email = string.IsNullOrWhiteSpace(model.Email) ? null : model.Email.Trim();
+            model.Email = string.IsNullOrWhiteSpace(model.Email) ? null : model.Email.Trim().ToLowerInvariant();
             model.TipoCliente = string.IsNullOrWhiteSpace(model.TipoCliente) ? "CONSUMIDOR_FINAL" : model.TipoCliente.Trim().ToUpperInvariant();
 
             if (tipoDocNorm == "DNI")

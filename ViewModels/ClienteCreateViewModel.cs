@@ -40,6 +40,7 @@ namespace mi_ferreteria.ViewModels
         public string? Telefono { get; set; }
 
         [EmailAddress(ErrorMessage = "El email no tiene un formato válido.")]
+        [StringLength(120, ErrorMessage = "El email no puede superar los 120 caracteres.")]
         public string? Email { get; set; }
 
         [Required(ErrorMessage = "Debe seleccionar un tipo de cliente.")]
