@@ -21,6 +21,7 @@ namespace mi_ferreteria.ViewModels
         public bool Activo { get; set; }
         // Para creación y cambio de contraseña
         [PasswordPolicyValidation(AllowEmpty = true)]
+        [StringLength(128, ErrorMessage = "La contraseña no puede superar los 128 caracteres.")]
         public string? Password { get; set; }
 
         [Compare("Password", ErrorMessage = "Las contraseñas no coinciden")]
