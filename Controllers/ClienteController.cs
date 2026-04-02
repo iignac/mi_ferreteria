@@ -20,6 +20,7 @@ namespace mi_ferreteria.Controllers
         private readonly ILogger<ClienteController> _logger;
         private static readonly Regex NombreSoloLetrasRegex = new Regex(ValidationConstants.NombreSoloLetrasPattern, RegexOptions.Compiled | RegexOptions.CultureInvariant);
         private static readonly Regex NumeroDocumentoSoloDigitosRegex = new Regex(@"^\d+$", RegexOptions.Compiled);
+        private static readonly Regex MultipleSpacesRegex = new Regex(@"\s+", RegexOptions.Compiled);
 
         public ClienteController(IClienteRepository repo, IAuditoriaRepository auditoriaRepo, ILogger<ClienteController> logger)
             : base(auditoriaRepo)
@@ -574,6 +575,10 @@ namespace mi_ferreteria.Controllers
             model.DireccionNumero = string.IsNullOrWhiteSpace(model.DireccionNumero) ? null : model.DireccionNumero.Trim();
             model.DireccionLocalidad = string.IsNullOrWhiteSpace(model.DireccionLocalidad) ? null : model.DireccionLocalidad.Trim();
             model.Telefono = string.IsNullOrWhiteSpace(model.Telefono) ? null : model.Telefono.Trim();
+            if (!string.IsNullOrWhiteSpace(model.Telefono))
+            {
+                model.Telefono = MultipleSpacesRegex.Replace(model.Telefono, " ");
+            }
             model.Email = string.IsNullOrWhiteSpace(model.Email) ? null : model.Email.Trim();
             model.TipoCliente = string.IsNullOrWhiteSpace(model.TipoCliente) ? "CONSUMIDOR_FINAL" : model.TipoCliente.Trim().ToUpperInvariant();
 

@@ -19,6 +19,7 @@ namespace mi_ferreteria.ViewModels
 
         [Display(Name = "Número de documento / CUIT")]
         [StringLength(20, ErrorMessage = "El documento no puede superar los 20 caracteres.")]
+        [RegularExpression(@"^\d+$", ErrorMessage = "Ingresá solo números (sin puntos ni guiones).")]
         public string? NumeroDocumento { get; set; }
 
         [Display(Name = "Calle")]
@@ -34,7 +35,8 @@ namespace mi_ferreteria.ViewModels
         public string? DireccionLocalidad { get; set; }
 
         [Display(Name = "Teléfono")]
-        [StringLength(30, ErrorMessage = "El teléfono no puede superar los 30 caracteres.")]
+        [StringLength(20, ErrorMessage = "El teléfono no puede superar los 20 caracteres.")]
+        [RegularExpression(@"^[+0-9 ()-]{7,20}$", ErrorMessage = "Solo números, espacios y los símbolos + () - (7 a 20 caracteres).")]
         public string? Telefono { get; set; }
 
         [EmailAddress(ErrorMessage = "El email no tiene un formato válido.")]
