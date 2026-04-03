@@ -570,8 +570,26 @@ namespace mi_ferreteria.Controllers
             {
                 ModelState.AddModelError(nameof(ClienteCreateViewModel.NumeroDocumento), "El número de DNI/CUIT debe tener solo dígitos (sin puntos ni guiones).");
             }
-            model.DireccionCalleNumero = string.IsNullOrWhiteSpace(model.DireccionCalleNumero) ? null : model.DireccionCalleNumero.Trim();
-            model.DireccionPisoDpto = string.IsNullOrWhiteSpace(model.DireccionPisoDpto) ? null : model.DireccionPisoDpto.Trim();
+            if (!string.IsNullOrWhiteSpace(model.DireccionCalleNumero))
+            {
+                var calleNormalizada = model.DireccionCalleNumero.Trim();
+                calleNormalizada = MultipleSpacesRegex.Replace(calleNormalizada, " ");
+                model.DireccionCalleNumero = calleNormalizada;
+            }
+            else
+            {
+                model.DireccionCalleNumero = null;
+            }
+            if (!string.IsNullOrWhiteSpace(model.DireccionPisoDpto))
+            {
+                var pisoNormalizado = model.DireccionPisoDpto.Trim();
+                pisoNormalizado = MultipleSpacesRegex.Replace(pisoNormalizado, " ");
+                model.DireccionPisoDpto = pisoNormalizado;
+            }
+            else
+            {
+                model.DireccionPisoDpto = null;
+            }
             model.DireccionLocalidad = string.IsNullOrWhiteSpace(model.DireccionLocalidad) ? null : model.DireccionLocalidad.Trim();
             model.Telefono = string.IsNullOrWhiteSpace(model.Telefono) ? null : model.Telefono.Trim();
             if (!string.IsNullOrWhiteSpace(model.Telefono))
