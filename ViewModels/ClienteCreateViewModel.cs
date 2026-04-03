@@ -47,9 +47,6 @@ namespace mi_ferreteria.ViewModels
         [RegularExpression("^(CONSUMIDOR_FINAL|CUENTA_CORRIENTE)$", ErrorMessage = "Tipo de cliente inválido.")]
         public string TipoCliente { get; set; } = "CONSUMIDOR_FINAL";
 
-        [Display(Name = "Habilitar cuenta corriente")]
-        public bool CuentaCorrienteHabilitada { get; set; }
-
         [Display(Name = "Límite de crédito")]
         public decimal LimiteCredito { get; set; }
 

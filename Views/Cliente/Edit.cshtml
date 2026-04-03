@@ -104,6 +104,8 @@ else
                     <label asp-for="DireccionCalle" class="block text-sm font-medium leading-6 text-gray-900">Calle</label>
                     <div class="mt-2">
                         <input asp-for="DireccionCalle" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                        <span asp-validation-for="DireccionCalle" class="mt-2 text-sm text-red-600"></span>
+                        <p class="mt-1 text-xs text-gray-500">Obligatoria si el cliente tiene CUIT o cuenta corriente.</p>
                     </div>
                 </div>
 
@@ -118,6 +120,8 @@ else
                     <label asp-for="DireccionLocalidad" class="block text-sm font-medium leading-6 text-gray-900">Localidad</label>
                     <div class="mt-2">
                         <input asp-for="DireccionLocalidad" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                        <span asp-validation-for="DireccionLocalidad" class="mt-2 text-sm text-red-600"></span>
+                        <p class="mt-1 text-xs text-gray-500">Obligatoria si el cliente tiene CUIT o cuenta corriente.</p>
                     </div>
                 </div>
             </div>
@@ -138,16 +142,6 @@ else
                             <option value="CUENTA_CORRIENTE">Cuenta corriente</option>
                         </select>
                         <span asp-validation-for="TipoCliente" class="mt-2 text-sm text-red-600"></span>
-                    </div>
-                </div>
-
-                <div class="sm:col-span-2">
-                    <label asp-for="CuentaCorrienteHabilitada" class="block text-sm font-medium leading-6 text-gray-900">Habilitar Cta. Corriente</label>
-                    <div class="mt-2">
-                        <select asp-for="CuentaCorrienteHabilitada" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                            <option value="true">Sí</option>
-                            <option value="false">No</option>
-                        </select>
                     </div>
                 </div>
 

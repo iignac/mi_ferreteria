@@ -71,7 +71,6 @@ namespace mi_ferreteria.Controllers
             {
                 Activo = true,
                 TipoCliente = "CONSUMIDOR_FINAL",
-                CuentaCorrienteHabilitada = false,
                 LimiteCredito = 0,
                 SaldoInicialCuentaCorriente = 0
             };
@@ -105,7 +104,7 @@ namespace mi_ferreteria.Controllers
 
                 RegistrarAuditoria(nameof(Create), $"Alta de cliente #{cliente.Id}: {ResumenCliente(cliente)}");
 
-                if (model.CuentaCorrienteHabilitada && model.SaldoInicialCuentaCorriente != 0)
+                if (EsCuentaCorriente(model) && model.SaldoInicialCuentaCorriente != 0)
                 {
                     try
                     {
@@ -581,6 +580,20 @@ namespace mi_ferreteria.Controllers
             }
             model.Email = string.IsNullOrWhiteSpace(model.Email) ? null : model.Email.Trim().ToLowerInvariant();
             model.TipoCliente = string.IsNullOrWhiteSpace(model.TipoCliente) ? "CONSUMIDOR_FINAL" : model.TipoCliente.Trim().ToUpperInvariant();
+            var esCuentaCorriente = string.Equals(model.TipoCliente, "CUENTA_CORRIENTE", System.StringComparison.OrdinalIgnoreCase);
+
+            var requiereDireccion = string.Equals(tipoDocNorm, "CUIT", System.StringComparison.OrdinalIgnoreCase) || esCuentaCorriente;
+            if (requiereDireccion)
+            {
+                if (string.IsNullOrWhiteSpace(model.DireccionCalle))
+                {
+                    ModelState.AddModelError(nameof(ClienteCreateViewModel.DireccionCalle), "La calle es obligatoria para clientes con CUIT o cuenta corriente.");
+                }
+                if (string.IsNullOrWhiteSpace(model.DireccionLocalidad))
+                {
+                    ModelState.AddModelError(nameof(ClienteCreateViewModel.DireccionLocalidad), "La localidad es obligatoria para clientes con CUIT o cuenta corriente.");
+                }
+            }
 
             if (tipoDocNorm == "DNI")
             {
@@ -624,7 +637,7 @@ namespace mi_ferreteria.Controllers
                 model.Apellido = null;
             }
 
-            if (model.CuentaCorrienteHabilitada)
+            if (esCuentaCorriente)
             {
                 if (model.LimiteCredito < 0)
                 {
@@ -640,6 +653,7 @@ namespace mi_ferreteria.Controllers
         private Cliente MapearCliente(ClienteCreateViewModel model)
         {
             var direccion = BuildDireccion(model.DireccionCalle, model.DireccionNumero, model.DireccionLocalidad);
+            var esCuentaCorriente = EsCuentaCorriente(model);
             return new Cliente
             {
                 Nombre = model.Nombre,
@@ -650,8 +664,8 @@ namespace mi_ferreteria.Controllers
                 Telefono = model.Telefono,
                 Email = model.Email,
                 TipoCliente = model.TipoCliente,
-                CuentaCorrienteHabilitada = model.CuentaCorrienteHabilitada,
-                LimiteCredito = model.CuentaCorrienteHabilitada ? model.LimiteCredito : 0,
+                CuentaCorrienteHabilitada = esCuentaCorriente,
+                LimiteCredito = esCuentaCorriente ? model.LimiteCredito : 0,
                 Activo = model.Activo
             };
         }
@@ -671,11 +685,16 @@ namespace mi_ferreteria.Controllers
                 DireccionLocalidad = localidad,
                 Telefono = cliente.Telefono,
                 Email = cliente.Email,
-                TipoCliente = cliente.TipoCliente ?? "CONSUMIDOR_FINAL",
-                CuentaCorrienteHabilitada = cliente.CuentaCorrienteHabilitada,
+                TipoCliente = cliente.TipoCliente ?? (cliente.CuentaCorrienteHabilitada ? "CUENTA_CORRIENTE" : "CONSUMIDOR_FINAL"),
                 LimiteCredito = cliente.CuentaCorrienteHabilitada ? cliente.LimiteCredito : 0,
                 Activo = cliente.Activo
             };
+        }
+
+        private static bool EsCuentaCorriente(ClienteCreateViewModel? model)
+        {
+            if (model == null) return false;
+            return string.Equals(model.TipoCliente?.Trim(), "CUENTA_CORRIENTE", System.StringComparison.OrdinalIgnoreCase);
         }
 
         private static (string? Calle, string? Numero, string? Localidad) DescomponerDireccion(string? direccion)
