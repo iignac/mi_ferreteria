@@ -570,8 +570,8 @@ namespace mi_ferreteria.Controllers
             {
                 ModelState.AddModelError(nameof(ClienteCreateViewModel.NumeroDocumento), "El número de DNI/CUIT debe tener solo dígitos (sin puntos ni guiones).");
             }
-            model.DireccionCalle = string.IsNullOrWhiteSpace(model.DireccionCalle) ? null : model.DireccionCalle.Trim();
-            model.DireccionNumero = string.IsNullOrWhiteSpace(model.DireccionNumero) ? null : model.DireccionNumero.Trim();
+            model.DireccionCalleNumero = string.IsNullOrWhiteSpace(model.DireccionCalleNumero) ? null : model.DireccionCalleNumero.Trim();
+            model.DireccionPisoDpto = string.IsNullOrWhiteSpace(model.DireccionPisoDpto) ? null : model.DireccionPisoDpto.Trim();
             model.DireccionLocalidad = string.IsNullOrWhiteSpace(model.DireccionLocalidad) ? null : model.DireccionLocalidad.Trim();
             model.Telefono = string.IsNullOrWhiteSpace(model.Telefono) ? null : model.Telefono.Trim();
             if (!string.IsNullOrWhiteSpace(model.Telefono))
@@ -585,9 +585,9 @@ namespace mi_ferreteria.Controllers
             var requiereDireccion = string.Equals(tipoDocNorm, "CUIT", System.StringComparison.OrdinalIgnoreCase) || esCuentaCorriente;
             if (requiereDireccion)
             {
-                if (string.IsNullOrWhiteSpace(model.DireccionCalle))
+                if (string.IsNullOrWhiteSpace(model.DireccionCalleNumero))
                 {
-                    ModelState.AddModelError(nameof(ClienteCreateViewModel.DireccionCalle), "La calle es obligatoria para clientes con CUIT o cuenta corriente.");
+                    ModelState.AddModelError(nameof(ClienteCreateViewModel.DireccionCalleNumero), "La calle y número son obligatorios para clientes con CUIT o cuenta corriente.");
                 }
                 if (string.IsNullOrWhiteSpace(model.DireccionLocalidad))
                 {
@@ -652,7 +652,7 @@ namespace mi_ferreteria.Controllers
 
         private Cliente MapearCliente(ClienteCreateViewModel model)
         {
-            var direccion = BuildDireccion(model.DireccionCalle, model.DireccionNumero, model.DireccionLocalidad);
+            var direccion = BuildDireccion(model.DireccionCalleNumero, model.DireccionPisoDpto, model.DireccionLocalidad);
             var esCuentaCorriente = EsCuentaCorriente(model);
             return new Cliente
             {
@@ -672,7 +672,7 @@ namespace mi_ferreteria.Controllers
 
         private ClienteCreateViewModel ConstruirClienteViewModel(Cliente cliente)
         {
-            var (calle, numero, localidad) = DescomponerDireccion(cliente.Direccion);
+            var (calleNumero, pisoDpto, localidad) = DescomponerDireccion(cliente.Direccion);
             return new ClienteCreateViewModel
             {
                 Id = cliente.Id,
@@ -680,8 +680,8 @@ namespace mi_ferreteria.Controllers
                 Apellido = cliente.Apellido,
                 TipoDocumento = cliente.TipoDocumento,
                 NumeroDocumento = cliente.NumeroDocumento,
-                DireccionCalle = calle ?? cliente.Direccion,
-                DireccionNumero = numero,
+                DireccionCalleNumero = calleNumero ?? cliente.Direccion,
+                DireccionPisoDpto = pisoDpto,
                 DireccionLocalidad = localidad,
                 Telefono = cliente.Telefono,
                 Email = cliente.Email,
@@ -697,44 +697,69 @@ namespace mi_ferreteria.Controllers
             return string.Equals(model.TipoCliente?.Trim(), "CUENTA_CORRIENTE", System.StringComparison.OrdinalIgnoreCase);
         }
 
-        private static (string? Calle, string? Numero, string? Localidad) DescomponerDireccion(string? direccion)
+        private static (string? CalleNumero, string? PisoDpto, string? Localidad) DescomponerDireccion(string? direccion)
         {
             if (string.IsNullOrWhiteSpace(direccion))
             {
                 return (null, null, null);
             }
 
-            var parts = direccion.Split(',', 2);
-            var calle = parts.Length > 0 ? parts[0].Trim() : direccion.Trim();
-            var localidad = parts.Length > 1 ? parts[1].Trim() : null;
-            return (string.IsNullOrWhiteSpace(calle) ? null : calle, null, string.IsNullOrWhiteSpace(localidad) ? null : localidad);
+            var partes = direccion
+                .Split(',', System.StringSplitOptions.RemoveEmptyEntries)
+                .Select(p => p.Trim())
+                .Where(p => !string.IsNullOrWhiteSpace(p))
+                .ToList();
+
+            if (partes.Count == 0)
+            {
+                return (direccion.Trim(), null, null);
+            }
+
+            var calleNumero = partes[0];
+            string? piso = null;
+            string? localidad = null;
+
+            if (partes.Count >= 3)
+            {
+                localidad = partes[^1];
+                piso = string.Join(", ", partes.Skip(1).Take(partes.Count - 2));
+            }
+            else if (partes.Count == 2)
+            {
+                localidad = partes[1];
+            }
+
+            return (
+                string.IsNullOrWhiteSpace(calleNumero) ? null : calleNumero,
+                string.IsNullOrWhiteSpace(piso) ? null : piso,
+                string.IsNullOrWhiteSpace(localidad) ? null : localidad);
         }
 
-        private static string? BuildDireccion(string? calle, string? numero, string? localidad)
+        private static string? BuildDireccion(string? calleNumero, string? pisoDpto, string? localidad)
         {
-            calle = calle?.Trim();
-            numero = numero?.Trim();
+            calleNumero = calleNumero?.Trim();
+            pisoDpto = pisoDpto?.Trim();
             localidad = localidad?.Trim();
-            if (string.IsNullOrWhiteSpace(calle) && string.IsNullOrWhiteSpace(numero) && string.IsNullOrWhiteSpace(localidad))
-                return null;
 
-            var parts = new System.Collections.Generic.List<string>();
-            if (!string.IsNullOrWhiteSpace(calle))
+            if (string.IsNullOrWhiteSpace(calleNumero) && string.IsNullOrWhiteSpace(pisoDpto) && string.IsNullOrWhiteSpace(localidad))
             {
-                parts.Add(calle);
+                return null;
             }
-            if (!string.IsNullOrWhiteSpace(numero))
+
+            var partes = new System.Collections.Generic.List<string>();
+            if (!string.IsNullOrWhiteSpace(calleNumero))
             {
-                if (parts.Count > 0)
-                    parts[parts.Count - 1] = parts[parts.Count - 1] + " " + numero;
-                else
-                    parts.Add(numero);
+                partes.Add(calleNumero);
+            }
+            if (!string.IsNullOrWhiteSpace(pisoDpto))
+            {
+                partes.Add(pisoDpto);
             }
             if (!string.IsNullOrWhiteSpace(localidad))
             {
-                parts.Add(localidad);
+                partes.Add(localidad);
             }
-            return string.Join(", ", parts);
+            return string.Join(", ", partes);
         }
     }
 }

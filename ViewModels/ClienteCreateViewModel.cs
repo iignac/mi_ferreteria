@@ -22,13 +22,13 @@ namespace mi_ferreteria.ViewModels
         [RegularExpression(@"^\d+$", ErrorMessage = "Ingresá solo números (sin puntos ni guiones).")]
         public string? NumeroDocumento { get; set; }
 
-        [Display(Name = "Calle")]
-        [StringLength(120, ErrorMessage = "La calle no puede superar los 120 caracteres.")]
-        public string? DireccionCalle { get; set; }
+        [Display(Name = "Calle y numero")]
+        [StringLength(180, ErrorMessage = "La calle y numero no pueden superar los 180 caracteres.")]
+        public string? DireccionCalleNumero { get; set; }
 
-        [Display(Name = "Número")]
-        [StringLength(10, ErrorMessage = "El número no puede superar los 10 caracteres.")]
-        public string? DireccionNumero { get; set; }
+        [Display(Name = "Piso / Dpto")]
+        [StringLength(60, ErrorMessage = "El piso o departamento no puede superar los 60 caracteres.")]
+        public string? DireccionPisoDpto { get; set; }
 
         [Display(Name = "Localidad")]
         [StringLength(120, ErrorMessage = "La localidad no puede superar los 120 caracteres.")]

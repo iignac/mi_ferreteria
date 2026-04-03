@@ -100,19 +100,20 @@ else
                     </div>
                 </div>
                 
-                <div class="sm:col-span-2">
-                    <label asp-for="DireccionCalle" class="block text-sm font-medium leading-6 text-gray-900">Calle</label>
+                <div class="sm:col-span-4">
+                    <label asp-for="DireccionCalleNumero" class="block text-sm font-medium leading-6 text-gray-900">Calle y número</label>
                     <div class="mt-2">
-                        <input asp-for="DireccionCalle" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
-                        <span asp-validation-for="DireccionCalle" class="mt-2 text-sm text-red-600"></span>
+                        <input asp-for="DireccionCalleNumero" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                        <span asp-validation-for="DireccionCalleNumero" class="mt-2 text-sm text-red-600"></span>
                         <p class="mt-1 text-xs text-gray-500">Obligatoria si el cliente tiene CUIT o cuenta corriente.</p>
                     </div>
                 </div>
 
-                <div class="sm:col-span-1">
-                    <label asp-for="DireccionNumero" class="block text-sm font-medium leading-6 text-gray-900">Número</label>
+                <div class="sm:col-span-2">
+                    <label asp-for="DireccionPisoDpto" class="block text-sm font-medium leading-6 text-gray-900">Piso / Dpto (opcional)</label>
                     <div class="mt-2">
-                        <input asp-for="DireccionNumero" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                        <input asp-for="DireccionPisoDpto" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                        <span asp-validation-for="DireccionPisoDpto" class="mt-2 text-sm text-red-600"></span>
                     </div>
                 </div>
 
