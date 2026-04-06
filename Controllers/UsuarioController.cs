@@ -297,6 +297,15 @@ namespace mi_ferreteria.Controllers
                     {
                         return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? PartialView(model) : View(model);
                     }
+                    bool eraAdminActivo = dbUsuario.Activo &&
+                        dbUsuario.Roles.Any(r => NombreRolCoincide(r?.Nombre, RolAdministradorNombre));
+                    bool sigueAdminActivo = model.Activo &&
+                        rolesSeleccionados.Any(r => NombreRolCoincide(r?.Nombre, RolAdministradorNombre));
+                    if (eraAdminActivo && !sigueAdminActivo && EsUltimoAdminActivo(model.Id))
+                    {
+                        ModelState.AddModelError(string.Empty, "No se puede dejar el sistema sin administradores activos.");
+                        return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ? PartialView(model) : View(model);
+                    }
                     var usuario = new Usuario
                     {
                         Id = model.Id,
@@ -395,6 +404,14 @@ namespace mi_ferreteria.Controllers
             try
             {
                 var usuario = _usuarioRepository.GetAll().FirstOrDefault(u => u.Id == id);
+                if (usuario != null &&
+                    usuario.Activo &&
+                    usuario.Roles.Any(r => NombreRolCoincide(r?.Nombre, RolAdministradorNombre)) &&
+                    EsUltimoAdminActivo(id))
+                {
+                    TempData["ErrorMessage"] = "No se puede eliminar al único administrador activo del sistema.";
+                    return RedirectToAction("Index");
+                }
                 var nombre = usuario?.Nombre ?? ("#" + id);
                 _usuarioRepository.Delete(id);
                 RegistrarAuditoria("Delete", $"Eliminacion de usuario #{id}: {nombre} ({usuario?.Email ?? "sin email"})");
@@ -419,6 +436,14 @@ namespace mi_ferreteria.Controllers
         {
             if (roles == null || !roles.Any()) return "Sin roles";
             return string.Join(", ", roles.Select(r => r.Nombre));
+        }
+
+        private bool EsUltimoAdminActivo(int userId)
+        {
+            var adminsActivos = _usuarioRepository.GetAll()
+                .Where(u => u.Activo && u.Roles.Any(r => NombreRolCoincide(r?.Nombre, RolAdministradorNombre)))
+                .ToList();
+            return adminsActivos.Count == 1 && adminsActivos[0].Id == userId;
         }
 
         private bool RolesCompatibles(IEnumerable<Rol> rolesSeleccionados)

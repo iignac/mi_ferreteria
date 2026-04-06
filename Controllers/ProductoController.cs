@@ -194,6 +194,10 @@ namespace mi_ferreteria.Controllers
                 _repo.ReplaceCategorias(p.Id, catIdsCreate);
 
                 var barcodes = ParseBarcodes(model.Barcodes);
+                if (barcodes.Count > 5)
+                {
+                    ModelState.AddModelError("CodigosBarra", "No se pueden agregar más de 5 códigos de barra por producto.");
+                }
                 foreach (var bc in barcodes)
                 {
                     if (_repo.BarcodeExists(bc.CodigoBarra))
@@ -349,6 +353,10 @@ namespace mi_ferreteria.Controllers
                 _repo.ReplaceCategorias(actual.Id, catIdsEdit);
 
                 var barcodes = ParseBarcodes(model.Barcodes);
+                if (barcodes.Count > 5)
+                {
+                    ModelState.AddModelError("CodigosBarra", "No se pueden agregar más de 5 códigos de barra por producto.");
+                }
                 foreach (var bc in barcodes)
                 {
                     if (_repo.BarcodeExists(bc.CodigoBarra, model.Id))
