@@ -31,7 +31,7 @@ namespace mi_ferreteria.Controllers
             new Permiso { Id = 3, Nombre = "GestionarStock", Descripcion = "Puede gestionar stock" }
         };
 
-        // Muestra el formulario para asignar roles a un usuario, con los roles actualmente asignados preseleccionados.
+        // Asignar roles a usuario
         public IActionResult AsignarRoles(int usuarioId)
         {
             try
@@ -54,8 +54,7 @@ namespace mi_ferreteria.Controllers
                 return Problem("Ocurrió un error al cargar la asignación de roles.");
             }
         }
-
-        // Persiste la selección de roles del formulario y redirige al listado de usuarios.
+        //
         [HttpPost]
         public IActionResult AsignarRoles(UsuarioRolViewModel model)
         {
@@ -73,7 +72,7 @@ namespace mi_ferreteria.Controllers
             }
         }
 
-        // Muestra el formulario para asignar permisos a un rol, con los permisos actualmente asignados preseleccionados.
+        // Asignar permisos a rol
         public IActionResult AsignarPermisos(int rolId)
         {
             try
@@ -97,7 +96,6 @@ namespace mi_ferreteria.Controllers
             }
         }
 
-        // Persiste la selección de permisos del formulario y redirige al listado de usuarios.
         [HttpPost]
         public IActionResult AsignarPermisos(RolPermisoViewModel model)
         {
