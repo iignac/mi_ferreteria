@@ -1,3 +1,33 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  /* ── Botón primario: acción principal (naranja de marca) ── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm transition-colors;
+    background-color: #FC651F;
+  }
+  .btn-primary:hover:not(:disabled) { background-color: #e0541a; }
+  .btn-primary:disabled            { @apply opacity-50 cursor-not-allowed; }
+
+  /* ── Botón secundario: cancelar / volver ── */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors;
+  }
+
+  /* ── Botón destructivo: eliminar / desactivar ── */
+  .btn-danger {
+    @apply inline-flex items-center justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 transition-colors;
+  }
+
+  /* ── Botón de éxito: registrar pago / activar ── */
+  .btn-success {
+    @apply inline-flex items-center justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 transition-colors;
+  }
+
+  /* ── Links de acción en tablas ── */
+  .tbl-link-edit     { @apply text-sm font-medium text-indigo-600 hover:text-indigo-900 transition-colors; }
+  .tbl-link-delete   { @apply text-sm font-medium text-red-600   hover:text-red-900   transition-colors; }
+  .tbl-link-activate { @apply text-sm font-medium text-green-600 hover:text-green-900 transition-colors; }
+}

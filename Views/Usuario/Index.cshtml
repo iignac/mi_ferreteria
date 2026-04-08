@@ -25,7 +25,7 @@
         </p>
     </div>
     <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-        <button type="button" onclick="openAjaxModal('@Url.Action("Create")')" class="block rounded-md px-4 py-2 text-center text-sm font-semibold text-white shadow-sm transition-colors" style="background-color:#FC651F;" onmouseover="this.style.backgroundColor='#e0541a'" onmouseout="this.style.backgroundColor='#FC651F'">
+        <button type="button" onclick="openAjaxModal('@Url.Action("Create")')" class="btn-primary">
             Crear usuario
         </button>
     </div>
@@ -121,9 +121,9 @@ else
                                     </td>
                                     <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right sm:pr-6 font-medium">
                                         <div class="flex items-center justify-end gap-2">
-                                            <button type="button" onclick="openAjaxModal('@Url.Action("Details", new { id = usuario.Id })')" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-md transition-colors">Ver</button>
-                                            <button type="button" onclick="openAjaxModal('@Url.Action("Edit", new { id = usuario.Id })')" class="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md transition-colors">Editar</button>
-                                            <a asp-action="Delete" asp-route-id="@usuario.Id" class="btn-delete-user text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-md transition-colors cursor-pointer block">Eliminar</a>
+                                            <button type="button" onclick="openAjaxModal('@Url.Action("Details", new { id = usuario.Id })')" class="tbl-link-edit">Ver</button>
+                                            <button type="button" onclick="openAjaxModal('@Url.Action("Edit", new { id = usuario.Id })')" class="tbl-link-edit">Editar</button>
+                                            <a asp-action="Delete" asp-route-id="@usuario.Id" class="btn-delete-user tbl-link-delete">Eliminar</a>
                                         </div>
                                     </td>
                                 </tr>

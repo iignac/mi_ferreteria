@@ -176,13 +176,13 @@ else
             <div class="flex justify-end gap-x-3 w-full sm:w-auto">
                 @if (isAjax)
                 {
-                    <button type="button" onclick="closeAjaxModal()" class="w-full sm:w-auto text-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">Cancelar</button>
+                    <button type="button" onclick="closeAjaxModal()" class="btn-secondary w-full sm:w-auto">Cancelar</button>
                 }
                 else
                 {
-                    <a asp-action="Index" class="w-full sm:w-auto text-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">Cancelar / Volver</a>
+                    <a asp-action="Index" class="btn-secondary w-full sm:w-auto">Cancelar</a>
                 }
-                <button type="submit" class="w-full sm:w-auto inline-flex justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors">Guardar cambios</button>
+                <button type="submit" class="btn-primary w-full sm:w-auto">Guardar</button>
             </div>
         </div>
     </div>

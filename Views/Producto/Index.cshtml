@@ -58,7 +58,7 @@
                 </svg>
                 Importar productos
             </button>
-            <button type="button" onclick="openAjaxModal('@Url.Action("Create", new { page = page })')" class="block rounded-md px-3 py-2 text-center text-sm font-semibold text-white shadow-sm transition-colors" style="background-color:#FC651F;" onmouseover="this.style.backgroundColor='#e0541a'" onmouseout="this.style.backgroundColor='#FC651F'">
+            <button type="button" onclick="openAjaxModal('@Url.Action("Create", new { page = page })')" class="btn-primary">
                 Crear producto
             </button>
         </div>
@@ -214,12 +214,12 @@ else
                                             <a asp-action="Details" asp-route-id="@p.Id" asp-route-page="@(page)" asp-route-q="@q"  asp-route-sort="@sort" class="text-indigo-600 hover:text-indigo-900 px-2">Ver</a>
                                             @if (canManageProductos)
                                             {
-                                                <button type="button" onclick="event.stopPropagation(); openAjaxModal('@Url.Action("Edit", new { id = p.Id, page = page, q = q, sort = sort })')" class="text-indigo-600 hover:text-indigo-900 px-2">Editar</button>
+                                                <button type="button" onclick="event.stopPropagation(); openAjaxModal('@Url.Action("Edit", new { id = p.Id, page = page, q = q, sort = sort })')" class="tbl-link-edit">Editar</button>
                                             }
                                             <a asp-controller="StockProducto" asp-action="Manage" asp-route-id="@p.Id" class="text-gray-600 hover:text-gray-900 px-2">Stock</a>
                                             @if (canManageProductos)
                                             {
-                                                <a asp-action="Delete" asp-route-id="@p.Id" asp-route-page="@(page)" asp-route-q="@q"  asp-route-sort="@sort" class="text-red-600 hover:text-red-900 px-2 btn-delete-prod">Eliminar</a>
+                                                <a asp-action="Delete" asp-route-id="@p.Id" asp-route-page="@(page)" asp-route-q="@q"  asp-route-sort="@sort" class="tbl-link-delete btn-delete-prod">Eliminar</a>
                                             }
                                         </div>
                                     </td>

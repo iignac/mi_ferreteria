@@ -54,7 +54,7 @@ else
                             <form asp-action="AutorizarVentaPendiente" method="post" class="d-inline">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="ventaId" value="@item.Venta.Id" />
-                                <button type="submit" class="btn btn-sm btn-success mb-1">
+                                <button type="submit" class="btn-success mb-1">
                                     Autorizar
                                 </button>
                             </form>
@@ -62,7 +62,7 @@ else
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="ventaId" value="@item.Venta.Id" />
                                 <input type="text" name="motivo" class="form-control form-control-sm mb-1" placeholder="Motivo (opcional)" />
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <button type="submit" class="btn-danger">
                                     Rechazar
                                 </button>
                             </form>

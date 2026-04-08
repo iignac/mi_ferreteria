@@ -31,7 +31,7 @@
     @if (canManageCategorias)
     {
         <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-            <button type="button" onclick="openAjaxModal('@Url.Action("Create")')" class="block rounded-md px-3 py-2 text-center text-sm font-semibold text-white shadow-sm transition-colors" style="background-color:#FC651F;" onmouseover="this.style.backgroundColor='#e0541a'" onmouseout="this.style.backgroundColor='#FC651F'">
+            <button type="button" onclick="openAjaxModal('@Url.Action("Create")')" class="btn-primary">
                 Crear categoría
             </button>
         </div>
@@ -145,23 +145,23 @@ else
                                     <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                                         @if (canManageCategorias)
                                         {
-                                            <button type="button" onclick="event.stopPropagation(); openAjaxModal('@Url.Action("Edit", new { id = c.Id })')" class="text-indigo-600 hover:text-indigo-900 mr-2" aria-label="Editar">Editar</button>
+                                            <button type="button" onclick="event.stopPropagation(); openAjaxModal('@Url.Action("Edit", new { id = c.Id })')" class="tbl-link-edit" aria-label="Editar">Editar</button>
                                             
                                             @if (c.Activo)
                                             {
-                                                <a asp-action="Delete" asp-route-id="@c.Id" class="text-yellow-600 hover:text-yellow-900 mr-2" aria-label="Desactivar">Desactivar</a>
+                                                <a asp-action="Delete" asp-route-id="@c.Id" class="tbl-link-delete" aria-label="Desactivar">Desactivar</a>
                                             }
                                             else
                                             {
                                                 <form asp-action="Activate" method="post" class="inline">
                                                     <input type="hidden" name="id" value="@c.Id" />
-                                                    <button type="submit" class="text-green-600 hover:text-green-900 mr-2" aria-label="Activar">Activar</button>
+                                                    <button type="submit" class="tbl-link-activate" aria-label="Activar">Activar</button>
                                                 </form>
                                             }
                                             
                                             <form asp-action="HardDelete" method="post" class="inline">
                                                 <input type="hidden" name="id" value="@c.Id" />
-                                                <button type="submit" class="text-red-600 hover:text-red-900 btn-hard-delete" aria-label="Eliminar Físicamente">Eliminar</button>
+                                                <button type="submit" class="tbl-link-delete btn-hard-delete" aria-label="Eliminar Físicamente">Eliminar</button>
                                             </form>
                                         }
                                         else

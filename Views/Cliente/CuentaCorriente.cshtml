@@ -18,9 +18,9 @@
 
 <div class="mb-3">
 
-    <a asp-action="Details" asp-route-id="@Model.Cliente.Id" class="btn btn-outline-secondary btn-sm">Volver al cliente</a>
+    <a asp-action="Details" asp-route-id="@Model.Cliente.Id" class="btn-secondary">Volver al cliente</a>
 
-    <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Lista de clientes</a>
+    <a asp-action="Index" class="btn-secondary">Lista de clientes</a>
 
 </div>
 
@@ -152,7 +152,7 @@ else
 
                         <div class="col-12">
 
-                            <button type="submit" class="btn btn-success">Registrar pago</button>
+                            <button type="submit" class="btn-success">Registrar pago</button>
 
                         </div>
 
@@ -303,7 +303,7 @@ else
                                         <a asp-action="MovimientoComprobante"
                                            asp-route-clienteId="@Model.Cliente.Id"
                                            asp-route-movimientoId="@mov.Id"
-                                           class="btn btn-sm btn-outline-secondary"
+                                           class="btn-secondary text-xs py-1"
                                            target="_blank">
                                             Ver comprobante
                                         </a>
