@@ -165,42 +165,42 @@ namespace mi_ferreteria.Controllers
                     }
                 }
 
-                var requiereAutorizacion = false;
-                var esAdmin = User.IsInRole("Administrador");
-                decimal saldoActualCliente = 0;
-                decimal saldoPostVenta = 0;
-
-                if (model.TipoPago == "CUENTA_CORRIENTE")
-                {
-                    if (cliente == null)
-                    {
-                        ModelState.AddModelError(string.Empty, "Para cuenta corriente debe seleccionar un cliente registrado.");
-                    }
-                    else if (!cliente.CuentaCorrienteHabilitada)
-                    {
-                        ModelState.AddModelError(string.Empty, "La cuenta corriente no esta habilitada para este cliente.");
-                    }
-                    else
-                    {
-                        saldoActualCliente = _clienteRepo.GetSaldoCuentaCorriente(cliente.Id);
-                        saldoPostVenta = saldoActualCliente - total;
-                        var limiteNegativo = -cliente.LimiteCredito;
-                        var excedeLimite = cliente.LimiteCredito > 0 && saldoPostVenta < limiteNegativo;
-                        if (excedeLimite)
-                        {
-                            var puedeIgnorar = esAdmin && model.IgnorarLimiteCredito;
-                            if (model.IgnorarLimiteCredito && !esAdmin)
-                            {
-                                ModelState.AddModelError(nameof(model.IgnorarLimiteCredito), "Solo un administrador puede ignorar el limite de credito.");
-                            }
-                            if (!puedeIgnorar)
-                            {
-                                requiereAutorizacion = true;
-                            }
-                        }
-                    }
-                }
-
+                var requiereAutorizacion = false;
+                var esAdmin = User.IsInRole("Administrador");
+                decimal saldoActualCliente = 0;
+                decimal saldoPostVenta = 0;
+
+                if (model.TipoPago == "CUENTA_CORRIENTE")
+                {
+                    if (cliente == null)
+                    {
+                        ModelState.AddModelError(string.Empty, "Para cuenta corriente debe seleccionar un cliente registrado.");
+                    }
+                    else if (!cliente.CuentaCorrienteHabilitada)
+                    {
+                        ModelState.AddModelError(string.Empty, "La cuenta corriente no esta habilitada para este cliente.");
+                    }
+                    else
+                    {
+                        saldoActualCliente = _clienteRepo.GetSaldoCuentaCorriente(cliente.Id);
+                        saldoPostVenta = saldoActualCliente - total;
+                        var limiteNegativo = -cliente.LimiteCredito;
+                        var excedeLimite = cliente.LimiteCredito > 0 && saldoPostVenta < limiteNegativo;
+                        if (excedeLimite)
+                        {
+                            var puedeIgnorar = esAdmin && model.IgnorarLimiteCredito;
+                            if (model.IgnorarLimiteCredito && !esAdmin)
+                            {
+                                ModelState.AddModelError(nameof(model.IgnorarLimiteCredito), "Solo un administrador puede ignorar el limite de credito.");
+                            }
+                            if (!puedeIgnorar)
+                            {
+                                requiereAutorizacion = true;
+                            }
+                        }
+                    }
+                }
+
 if (!ModelState.IsValid)
                 {
                     // recargar combos y listado de productos por defecto
@@ -309,9 +309,17 @@ if (!ModelState.IsValid)
             }
         }
 
-        // Lista el historial paginado de todas las ventas registradas.
+        // Lista el historial paginado de todas las ventas registradas, con filtros opcionales.
         [HttpGet]
-        public IActionResult Historial(int page = 1)
+        public IActionResult Historial(
+            int page = 1,
+            string? producto = null,
+            string? clienteNombre = null,
+            string? fechaDesde = null,
+            string? fechaHasta = null,
+            decimal? montoMin = null,
+            decimal? montoMax = null,
+            string? tipoCliente = null)
         {
             try
             {
@@ -319,17 +327,50 @@ if (!ModelState.IsValid)
                 const int pageSize = 10;
                 if (page < 1) page = 1;
 
-                var total = _ventaRepo.CountAll();
-                var totalPages = (int)Math.Ceiling(total / (double)pageSize);
-                if (totalPages == 0) totalPages = 1;
-                if (page > totalPages) page = totalPages;
+                DateTime? desde = DateTime.TryParse(fechaDesde, out var d) ? d : (DateTime?)null;
+                DateTime? hasta = DateTime.TryParse(fechaHasta, out var h) ? h : (DateTime?)null;
+                string? tcli = string.IsNullOrWhiteSpace(tipoCliente) ? null : tipoCliente;
 
-                var ventas = _ventaRepo.GetPage(page, pageSize).ToList();
+                bool hayFiltros = !string.IsNullOrWhiteSpace(producto)
+                    || !string.IsNullOrWhiteSpace(clienteNombre)
+                    || desde.HasValue || hasta.HasValue
+                    || montoMin.HasValue || montoMax.HasValue
+                    || tcli != null;
+
+                int total;
+                IEnumerable<Venta> ventas;
+                if (hayFiltros)
+                {
+                    total = _ventaRepo.CountFiltrado(producto, clienteNombre, desde, hasta, montoMin, montoMax, tcli);
+                    var totalPages2 = (int)Math.Ceiling(total / (double)pageSize);
+                    if (totalPages2 == 0) totalPages2 = 1;
+                    if (page > totalPages2) page = totalPages2;
+                    ventas = _ventaRepo.GetFiltrado(page, pageSize, producto, clienteNombre, desde, hasta, montoMin, montoMax, tcli).ToList();
+                    ViewBag.TotalPages = totalPages2;
+                }
+                else
+                {
+                    total = _ventaRepo.CountAll();
+                    var totalPages2 = (int)Math.Ceiling(total / (double)pageSize);
+                    if (totalPages2 == 0) totalPages2 = 1;
+                    if (page > totalPages2) page = totalPages2;
+                    ventas = _ventaRepo.GetPage(page, pageSize).ToList();
+                    ViewBag.TotalPages = totalPages2;
+                }
 
                 ViewBag.Page = page;
                 ViewBag.PageSize = pageSize;
                 ViewBag.TotalCount = total;
-                ViewBag.TotalPages = totalPages;
+
+                // Pasar filtros a la vista para repoblar el formulario y los links de paginación
+                ViewBag.FiltroProducto = producto;
+                ViewBag.FiltroClienteNombre = clienteNombre;
+                ViewBag.FiltroFechaDesde = fechaDesde;
+                ViewBag.FiltroFechaHasta = fechaHasta;
+                ViewBag.FiltroMontoMin = montoMin;
+                ViewBag.FiltroMontoMax = montoMax;
+                ViewBag.FiltroTipoCliente = tcli;
+                ViewBag.HayFiltros = hayFiltros;
 
                 return View(ventas);
             }
@@ -340,6 +381,7 @@ if (!ModelState.IsValid)
                 ViewBag.PageSize = 10;
                 ViewBag.TotalCount = 0;
                 ViewBag.TotalPages = 1;
+                ViewBag.HayFiltros = false;
                 return View(Enumerable.Empty<Venta>());
             }
         }
@@ -386,6 +428,55 @@ if (!ModelState.IsValid)
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error en bA-osqueda rA-pida de productos en venta");
+                return Json(Array.Empty<object>());
+            }
+        }
+
+        // Endpoint JSON para autocompletado de clientes en el historial de ventas.
+        [HttpGet]
+        public IActionResult BuscarClientesHistorial(string? q)
+        {
+            try
+            {
+                if (!PuedeVender()) return Forbid();
+                if (string.IsNullOrWhiteSpace(q))
+                    return Json(Array.Empty<object>());
+
+                var clientes = _clienteRepo.GetPage(q, 1, 10, "nombre_asc")
+                    .Select(c => new
+                    {
+                        id = c.Id,
+                        nombre = string.IsNullOrWhiteSpace(c.Apellido)
+                            ? c.Nombre
+                            : $"{c.Nombre} {c.Apellido}"
+                    });
+                return Json(clientes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error en búsqueda rápida de clientes en historial");
+                return Json(Array.Empty<object>());
+            }
+        }
+
+        // Endpoint JSON para autocompletado de productos en el historial de ventas.
+        [HttpGet]
+        public IActionResult BuscarProductosHistorial(string? q)
+        {
+            try
+            {
+                if (!PuedeVender()) return Forbid();
+                if (string.IsNullOrWhiteSpace(q))
+                    return Json(Array.Empty<object>());
+
+                var productos = _productoRepo
+                    .SearchPageSorted(q, 1, 10, "nombre_asc")
+                    .Select(p => new { id = p.Id, nombre = p.Nombre });
+                return Json(productos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error en búsqueda rápida de productos en historial");
                 return Json(Array.Empty<object>());
             }
         }

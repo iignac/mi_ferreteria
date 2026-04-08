@@ -686,6 +686,123 @@ namespace mi_ferreteria.Data
             }
         }
 
+        private static (string where, Action<NpgsqlCommand> addParams) BuildFiltroWhere(
+            string? producto, string? clienteNombre,
+            DateTime? fechaDesde, DateTime? fechaHasta,
+            decimal? montoMin, decimal? montoMax, string? tipoCliente)
+        {
+            var conds = new List<string>();
+            if (!string.IsNullOrWhiteSpace(producto))
+                conds.Add("EXISTS (SELECT 1 FROM venta_detalle vd WHERE vd.venta_id = v.id AND vd.descripcion ILIKE '%' || @producto || '%')");
+            if (!string.IsNullOrWhiteSpace(clienteNombre))
+                conds.Add("(c.nombre ILIKE '%' || @clienteNombre || '%' OR c.apellido ILIKE '%' || @clienteNombre || '%')");
+            if (fechaDesde.HasValue)
+                conds.Add("v.fecha >= @fechaDesde");
+            if (fechaHasta.HasValue)
+                conds.Add("v.fecha < @fechaHasta");
+            if (montoMin.HasValue)
+                conds.Add("v.total >= @montoMin");
+            if (montoMax.HasValue)
+                conds.Add("v.total <= @montoMax");
+            if (!string.IsNullOrWhiteSpace(tipoCliente))
+                conds.Add("v.tipo_cliente = @tipoCliente");
+
+            var where = conds.Count > 0 ? "WHERE " + string.Join(" AND ", conds) : "";
+
+            void addParams(NpgsqlCommand cmd)
+            {
+                if (!string.IsNullOrWhiteSpace(producto))
+                    cmd.Parameters.AddWithValue("@producto", producto.Trim());
+                if (!string.IsNullOrWhiteSpace(clienteNombre))
+                    cmd.Parameters.AddWithValue("@clienteNombre", clienteNombre.Trim());
+                if (fechaDesde.HasValue)
+                    cmd.Parameters.AddWithValue("@fechaDesde", fechaDesde.Value);
+                if (fechaHasta.HasValue)
+                    cmd.Parameters.AddWithValue("@fechaHasta", fechaHasta.Value.AddDays(1));
+                if (montoMin.HasValue)
+                    cmd.Parameters.AddWithValue("@montoMin", montoMin.Value);
+                if (montoMax.HasValue)
+                    cmd.Parameters.AddWithValue("@montoMax", montoMax.Value);
+                if (!string.IsNullOrWhiteSpace(tipoCliente))
+                    cmd.Parameters.AddWithValue("@tipoCliente", tipoCliente);
+            }
+
+            return (where, addParams);
+        }
+
+        public int CountFiltrado(string? producto, string? clienteNombre, DateTime? fechaDesde, DateTime? fechaHasta, decimal? montoMin, decimal? montoMax, string? tipoCliente)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureSchema(conn);
+                var (where, addParams) = BuildFiltroWhere(producto, clienteNombre, fechaDesde, fechaHasta, montoMin, montoMax, tipoCliente);
+                using var cmd = new NpgsqlCommand($@"
+                    SELECT COUNT(1)
+                    FROM venta v
+                    LEFT JOIN cliente c ON c.id = v.cliente_id
+                    {where}", conn);
+                addParams(cmd);
+                var res = cmd.ExecuteScalar();
+                return res is long l ? (int)l : Convert.ToInt32(res);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al contar ventas filtradas");
+                throw;
+            }
+        }
+
+        public IEnumerable<Venta> GetFiltrado(int page, int pageSize, string? producto, string? clienteNombre, DateTime? fechaDesde, DateTime? fechaHasta, decimal? montoMin, decimal? montoMax, string? tipoCliente)
+        {
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
+            var list = new List<Venta>();
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureSchema(conn);
+                var (where, addParams) = BuildFiltroWhere(producto, clienteNombre, fechaDesde, fechaHasta, montoMin, montoMax, tipoCliente);
+                int offset = (page - 1) * pageSize;
+                using var cmd = new NpgsqlCommand($@"
+                    SELECT v.id, v.fecha, v.cliente_id, v.tipo_cliente, v.tipo_pago,
+                           v.total, v.total_en_letras, v.usuario_id, v.estado, v.observaciones
+                    FROM venta v
+                    LEFT JOIN cliente c ON c.id = v.cliente_id
+                    {where}
+                    ORDER BY v.fecha DESC, v.id DESC
+                    LIMIT @limit OFFSET @offset", conn);
+                addParams(cmd);
+                cmd.Parameters.AddWithValue("@limit", pageSize);
+                cmd.Parameters.AddWithValue("@offset", offset);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                {
+                    list.Add(new Venta
+                    {
+                        Id = r.GetInt64(0),
+                        Fecha = r.GetFieldValue<DateTimeOffset>(1),
+                        ClienteId = r.IsDBNull(2) ? (long?)null : r.GetInt64(2),
+                        TipoCliente = r.GetString(3),
+                        TipoPago = r.GetString(4),
+                        Total = r.GetDecimal(5),
+                        TotalEnLetras = r.GetString(6),
+                        UsuarioId = r.GetInt32(7),
+                        Estado = r.GetString(8),
+                        Observaciones = r.IsDBNull(9) ? null : r.GetString(9)
+                    });
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener ventas filtradas");
+                throw;
+            }
+        }
+
         public (Venta venta, List<VentaDetalle> detalles, Factura? factura)? ObtenerComprobante(long ventaId)
         {
             try

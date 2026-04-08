@@ -41,5 +41,15 @@ namespace mi_ferreteria.Data
         /// Devuelve todas las ventas en el rango de fechas indicado (para exportación).
         /// </summary>
         IEnumerable<Venta> GetParaExportar(DateTime? desde, DateTime? hasta);
+
+        /// <summary>
+        /// Cantidad de ventas que cumplen los filtros indicados.
+        /// </summary>
+        int CountFiltrado(string? producto, string? clienteNombre, DateTime? fechaDesde, DateTime? fechaHasta, decimal? montoMin, decimal? montoMax, string? tipoCliente);
+
+        /// <summary>
+        /// Página de ventas filtradas, ordenadas por fecha descendente.
+        /// </summary>
+        IEnumerable<Venta> GetFiltrado(int page, int pageSize, string? producto, string? clienteNombre, DateTime? fechaDesde, DateTime? fechaHasta, decimal? montoMin, decimal? montoMax, string? tipoCliente);
     }
 }

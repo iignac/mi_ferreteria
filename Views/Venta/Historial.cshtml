@@ -2,8 +2,33 @@
 
 @{
     ViewData["Title"] = "Historial de Ventas";
-    int page = ViewBag.Page is int p ? p : 1;
-    int totalPages = ViewBag.TotalPages is int tp ? tp : 1;
+    int page        = ViewBag.Page        is int p   ? p   : 1;
+    int totalPages  = ViewBag.TotalPages  is int tp  ? tp  : 1;
+    int totalCount  = ViewBag.TotalCount  is int tc  ? tc  : 0;
+    bool hayFiltros = ViewBag.HayFiltros  is bool hf && hf;
+
+    string? fProducto     = ViewBag.FiltroProducto      as string;
+    string? fCliente      = ViewBag.FiltroClienteNombre as string;
+    string? fFechaDesde   = ViewBag.FiltroFechaDesde    as string;
+    string? fFechaHasta   = ViewBag.FiltroFechaHasta    as string;
+    decimal? fMontoMin    = ViewBag.FiltroMontoMin      as decimal?;
+    decimal? fMontoMax    = ViewBag.FiltroMontoMax      as decimal?;
+    string? fTipoCliente  = ViewBag.FiltroTipoCliente   as string;
+
+    // Construye la query string de filtros para usarla en los links de paginación
+    string FiltroQs(int targetPage)
+    {
+        var qs = new System.Text.StringBuilder();
+        qs.Append($"page={targetPage}");
+        if (!string.IsNullOrWhiteSpace(fProducto))    qs.Append($"&producto={Uri.EscapeDataString(fProducto)}");
+        if (!string.IsNullOrWhiteSpace(fCliente))     qs.Append($"&clienteNombre={Uri.EscapeDataString(fCliente)}");
+        if (!string.IsNullOrWhiteSpace(fFechaDesde))  qs.Append($"&fechaDesde={Uri.EscapeDataString(fFechaDesde)}");
+        if (!string.IsNullOrWhiteSpace(fFechaHasta))  qs.Append($"&fechaHasta={Uri.EscapeDataString(fFechaHasta)}");
+        if (fMontoMin.HasValue)                       qs.Append($"&montoMin={fMontoMin}");
+        if (fMontoMax.HasValue)                       qs.Append($"&montoMax={fMontoMax}");
+        if (!string.IsNullOrWhiteSpace(fTipoCliente)) qs.Append($"&tipoCliente={Uri.EscapeDataString(fTipoCliente)}");
+        return qs.ToString();
+    }
 }
 
 <div class="sm:flex sm:items-center sm:justify-between mb-6">
@@ -13,10 +38,139 @@
         </h2>
     </div>
     <div class="mt-4 flex sm:ml-4 sm:mt-0">
-        <a asp-action="Index" class="block rounded-md px-3 py-2 text-center text-sm font-semibold text-white shadow-sm transition-colors" style="background-color:#FC651F;" onmouseover="this.style.backgroundColor='#e0541a'" onmouseout="this.style.backgroundColor='#FC651F'">
+        <a asp-action="Index"
+           class="block rounded-md px-3 py-2 text-center text-sm font-semibold text-white shadow-sm transition-colors"
+           style="background-color:#FC651F;"
+           onmouseover="this.style.backgroundColor='#e0541a'"
+           onmouseout="this.style.backgroundColor='#FC651F'">
             Nueva Venta
         </a>
     </div>
+</div>
+
+@* Panel de filtros *@
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-6">
+    <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-gray-900">Filtros</h3>
+        @if (hayFiltros)
+        {
+            <a asp-action="Historial" class="text-xs font-medium text-red-500 hover:text-red-700 transition-colors">
+                Limpiar filtros ×
+            </a>
+        }
+    </div>
+    <form method="get" asp-action="Historial" class="p-5">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+            @* Producto con autocomplete *@
+            <div x-data="autocomplete('@Url.Action("BuscarProductosHistorial", "Venta")', '@Html.Raw(fProducto ?? "")')" class="relative">
+                <label class="block text-xs font-medium text-gray-700 mb-1">Producto</label>
+                <input type="text" name="producto"
+                       x-model="query"
+                       x-on:input.debounce.300ms="buscar"
+                       x-on:focus="buscar"
+                       x-on:blur="setTimeout(() => cerrar(), 150)"
+                       x-on:keydown.escape="cerrar"
+                       x-on:keydown.arrow-down.prevent="seleccionarSiguiente"
+                       x-on:keydown.arrow-up.prevent="seleccionarAnterior"
+                       x-on:keydown.enter.prevent="confirmar"
+                       placeholder="Buscar por nombre de producto..."
+                       autocomplete="off"
+                       class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400" />
+                <ul x-show="abierto && sugerencias.length > 0"
+                    x-cloak
+                    class="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg text-sm overflow-hidden">
+                    <template x-for="(s, i) in sugerencias" :key="s.id">
+                        <li x-on:mousedown.prevent="elegir(s)"
+                            :class="i === activo ? 'bg-orange-50 text-gray-900' : 'text-gray-700 hover:bg-gray-50'"
+                            class="cursor-pointer px-3 py-2 transition-colors"
+                            x-text="s.nombre"></li>
+                    </template>
+                </ul>
+            </div>
+
+            @* Cliente con autocomplete *@
+            <div x-data="autocomplete('@Url.Action("BuscarClientesHistorial", "Venta")', '@Html.Raw(fCliente ?? "")')" class="relative">
+                <label class="block text-xs font-medium text-gray-700 mb-1">Cliente</label>
+                <input type="text" name="clienteNombre"
+                       x-model="query"
+                       x-on:input.debounce.300ms="buscar"
+                       x-on:focus="buscar"
+                       x-on:blur="setTimeout(() => cerrar(), 150)"
+                       x-on:keydown.escape="cerrar"
+                       x-on:keydown.arrow-down.prevent="seleccionarSiguiente"
+                       x-on:keydown.arrow-up.prevent="seleccionarAnterior"
+                       x-on:keydown.enter.prevent="confirmar"
+                       placeholder="Buscar por nombre o apellido..."
+                       autocomplete="off"
+                       class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400" />
+                <ul x-show="abierto && sugerencias.length > 0"
+                    x-cloak
+                    class="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg text-sm overflow-hidden">
+                    <template x-for="(s, i) in sugerencias" :key="s.id">
+                        <li x-on:mousedown.prevent="elegir(s)"
+                            :class="i === activo ? 'bg-orange-50 text-gray-900' : 'text-gray-700 hover:bg-gray-50'"
+                            class="cursor-pointer px-3 py-2 transition-colors"
+                            x-text="s.nombre"></li>
+                    </template>
+                </ul>
+            </div>
+
+            @* Tipo de cliente *@
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Tipo de cliente</label>
+                <select name="tipoCliente"
+                        class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400">
+                    @if (string.IsNullOrEmpty(fTipoCliente)) { <option value="" selected>Todos</option> } else { <option value="">Todos</option> }
+                    @if (fTipoCliente == "REGISTRADO") { <option value="REGISTRADO" selected>Cliente registrado</option> } else { <option value="REGISTRADO">Cliente registrado</option> }
+                    @if (fTipoCliente == "CONSUMIDOR_FINAL") { <option value="CONSUMIDOR_FINAL" selected>Consumidor final</option> } else { <option value="CONSUMIDOR_FINAL">Consumidor final</option> }
+                </select>
+            </div>
+
+            @* Fecha desde *@
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Fecha desde</label>
+                <input type="date" name="fechaDesde" value="@fFechaDesde"
+                       class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400" />
+            </div>
+
+            @* Fecha hasta *@
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Fecha hasta</label>
+                <input type="date" name="fechaHasta" value="@fFechaHasta"
+                       class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400" />
+            </div>
+
+            @* Montos *@
+            <div class="flex gap-2">
+                <div class="flex-1">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Monto mín.</label>
+                    <input type="number" name="montoMin" value="@fMontoMin" min="0" step="0.01" placeholder="0,00"
+                           class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400" />
+                </div>
+                <div class="flex-1">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Monto máx.</label>
+                    <input type="number" name="montoMax" value="@fMontoMax" min="0" step="0.01" placeholder="Sin límite"
+                           class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400" />
+                </div>
+            </div>
+
+        </div>
+
+        <div class="mt-4 flex items-center gap-3">
+            <button type="submit"
+                    class="rounded-md px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:opacity-90"
+                    style="background-color:#FC651F;">
+                Aplicar filtros
+            </button>
+            @if (hayFiltros)
+            {
+                <span class="text-xs text-gray-500">
+                    @totalCount resultado@(totalCount == 1 ? "" : "s") encontrado@(totalCount == 1 ? "" : "s")
+                </span>
+            }
+        </div>
+    </form>
 </div>
 
 @if (!Model.Any())
@@ -25,16 +179,28 @@
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path>
         </svg>
-        <h3 class="mt-2 text-sm font-semibold text-gray-900">Sin historial</h3>
-        <p class="mt-1 text-sm text-gray-500">Aún no se han registrado ventas en el sistema.</p>
-        <div class="mt-6">
-            <a asp-action="Index" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-                <svg class="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-                </svg>
-                Registrar la primera venta
-            </a>
-        </div>
+        <h3 class="mt-2 text-sm font-semibold text-gray-900">Sin resultados</h3>
+        <p class="mt-1 text-sm text-gray-500">
+            @if (hayFiltros)
+            {
+                <text>No se encontraron ventas con los filtros aplicados.</text>
+            }
+            else
+            {
+                <text>Aún no se han registrado ventas en el sistema.</text>
+            }
+        </p>
+        @if (!hayFiltros)
+        {
+            <div class="mt-6">
+                <a asp-action="Index" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+                    <svg class="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                    </svg>
+                    Registrar la primera venta
+                </a>
+            </div>
+        }
     </div>
 }
 else
@@ -75,7 +241,7 @@ else
                                         }
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900 font-medium text-right">@v.Total.ToString("C")</td>
-                                    
+
                                     @{
                                         var estado = v.Estado ?? "CONFIRMADA";
                                         string estadoTexto;
@@ -128,18 +294,28 @@ else
 
     @if (totalPages > 1)
     {
-        var start = System.Math.Max(1, page - 2);
-        var end = System.Math.Min(totalPages, page + 2);
+        var start   = System.Math.Max(1, page - 2);
+        var end     = System.Math.Min(totalPages, page + 2);
+        var baseUrl = Url.Action("Historial", "Venta") ?? "/Venta/Historial";
+        var urlPrev = baseUrl + "?" + FiltroQs(page - 1);
+        var urlNext = baseUrl + "?" + FiltroQs(page + 1);
 
         <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 mt-2 rounded-b-lg">
             <div class="flex flex-1 justify-between sm:hidden">
-                <a asp-action="Historial" asp-route-page="@(page - 1)" class="relative inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(page <= 1 ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">Anterior</a>
-                <a asp-action="Historial" asp-route-page="@(page + 1)" class="relative ml-3 inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(page >= totalPages ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">Siguiente</a>
+                <a href="@urlPrev"
+                   class="relative inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(page <= 1 ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">
+                    Anterior
+                </a>
+                <a href="@urlNext"
+                   class="relative ml-3 inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(page >= totalPages ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">
+                    Siguiente
+                </a>
             </div>
             <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-                <p class="text-sm text-gray-700">Página <span class="font-medium">@(page)</span> de <span class="font-medium">@totalPages</span></p>
+                <p class="text-sm text-gray-700">Página <span class="font-medium">@(page)</span> de <span class="font-medium">@(totalPages)</span></p>
                 <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                    <a asp-action="Historial" asp-route-page="@(page - 1)" class="relative inline-flex items-center rounded-l-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(page <= 1 ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
+                    <a href="@urlPrev"
+                       class="relative inline-flex items-center rounded-l-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(page <= 1 ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
                         <span class="sr-only">Anterior</span>
                         <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" /></svg>
                     </a>
@@ -151,10 +327,12 @@ else
                         }
                         else
                         {
-                            <a asp-action="Historial" asp-route-page="@i" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 hover:text-[#FC651F] focus:z-20">@i</a>
+                            var urlPage = baseUrl + "?" + FiltroQs(i);
+                            <a href="@urlPage" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 hover:text-[#FC651F] focus:z-20">@i</a>
                         }
                     }
-                    <a asp-action="Historial" asp-route-page="@(page + 1)" class="relative inline-flex items-center rounded-r-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(page >= totalPages ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
+                    <a href="@urlNext"
+                       class="relative inline-flex items-center rounded-r-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(page >= totalPages ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
                         <span class="sr-only">Siguiente</span>
                         <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
                     </a>
@@ -162,4 +340,47 @@ else
             </div>
         </div>
     }
+}
+
+@section Scripts {
+<script>
+function autocomplete(url, initialValue) {
+    return {
+        url,
+        query: initialValue,
+        sugerencias: [],
+        abierto: false,
+        activo: -1,
+        async buscar() {
+            if (this.query.length < 2) { this.sugerencias = []; this.abierto = false; return; }
+            try {
+                const res = await fetch(`${this.url}?q=${encodeURIComponent(this.query)}`);
+                this.sugerencias = await res.json();
+                this.abierto = this.sugerencias.length > 0;
+                this.activo = -1;
+            } catch { this.sugerencias = []; this.abierto = false; }
+        },
+        elegir(s) {
+            this.query = s.nombre;
+            this.sugerencias = [];
+            this.abierto = false;
+            this.activo = -1;
+        },
+        confirmar() {
+            if (this.activo >= 0 && this.sugerencias[this.activo]) {
+                this.elegir(this.sugerencias[this.activo]);
+            }
+        },
+        cerrar() { this.abierto = false; this.activo = -1; },
+        seleccionarSiguiente() {
+            if (!this.abierto) return;
+            this.activo = (this.activo + 1) % this.sugerencias.length;
+        },
+        seleccionarAnterior() {
+            if (!this.abierto) return;
+            this.activo = (this.activo - 1 + this.sugerencias.length) % this.sugerencias.length;
+        },
+    };
+}
+</script>
 }
