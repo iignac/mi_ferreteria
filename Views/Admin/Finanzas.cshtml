@@ -9,268 +9,223 @@
     var categorias = Model.Categorias ?? new List<Categoria>();
     string Mon(decimal v) => v.ToString("C");
     string Porc(decimal v) => $"{v:0.##}%";
-    string Dia(double? d) => d.HasValue ? $"{d.Value:F1} dias" : "Sin datos";
+    string Dia(double? d) => d.HasValue ? $"{d.Value:F1} días" : "Sin datos";
 }
 
-<div class="d-flex align-items-center justify-content-between mb-3">
+<div class="sm:flex sm:items-center sm:justify-between mb-8">
     <div>
-        <h1 class="h3 mb-0">Tablero financiero</h1>
-        <p class="text-muted mb-0">Ventas, margen y cobranzas.</p>
+        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+            Tablero financiero
+        </h2>
+        <p class="mt-1 text-sm text-gray-500">Ventas, margen y cobranzas.</p>
     </div>
-    <span class="badge bg-warning text-dark align-self-start">Solo administradores</span>
+    <span class="mt-3 sm:mt-0 inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold text-white" style="background-color:#FC651F;">
+        Solo administradores
+    </span>
 </div>
 
-<div class="row g-3 mb-4">
-    <div class="col-12 col-md-6 col-xl-3">
-        <div class="card shadow-sm h-100">
-            <div class="card-body">
-                <p class="text-muted mb-1">Total vendido</p>
-                <h4 class="fw-bold mb-0">@Mon(r.TotalVendido)</h4>
-            </div>
-        </div>
+@* Tarjetas resumen principales *@
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-4">
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <p class="text-sm text-gray-500">Total vendido</p>
+        <p class="text-2xl font-bold text-gray-900 mt-1">@Mon(r.TotalVendido)</p>
     </div>
-    <div class="col-12 col-md-6 col-xl-3">
-        <div class="card shadow-sm h-100">
-            <div class="card-body">
-                <p class="text-muted mb-1">Margen bruto (%)</p>
-                <h4 class="fw-bold mb-0">@Porc(r.MargenBrutoPorcentaje)</h4>
-            </div>
-        </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <p class="text-sm text-gray-500">Margen bruto (%)</p>
+        <p class="text-2xl font-bold text-gray-900 mt-1">@Porc(r.MargenBrutoPorcentaje)</p>
     </div>
-    <div class="col-12 col-md-6 col-xl-3">
-        <div class="card shadow-sm h-100">
-            <div class="card-body">
-                <p class="text-muted mb-1">Deuda total</p>
-                <h4 class="fw-bold mb-0 text-danger">@Mon(r.DeudaTotal)</h4>
-            </div>
-        </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <p class="text-sm text-gray-500">Deuda total</p>
+        <p class="text-2xl font-bold text-red-600 mt-1">@Mon(r.DeudaTotal)</p>
     </div>
-    <div class="col-12 col-md-6 col-xl-3">
-        <div class="card shadow-sm h-100">
-            <div class="card-body">
-                <p class="text-muted mb-1">Promedio de cobro</p>
-                <h4 class="fw-bold mb-0">@Dia(r.PromedioCobroDias)</h4>
-            </div>
-        </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <p class="text-sm text-gray-500">Promedio de cobro</p>
+        <p class="text-2xl font-bold text-gray-900 mt-1">@Dia(r.PromedioCobroDias)</p>
     </div>
 </div>
 
-<div class="row g-3 mb-4">
-    <div class="col-12 col-md-6 col-xl-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <p class="text-muted mb-1">Ventas del dia</p>
-                <h5 class="fw-bold mb-0">@Mon(r.VentasDia)</h5>
-            </div>
-        </div>
+@* Tarjetas ventas por período *@
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <p class="text-sm text-gray-500">Ventas del día</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">@Mon(r.VentasDia)</p>
     </div>
-    <div class="col-12 col-md-6 col-xl-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <p class="text-muted mb-1">Ventas de la semana</p>
-                <h5 class="fw-bold mb-0">@Mon(r.VentasSemana)</h5>
-            </div>
-        </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <p class="text-sm text-gray-500">Ventas de la semana</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">@Mon(r.VentasSemana)</p>
     </div>
-    <div class="col-12 col-md-6 col-xl-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <p class="text-muted mb-1">Ventas del mes</p>
-                <h5 class="fw-bold mb-0">@Mon(r.VentasMes)</h5>
-            </div>
-        </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <p class="text-sm text-gray-500">Ventas del mes</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">@Mon(r.VentasMes)</p>
     </div>
-    <div class="col-12 col-md-6 col-xl-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <p class="text-muted mb-1">Ventas del año</p>
-                <h5 class="fw-bold mb-0">@Mon(r.VentasAnio)</h5>
-            </div>
-        </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <p class="text-sm text-gray-500">Ventas del año</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">@Mon(r.VentasAnio)</p>
     </div>
 </div>
 
-<div class="row g-4">
-    <div class="col-12 col-xl-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <h5 class="mb-0">Top 5 productos</h5>
-                <form method="get" asp-controller="Admin" asp-action="Finanzas" class="d-flex align-items-center gap-2">
-                    <input type="hidden" name="diasTopClientes" value="@diasTopClientes" />
-                    <label for="topProductosCategoria" class="form-label mb-0 small text-muted">Categoria</label>
-                    <select id="topProductosCategoria" name="categoriaTopProductosId" class="form-select form-select-sm">
-                        @if (categoriaSeleccionada == null)
-                        {
-                            <option value="" selected>Todas las categorias</option>
-                        }
-                        else
-                        {
-                            <option value="">Todas las categorias</option>
-                        }
-                        @foreach (var cat in categorias)
-                        {
-                            @if (categoriaSeleccionada == cat.Id)
-                            {
-                                <option value="@cat.Id" selected>@cat.Nombre</option>
-                            }
-                            else
-                            {
-                                <option value="@cat.Id">@cat.Nombre</option>
-                            }
-                        }
-                    </select>
-                    <label for="topProductosRango" class="form-label mb-0 small text-muted">Periodo</label>
-                    <select id="topProductosRango" name="diasTopProductos" class="form-select form-select-sm">
-                        @if (diasTop == 30)
-                        {
-                            <option value="30" selected>Ultimos 30 dias</option>
-                        }
-                        else
-                        {
-                            <option value="30">Ultimos 30 dias</option>
-                        }
-                        @if (diasTop == 90)
-                        {
-                            <option value="90" selected>Ultimos 90 dias</option>
-                        }
-                        else
-                        {
-                            <option value="90">Ultimos 90 dias</option>
-                        }
-                    </select>
-                    <button type="submit" class="btn btn-sm btn-outline-primary">Aplicar</button>
-                </form>
-            </div>
-            <div class="card-body p-0">
-                @if (r.TopProductos.Count == 0)
-                {
-                    <div class="p-4 text-muted text-center">Sin datos de ventas.</div>
-                }
-                else
-                {
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Producto</th>
-                                    <th class="text-end">Cantidad</th>
-                                    <th class="text-end">Importe</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var p in r.TopProductos)
-                                {
-                                    <tr>
-                                        <td>@p.Nombre</td>
-                                        <td class="text-end">@p.CantidadVendida</td>
-                                        <td class="text-end">@Mon(p.ImporteTotal)</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
-    <div class="col-12 col-xl-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <h5 class="mb-0">Clientes que más compran</h5>
-                <form method="get" asp-controller="Admin" asp-action="Finanzas" class="d-flex align-items-center gap-2">
-                    <input type="hidden" name="diasTopProductos" value="@diasTop" />
-                    <input type="hidden" name="categoriaTopProductosId" value="@(categoriaSeleccionada?.ToString() ?? string.Empty)" />
-                    <label for="topClientesRango" class="form-label mb-0 small text-muted">Periodo</label>
-                    <select id="topClientesRango" name="diasTopClientes" class="form-select form-select-sm" onchange="this.form.submit()">
-                        @if (diasTopClientes == 30)
-                        {
-                            <option value="30" selected>Ultimos 30 dias</option>
-                        }
-                        else
-                        {
-                            <option value="30">Ultimos 30 dias</option>
-                        }
-                        @if (diasTopClientes == 90)
-                        {
-                            <option value="90" selected>Ultimos 90 dias</option>
-                        }
-                        else
-                        {
-                            <option value="90">Ultimos 90 dias</option>
-                        }
-                    </select>
-                    <noscript>
-                        <button type="submit" class="btn btn-sm btn-outline-primary">Aplicar</button>
-                    </noscript>
-                </form>
-            </div>
-            <div class="card-body p-0">
-                @if (r.TopClientes.Count == 0)
-                {
-                    <div class="p-4 text-muted text-center">Sin compras registradas.</div>
-                }
-                else
-                {
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Cliente</th>
-                                    <th class="text-end">Compras</th>
-                                    <th class="text-end">Importe</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var c in r.TopClientes)
-                                {
-                                    <tr>
-                                        <td>@c.Nombre</td>
-                                        <td class="text-end">@c.CantidadCompras</td>
-                                        <td class="text-end">@Mon(c.ImporteTotal)</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
-</div>
+@* Top productos y top clientes *@
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-6">
 
-<div class="card shadow-sm mt-4">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Clientes deudores</h5>
-        <small class="text-muted">Incluye saldo de cuenta corriente</small>
-    </div>
-    <div class="card-body p-0">
-        @if (r.Deudores.Count == 0)
-        {
-            <div class="p-4 text-muted text-center">Sin deudas pendientes.</div>
-        }
-        else
-        {
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
+    @* Top 5 productos *@
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-wrap gap-2">
+            <h3 class="text-sm font-semibold text-gray-900">Top 5 productos</h3>
+            <form method="get" asp-controller="Admin" asp-action="Finanzas" class="flex items-center gap-2 flex-wrap">
+                <input type="hidden" name="diasTopClientes" value="@diasTopClientes" />
+                <label for="topProductosCategoria" class="text-xs text-gray-500">Categoría</label>
+                <select id="topProductosCategoria" name="categoriaTopProductosId"
+                        class="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 shadow-sm focus:outline-none focus:ring-1" style="focus:ring-color:#FC651F;">
+                    @if (categoriaSeleccionada == null)
+                    {
+                        <option value="" selected>Todas</option>
+                    }
+                    else
+                    {
+                        <option value="">Todas</option>
+                    }
+                    @foreach (var cat in categorias)
+                    {
+                        @if (categoriaSeleccionada == cat.Id)
+                        {
+                            <option value="@cat.Id" selected>@cat.Nombre</option>
+                        }
+                        else
+                        {
+                            <option value="@cat.Id">@cat.Nombre</option>
+                        }
+                    }
+                </select>
+                <label for="topProductosRango" class="text-xs text-gray-500">Período</label>
+                <select id="topProductosRango" name="diasTopProductos"
+                        class="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 shadow-sm focus:outline-none">
+                    @if (diasTop == 30) { <option value="30" selected>Últimos 30 días</option> } else { <option value="30">Últimos 30 días</option> }
+                    @if (diasTop == 90) { <option value="90" selected>Últimos 90 días</option> } else { <option value="90">Últimos 90 días</option> }
+                </select>
+                <button type="submit"
+                        class="rounded-md px-2.5 py-1 text-xs font-medium text-white transition-colors hover:opacity-90"
+                        style="background-color:#FC651F;">
+                    Aplicar
+                </button>
+            </form>
+        </div>
+        <div class="overflow-x-auto">
+            @if (r.TopProductos.Count == 0)
+            {
+                <p class="py-8 text-center text-sm text-gray-400">Sin datos de ventas.</p>
+            }
+            else
+            {
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
                         <tr>
-                            <th>Cliente</th>
-                            <th class="text-end">Deuda</th>
-                            <th class="text-end">Límite crédito</th>
+                            <th class="py-3 pl-5 pr-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Producto</th>
+                            <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Cantidad</th>
+                            <th class="px-3 py-3 pr-5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Importe</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        @foreach (var d in r.Deudores)
+                    <tbody class="divide-y divide-gray-100 bg-white">
+                        @foreach (var p in r.TopProductos)
                         {
-                            <tr>
-                                <td>@d.Nombre</td>
-                                <td class="text-end text-danger">@Mon(d.DeudaTotal)</td>
-                                <td class="text-end">@Mon(d.LimiteCredito)</td>
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="whitespace-nowrap py-3 pl-5 pr-3 text-sm text-gray-900">@p.Nombre</td>
+                                <td class="whitespace-nowrap px-3 py-3 text-sm text-gray-500 text-right">@p.CantidadVendida</td>
+                                <td class="whitespace-nowrap px-3 py-3 pr-5 text-sm font-medium text-gray-900 text-right">@Mon(p.ImporteTotal)</td>
                             </tr>
                         }
                     </tbody>
                 </table>
-            </div>
+            }
+        </div>
+    </div>
+
+    @* Clientes que más compran *@
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-wrap gap-2">
+            <h3 class="text-sm font-semibold text-gray-900">Clientes que más compran</h3>
+            <form method="get" asp-controller="Admin" asp-action="Finanzas" class="flex items-center gap-2">
+                <input type="hidden" name="diasTopProductos" value="@diasTop" />
+                <input type="hidden" name="categoriaTopProductosId" value="@(categoriaSeleccionada?.ToString() ?? string.Empty)" />
+                <label for="topClientesRango" class="text-xs text-gray-500">Período</label>
+                <select id="topClientesRango" name="diasTopClientes"
+                        class="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 shadow-sm focus:outline-none"
+                        onchange="this.form.submit()">
+                    @if (diasTopClientes == 30) { <option value="30" selected>Últimos 30 días</option> } else { <option value="30">Últimos 30 días</option> }
+                    @if (diasTopClientes == 90) { <option value="90" selected>Últimos 90 días</option> } else { <option value="90">Últimos 90 días</option> }
+                </select>
+                <noscript>
+                    <button type="submit"
+                            class="rounded-md px-2.5 py-1 text-xs font-medium text-white transition-colors hover:opacity-90"
+                            style="background-color:#FC651F;">
+                        Aplicar
+                    </button>
+                </noscript>
+            </form>
+        </div>
+        <div class="overflow-x-auto">
+            @if (r.TopClientes.Count == 0)
+            {
+                <p class="py-8 text-center text-sm text-gray-400">Sin compras registradas.</p>
+            }
+            else
+            {
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="py-3 pl-5 pr-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
+                            <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Compras</th>
+                            <th class="px-3 py-3 pr-5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Importe</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 bg-white">
+                        @foreach (var c in r.TopClientes)
+                        {
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="whitespace-nowrap py-3 pl-5 pr-3 text-sm text-gray-900">@c.Nombre</td>
+                                <td class="whitespace-nowrap px-3 py-3 text-sm text-gray-500 text-right">@c.CantidadCompras</td>
+                                <td class="whitespace-nowrap px-3 py-3 pr-5 text-sm font-medium text-gray-900 text-right">@Mon(c.ImporteTotal)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+
+</div>
+
+@* Clientes deudores *@
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+        <h3 class="text-sm font-semibold text-gray-900">Clientes deudores</h3>
+        <span class="text-xs text-gray-400">Incluye saldo de cuenta corriente</span>
+    </div>
+    <div class="overflow-x-auto">
+        @if (r.Deudores.Count == 0)
+        {
+            <p class="py-8 text-center text-sm text-gray-400">Sin deudas pendientes.</p>
+        }
+        else
+        {
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="py-3 pl-5 pr-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
+                        <th class="px-3 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Deuda</th>
+                        <th class="px-3 py-3 pr-5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Límite crédito</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 bg-white">
+                    @foreach (var d in r.Deudores)
+                    {
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="whitespace-nowrap py-3 pl-5 pr-3 text-sm text-gray-900">@d.Nombre</td>
+                            <td class="whitespace-nowrap px-3 py-3 text-sm font-medium text-red-600 text-right">@Mon(d.DeudaTotal)</td>
+                            <td class="whitespace-nowrap px-3 py-3 pr-5 text-sm text-gray-500 text-right">@Mon(d.LimiteCredito)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         }
     </div>
 </div>

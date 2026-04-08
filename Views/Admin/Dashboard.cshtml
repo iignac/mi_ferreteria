@@ -1,7 +1,7 @@
 @model AdminDashboardViewModel
 @using System.Linq
 @{
-    ViewData["Title"] = "Panel de administracion";
+    ViewData["Title"] = "Panel de Administración";
     string FechaCorta(DateTimeOffset fecha) => fecha.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
 }
 
@@ -22,7 +22,7 @@
 <div class="sm:flex sm:items-center sm:justify-between mb-8">
     <div>
         <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
-            Panel de control
+            Panel de Administración
         </h2>
         <p class="mt-1 text-sm text-gray-500">Visión general de actividad y seguridad del sistema.</p>
     </div>
