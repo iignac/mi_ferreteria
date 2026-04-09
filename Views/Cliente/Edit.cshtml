@@ -155,13 +155,13 @@ else
                     </div>
                 </div>
 
-                <div class="sm:col-span-3">
+                <div class="sm:col-span-3" data-cc-field>
                     <label asp-for="LimiteCredito" class="block text-sm font-medium leading-6 text-gray-900">Límite de crédito asignado</label>
                     <div class="relative mt-2 rounded-md shadow-sm">
                         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                             <span class="text-gray-500 sm:text-sm">$</span>
                         </div>
-                        <input asp-for="LimiteCredito" type="number" step="0.01" min="0" class="block w-full rounded-md border-0 py-1.5 pl-7 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" placeholder="0.00" />
+                        <input asp-for="LimiteCredito" type="number" step="0.01" min="0" data-cc-input class="block w-full rounded-md border-0 py-1.5 pl-7 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" placeholder="0.00" />
                     </div>
                     <span asp-validation-for="LimiteCredito" class="mt-2 text-sm text-red-600"></span>
                 </div>
@@ -227,6 +227,48 @@ else
             tipoSelect.addEventListener('change', toggleApellido);
             toggleApellido();
         })();
+        (function () {
+            const scope = document;
+            const tipoClienteSelect = scope.querySelector('select[name="TipoCliente"]');
+            const sections = scope.querySelectorAll('[data-cc-field]');
+            const inputs = scope.querySelectorAll('[data-cc-input]');
+            if (!tipoClienteSelect || sections.length === 0 || inputs.length === 0) return;
+
+            inputs.forEach(input => {
+                if (!input.disabled) {
+                    input.dataset.ccValue = input.value;
+                }
+                input.addEventListener('input', () => {
+                    if (!input.disabled) {
+                        input.dataset.ccValue = input.value;
+                    }
+                });
+            });
+
+            const toggle = () => {
+                const isCc = (tipoClienteSelect.value || '').toUpperCase() === 'CUENTA_CORRIENTE';
+                sections.forEach(section => section.classList.toggle('hidden', !isCc));
+                inputs.forEach(input => {
+                    if (isCc) {
+                        const stored = input.dataset.ccValue;
+                        if (stored !== undefined) {
+                            input.value = stored;
+                        }
+                        input.disabled = false;
+                    } else {
+                        if (!input.disabled) {
+                            input.dataset.ccValue = input.value;
+                        }
+                        input.disabled = true;
+                        input.value = '0';
+                    }
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                });
+            };
+
+            tipoClienteSelect.addEventListener('change', toggle);
+            toggle();
+        })();
     </script>
 }
 }
@@ -263,6 +305,48 @@ else
 
             tipoSelect.addEventListener('change', toggleApellido);
             toggleApellido();
+        })();
+        (function () {
+            const container = document.querySelector('#ajaxModal form') || document;
+            const tipoClienteSelect = container.querySelector('select[name="TipoCliente"]');
+            const sections = container.querySelectorAll('[data-cc-field]');
+            const inputs = container.querySelectorAll('[data-cc-input]');
+            if (!tipoClienteSelect || sections.length === 0 || inputs.length === 0) return;
+
+            inputs.forEach(input => {
+                if (!input.disabled) {
+                    input.dataset.ccValue = input.value;
+                }
+                input.addEventListener('input', () => {
+                    if (!input.disabled) {
+                        input.dataset.ccValue = input.value;
+                    }
+                });
+            });
+
+            const toggle = () => {
+                const isCc = (tipoClienteSelect.value || '').toUpperCase() === 'CUENTA_CORRIENTE';
+                sections.forEach(section => section.classList.toggle('hidden', !isCc));
+                inputs.forEach(input => {
+                    if (isCc) {
+                        const stored = input.dataset.ccValue;
+                        if (stored !== undefined) {
+                            input.value = stored;
+                        }
+                        input.disabled = false;
+                    } else {
+                        if (!input.disabled) {
+                            input.dataset.ccValue = input.value;
+                        }
+                        input.disabled = true;
+                        input.value = '0';
+                    }
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                });
+            };
+
+            tipoClienteSelect.addEventListener('change', toggle);
+            toggle();
         })();
     </script>
 }
