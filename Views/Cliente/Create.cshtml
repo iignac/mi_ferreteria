@@ -48,9 +48,8 @@ else
                 <div class="sm:col-span-3">
                     <label asp-for="Apellido" class="block text-sm font-medium leading-6 text-gray-900">Apellido</label>
                     <div class="mt-2">
-                        <input asp-for="Apellido" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                        <input asp-for="Apellido" title="Solo aplica para DNI; si elegís CUIT se deshabilita y se limpia automáticamente." class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
                         <span asp-validation-for="Apellido" class="mt-2 text-sm text-red-600"></span>
-                        <p class="mt-1 text-xs text-gray-500">Se completa solo para DNI; si elegís CUIT se limpia automáticamente.</p>
                     </div>
                 </div>
 
@@ -68,9 +67,8 @@ else
                 <div class="sm:col-span-4">
                     <label asp-for="NumeroDocumento" class="block text-sm font-medium leading-6 text-gray-900">Número de DNI / CUIT</label>
                     <div class="mt-2">
-                        <input asp-for="NumeroDocumento" inputmode="numeric" pattern="[0-9]+" placeholder="Ej: 12345678 / 20123456789" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                        <input asp-for="NumeroDocumento" inputmode="numeric" pattern="[0-9]+" placeholder="Ej: 12345678 / 20123456789" title="Ingresá solo números: DNI sin puntos y CUIT sin guiones." class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
                         <span asp-validation-for="NumeroDocumento" class="mt-2 text-sm text-red-600"></span>
-                        <p class="mt-1 text-xs text-gray-500">Ingresá solo números (DNI sin puntos, CUIT sin guiones).</p>
                     </div>
                 </div>
             </div>
@@ -85,9 +83,8 @@ else
                 <div class="sm:col-span-3">
                     <label asp-for="Telefono" class="block text-sm font-medium leading-6 text-gray-900">Teléfono</label>
                     <div class="mt-2">
-                        <input asp-for="Telefono" type="tel" inputmode="tel" pattern="[+0-9 ()-]{7,20}" placeholder="Ej: +54 381 6612233" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                        <input asp-for="Telefono" type="tel" inputmode="tel" pattern="[+0-9 ()-]{7,20}" placeholder="Ej: +54 381 6612233" title="Permitidos números, espacios y los símbolos + ( ) - (7 a 20 caracteres)." class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
                         <span asp-validation-for="Telefono" class="mt-2 text-sm text-red-600"></span>
-                        <p class="mt-1 text-xs text-gray-500">Permitidos números, espacios y los símbolos + ( ) - (7 a 20 caracteres).</p>
                     </div>
                 </div>
 
@@ -102,9 +99,8 @@ else
                 <div class="sm:col-span-4">
                     <label asp-for="DireccionCalleNumero" class="block text-sm font-medium leading-6 text-gray-900">Calle y número</label>
                     <div class="mt-2">
-                        <input asp-for="DireccionCalleNumero" placeholder="Ej: Lamadrid 123" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                        <input asp-for="DireccionCalleNumero" placeholder="Ej: Lamadrid 123" title="Obligatorio si el cliente tiene CUIT o cuenta corriente." class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
                         <span asp-validation-for="DireccionCalleNumero" class="mt-2 text-sm text-red-600"></span>
-                        <p class="mt-1 text-xs text-gray-500">Obligatoria si el cliente tiene CUIT o cuenta corriente.</p>
                     </div>
                 </div>
 
@@ -119,9 +115,8 @@ else
                 <div class="sm:col-span-3">
                     <label asp-for="DireccionLocalidad" class="block text-sm font-medium leading-6 text-gray-900">Localidad</label>
                     <div class="mt-2">
-                        <input asp-for="DireccionLocalidad" placeholder="Ej: San Miguel de Tucumán" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
+                        <input asp-for="DireccionLocalidad" placeholder="Ej: San Miguel de Tucumán" title="Obligatorio si el cliente tiene CUIT o cuenta corriente." class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" />
                         <span asp-validation-for="DireccionLocalidad" class="mt-2 text-sm text-red-600"></span>
-                        <p class="mt-1 text-xs text-gray-500">Obligatoria si el cliente tiene CUIT o cuenta corriente.</p>
                     </div>
                 </div>
             </div>
