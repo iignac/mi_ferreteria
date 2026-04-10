@@ -96,7 +96,7 @@ else
 
                     <h5 class="card-title">Registrar pago</h5>
 
-                    <p class="text-muted small">Puede asociar el pago al saldo general o a una factura con saldo pendiente, incluso si el cliente no tiene deuda (se registrara como saldo a favor).</p>
+                    <p class="text-muted small mb-3">Puede asociar el pago al saldo general, incluso si el cliente no tiene deuda (se registrará como saldo a favor), o a una factura con saldo pendiente.</p>
 
                     <form asp-action="RegistrarPagoCuentaCorriente" method="post" class="row g-2 align-items-end">
 
@@ -106,11 +106,11 @@ else
 
                         <div class="col-md-6">
 
-                            <label class="form-label">Factura a cancelar (opcional)</label>
+                            <label class="form-label">Destino del pago</label>
 
                             <select class="form-select" name="movimientoDeudaId" id="facturaPagoSelect">
 
-                                <option value="">Aplicar a saldo general</option>
+                                <option value="">Saldo general</option>
 
                                 @foreach (var f in Model.FacturasPendientes)
 
@@ -144,7 +144,7 @@ else
 
                         <div class="col-md-3">
 
-                            <label class="form-label">Descripcion</label>
+                            <label class="form-label">Descripción</label>
 
                             <input class="form-control" type="text" name="descripcion" placeholder="Opcional" />
 
