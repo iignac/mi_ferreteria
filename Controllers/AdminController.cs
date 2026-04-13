@@ -212,7 +212,7 @@ namespace mi_ferreteria.Controllers
                     if (aplicadoSaldo > 0)
                     {
                         var descConsumo = deudaCredito > 0
-                            ? $"Aplicación de saldo a favor en venta #{venta.Id} (deuda restante ${deudaCredito:N2})."
+                            ? $"Venta #{venta.Id} pagada parcialmente con saldo a favor. Deuda restante: ${deudaCredito:N2}."
                             : $"Venta #{venta.Id} pagada completamente con saldo a favor.";
                         _clienteRepo.RegistrarConsumoSaldo(cliente.Id, venta.Id, aplicadoSaldo, userId, descConsumo);
                     }

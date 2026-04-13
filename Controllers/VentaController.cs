@@ -251,7 +251,7 @@ if (!ModelState.IsValid)
                     if (aplicadoSaldo > 0)
                     {
                         var descConsumo = deudaCredito > 0
-                            ? $"Aplicación de saldo a favor en venta #{ventaCreada.Id} (deuda restante ${deudaCredito:N2})."
+                            ? $"Venta #{ventaCreada.Id} pagada parcialmente con saldo a favor. Deuda restante: ${deudaCredito:N2}."
                             : $"Venta #{ventaCreada.Id} pagada completamente con saldo a favor.";
                         _clienteRepo.RegistrarConsumoSaldo(cliente.Id, ventaCreada.Id, aplicadoSaldo, ventaCreada.UsuarioId, descConsumo);
                     }
