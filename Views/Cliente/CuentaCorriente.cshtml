@@ -103,6 +103,7 @@ else
                         @Html.AntiForgeryToken()
 
                         <input type="hidden" name="clienteId" value="@Model.Cliente.Id" />
+                        <input type="hidden" name="returnPage" value="@Model.Page" />
 
                         <div class="col-md-6">
 
@@ -316,6 +317,36 @@ else
                     </table>
 
                 </div>
+
+                @if (Model.TotalPages > 1)
+                {
+                    var currentPage = Model.Page;
+                    var totalPages = Model.TotalPages;
+                    var start = Math.Max(1, currentPage - 2);
+                    var end = Math.Min(totalPages, currentPage + 2);
+                    <nav class="mt-3 d-flex flex-column flex-sm-row align-items-sm-center justify-content-sm-between" aria-label="Paginación de movimientos">
+                        <span class="text-muted small mb-2 mb-sm-0">Página <strong>@currentPage</strong> de <strong>@totalPages</strong></span>
+                        <ul class="pagination mb-0">
+                            <li class="page-item @(currentPage <= 1 ? "disabled" : string.Empty)">
+                                <a class="page-link" asp-action="CuentaCorriente" asp-route-id="@Model.Cliente.Id" asp-route-page="@(currentPage - 1)">Anterior</a>
+                            </li>
+                            @for (var i = start; i <= end; i++)
+                            {
+                                if (i == currentPage)
+                                {
+                                    <li class="page-item active"><span class="page-link">@i</span></li>
+                                }
+                                else
+                                {
+                                    <li class="page-item"><a class="page-link" asp-action="CuentaCorriente" asp-route-id="@Model.Cliente.Id" asp-route-page="@i">@i</a></li>
+                                }
+                            }
+                            <li class="page-item @(currentPage >= totalPages ? "disabled" : string.Empty)">
+                                <a class="page-link" asp-action="CuentaCorriente" asp-route-id="@Model.Cliente.Id" asp-route-page="@(currentPage + 1)">Siguiente</a>
+                            </li>
+                        </ul>
+                    </nav>
+                }
 
             }
 

@@ -540,14 +540,37 @@ namespace mi_ferreteria.Data
             }
         }
 
-        public IEnumerable<ClienteCuentaCorrienteMovimiento> GetMovimientosCuentaCorriente(long clienteId)
+        public int CountMovimientosCuentaCorriente(long clienteId)
         {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureSchema(conn);
+                using var cmd = new NpgsqlCommand("SELECT COUNT(*) FROM cliente_cuenta_corriente_mov WHERE cliente_id=@cid", conn);
+                cmd.Parameters.AddWithValue("@cid", clienteId);
+                var result = cmd.ExecuteScalar();
+                return result is int i ? i : Convert.ToInt32(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al contar movimientos de cuenta corriente del cliente {ClienteId}", clienteId);
+                throw;
+            }
+        }
+
+        public IEnumerable<ClienteCuentaCorrienteMovimiento> GetMovimientosCuentaCorriente(long clienteId, int page, int pageSize)
+        {
+            if (page < 1) page = 1;
+            if (pageSize <= 0) pageSize = 10;
             var list = new List<ClienteCuentaCorrienteMovimiento>();
             try
             {
                 using var conn = new NpgsqlConnection(_connectionString);
                 conn.Open();
                 EnsureSchema(conn);
+                var fromRow = ((page - 1) * pageSize) + 1;
+                var toRow = page * pageSize;
                 using var cmd = new NpgsqlCommand(@"
                     WITH base AS (
                         SELECT ccm.id, ccm.cliente_id, ccm.venta_id, ccm.fecha, ccm.fecha_vencimiento,
@@ -556,22 +579,30 @@ namespace mi_ferreteria.Data
                         FROM cliente_cuenta_corriente_mov ccm
                         LEFT JOIN factura f ON f.venta_id = ccm.venta_id
                         WHERE ccm.cliente_id = @cid
+                    ),
+                    ordered AS (
+                        SELECT base.*,
+                               SUM(
+                                    CASE
+                                        WHEN tipo IN ('DEUDA','NOTA_DEBITO') THEN -monto
+                                        WHEN tipo IN ('PAGO','NOTA_CREDITO') THEN monto
+                                        WHEN tipo = 'CONSUMO_SALDO' THEN -monto
+                                        WHEN tipo = 'AJUSTE' THEN monto
+                                        ELSE 0
+                                    END
+                               ) OVER (ORDER BY fecha ASC, id ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS saldo,
+                               ROW_NUMBER() OVER (ORDER BY fecha ASC, id ASC) AS rn
+                        FROM base
                     )
                     SELECT id, cliente_id, venta_id, fecha, fecha_vencimiento, tipo, monto, descripcion,
                            usuario_id, movimiento_relacionado_id,
-                           tipo_comprobante, punto_venta, numero, fecha_emision,
-                           SUM(
-                                CASE
-                                    WHEN tipo IN ('DEUDA','NOTA_DEBITO') THEN -monto
-                                    WHEN tipo IN ('PAGO','NOTA_CREDITO') THEN monto
-                                    WHEN tipo = 'CONSUMO_SALDO' THEN -monto
-                                    WHEN tipo = 'AJUSTE' THEN monto
-                                    ELSE 0
-                                END
-                           ) OVER (ORDER BY fecha ASC, id ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS saldo
-                    FROM base
-                    ORDER BY fecha ASC, id ASC;", conn);
+                           tipo_comprobante, punto_venta, numero, fecha_emision, saldo
+                    FROM ordered
+                    WHERE rn BETWEEN @fromRow AND @toRow
+                    ORDER BY rn;", conn);
                 cmd.Parameters.AddWithValue("@cid", clienteId);
+                cmd.Parameters.AddWithValue("@fromRow", fromRow);
+                cmd.Parameters.AddWithValue("@toRow", toRow);
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {

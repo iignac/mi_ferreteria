@@ -178,16 +178,29 @@ namespace mi_ferreteria.Controllers
         }
 
         // Muestra el estado completo de la cuenta corriente: movimientos, facturas pendientes, vencidas y saldo actual.
-        public IActionResult CuentaCorriente(long id)
+        public IActionResult CuentaCorriente(long id, int page = 1)
         {
             var cliente = _repo.GetById(id);
             if (cliente == null) return NotFound();
-            var movimientos = _repo.GetMovimientosCuentaCorriente(id).ToList();
+
+            const int pageSize = 10;
+            if (page < 1) page = 1;
+
             var facturasPendientes = _repo.GetFacturasPendientes(id).ToList();
             var ahora = DateTimeOffset.UtcNow;
             var facturasVencidas = facturasPendientes.Where(f => f.FechaVencimiento < ahora).ToList();
+
+            var totalMovimientos = _repo.CountMovimientosCuentaCorriente(id);
+            var totalPages = totalMovimientos == 0 ? 1 : (int)Math.Ceiling(totalMovimientos / (double)pageSize);
+            if (page > totalPages) page = totalPages;
+
+            var movimientos = totalMovimientos > 0
+                ? _repo.GetMovimientosCuentaCorriente(id, page, pageSize).ToList()
+                : new List<ClienteCuentaCorrienteMovimiento>();
+
             var saldoActual = cliente.CuentaCorrienteHabilitada ? _repo.GetSaldoCuentaCorriente(id) : 0m;
             var saldoDisponible = cliente.CuentaCorrienteHabilitada ? cliente.LimiteCredito + saldoActual : cliente.LimiteCredito;
+
             var vm = new ClienteCuentaCorrienteViewModel
             {
                 Cliente = cliente,
@@ -195,10 +208,15 @@ namespace mi_ferreteria.Controllers
                 FacturasVencidas = facturasVencidas,
                 FacturasPendientes = facturasPendientes,
                 SaldoActual = saldoActual,
-                SaldoDisponible = saldoDisponible
+                SaldoDisponible = saldoDisponible,
+                Page = page,
+                PageSize = pageSize,
+                TotalMovimientos = totalMovimientos,
+                TotalPages = totalPages
             };
             return View(vm);
         }
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -382,8 +400,9 @@ namespace mi_ferreteria.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         // Registra un pago en la CC del cliente. Puede aplicarse a una factura específica o al saldo general.
-        public IActionResult RegistrarPagoCuentaCorriente(long clienteId, decimal monto, string? descripcion, long? movimientoDeudaId = null)
+        public IActionResult RegistrarPagoCuentaCorriente(long clienteId, decimal monto, string? descripcion, long? movimientoDeudaId = null, int returnPage = 1)
         {
+            var targetPage = returnPage < 1 ? 1 : returnPage;
             try
             {
                 var cliente = _repo.GetById(clienteId);
@@ -391,13 +410,13 @@ namespace mi_ferreteria.Controllers
                 if (!cliente.CuentaCorrienteHabilitada)
                 {
                     TempData["CuentaCorrienteError"] = "La cuenta corriente no estã‚± habilitada para este cliente.";
-                    return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+                    return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId, page = targetPage });
                 }
 
                 if (monto <= 0)
                 {
                     TempData["CuentaCorrienteError"] = "El monto del pago debe ser mayor a cero.";
-                    return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+                    return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId, page = targetPage });
                 }
 
                 List<ClienteCuentaCorrienteFacturaPendiente>? facturasPendientes = null;
@@ -411,12 +430,12 @@ namespace mi_ferreteria.Controllers
                     if (factura == null)
                     {
                         TempData["CuentaCorrienteError"] = "La factura seleccionada no tiene saldo pendiente.";
-                        return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+                        return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId, page = targetPage });
                     }
                     if (monto > factura.SaldoPendiente)
                     {
                         TempData["CuentaCorrienteError"] = "El monto supera el saldo pendiente de la factura seleccionada.";
-                        return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+                        return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId, page = targetPage });
                     }
                     ventaId = factura.VentaId;
                     movRelacionadoId = factura.MovimientoDeudaId;
@@ -425,7 +444,7 @@ namespace mi_ferreteria.Controllers
                 if (!TryGetAuditoriaUsuario(out var userId, out _))
                 {
                     TempData["CuentaCorrienteError"] = "No se pudo identificar al usuario actual.";
-                    return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+                    return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId, page = targetPage });
                 }
 
                 var descripcionFinal = string.IsNullOrWhiteSpace(descripcion)
@@ -437,13 +456,13 @@ namespace mi_ferreteria.Controllers
                     $"Pago por ${monto:N2} en cuenta corriente de cliente {cliente.Nombre} (ID {cliente.Id}){(ventaId.HasValue ? $" aplicado a venta #{ventaId}" : string.Empty)}.");
                 var pagoUrl = Url.Action(nameof(MovimientoComprobante), new { clienteId, movimientoId = pagoMovimientoId });
                 TempData["CuentaCorrienteOk"] = $"El pago se registro correctamente. <a href=\"{pagoUrl}\" target=\"_blank\">Imprimir recibo</a>.";
-                return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+                return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId, page = targetPage });
             }
             catch (System.Exception ex)
             {
                 _logger.LogError(ex, "Error al registrar pago de cuenta corriente para cliente {ClienteId}", clienteId);
                 TempData["CuentaCorrienteError"] = "Ocurriç±€ un error al registrar el pago.";
-                return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId });
+                return RedirectToAction(nameof(CuentaCorriente), new { id = clienteId, page = targetPage });
             }
         }
 
