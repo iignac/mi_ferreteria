@@ -142,7 +142,7 @@ else
                                         </a>
                                         @if (factura.TipoPago == "CUENTA_CORRIENTE")
                                         {
-                                            <a asp-action="CuentaCorriente" asp-route-id="@Model.Cliente.Id" class="inline-flex items-center rounded-md border border-orange-200 px-3 py-1 text-xs font-medium text-[#FC651F] shadow-sm hover:bg-orange-50">
+                                            <a asp-action="CuentaCorriente" asp-route-id="@Model.Cliente.Id" asp-route-ventaId="@factura.VentaId" class="inline-flex items-center rounded-md border border-orange-200 px-3 py-1 text-xs font-medium text-[#FC651F] shadow-sm hover:bg-orange-50">
                                                 Ver cuenta corriente
                                             </a>
                                         }

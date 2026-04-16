@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Npgsql;
+using NpgsqlTypes;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using mi_ferreteria.Models;
@@ -540,15 +541,23 @@ namespace mi_ferreteria.Data
             }
         }
 
-        public int CountMovimientosCuentaCorriente(long clienteId)
+        public int CountMovimientosCuentaCorriente(long clienteId, long? ventaId = null)
         {
             try
             {
                 using var conn = new NpgsqlConnection(_connectionString);
                 conn.Open();
                 EnsureSchema(conn);
-                using var cmd = new NpgsqlCommand("SELECT COUNT(*) FROM cliente_cuenta_corriente_mov WHERE cliente_id=@cid", conn);
+                using var cmd = new NpgsqlCommand(@"
+                    SELECT COUNT(*)
+                    FROM cliente_cuenta_corriente_mov
+                    WHERE cliente_id=@cid
+                      AND (@ventaId IS NULL OR venta_id = @ventaId)", conn);
                 cmd.Parameters.AddWithValue("@cid", clienteId);
+                cmd.Parameters.Add(new NpgsqlParameter("@ventaId", NpgsqlDbType.Bigint)
+                {
+                    Value = (object?)ventaId ?? DBNull.Value
+                });
                 var result = cmd.ExecuteScalar();
                 return result is int i ? i : Convert.ToInt32(result);
             }
@@ -559,7 +568,7 @@ namespace mi_ferreteria.Data
             }
         }
 
-        public IEnumerable<ClienteCuentaCorrienteMovimiento> GetMovimientosCuentaCorriente(long clienteId, int page, int pageSize)
+        public IEnumerable<ClienteCuentaCorrienteMovimiento> GetMovimientosCuentaCorriente(long clienteId, int page, int pageSize, long? ventaId = null)
         {
             if (page < 1) page = 1;
             if (pageSize <= 0) pageSize = 10;
@@ -579,6 +588,7 @@ namespace mi_ferreteria.Data
                         FROM cliente_cuenta_corriente_mov ccm
                         LEFT JOIN factura f ON f.venta_id = ccm.venta_id
                         WHERE ccm.cliente_id = @cid
+                          AND (@ventaId IS NULL OR ccm.venta_id = @ventaId)
                     ),
                     ordered AS (
                         SELECT base.*,
@@ -601,6 +611,10 @@ namespace mi_ferreteria.Data
                     WHERE rn BETWEEN @fromRow AND @toRow
                     ORDER BY rn;", conn);
                 cmd.Parameters.AddWithValue("@cid", clienteId);
+                cmd.Parameters.Add(new NpgsqlParameter("@ventaId", NpgsqlDbType.Bigint)
+                {
+                    Value = (object?)ventaId ?? DBNull.Value
+                });
                 cmd.Parameters.AddWithValue("@fromRow", fromRow);
                 cmd.Parameters.AddWithValue("@toRow", toRow);
                 using var reader = cmd.ExecuteReader();

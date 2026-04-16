@@ -17,8 +17,8 @@ namespace mi_ferreteria.Data
         long RegistrarNotaCredito(long clienteId, decimal monto, int usuarioId, string descripcion, long? ventaId = null, long? movimientoRelacionadoId = null);
         long RegistrarPagoCuentaCorriente(long clienteId, decimal monto, int usuarioId, string descripcion, long? ventaId = null, long? movimientoRelacionadoId = null);
         ClienteCuentaCorrienteMovimiento? GetMovimiento(long movimientoId);
-        IEnumerable<ClienteCuentaCorrienteMovimiento> GetMovimientosCuentaCorriente(long clienteId, int page, int pageSize);
-        int CountMovimientosCuentaCorriente(long clienteId);
+        IEnumerable<ClienteCuentaCorrienteMovimiento> GetMovimientosCuentaCorriente(long clienteId, int page, int pageSize, long? ventaId = null);
+        int CountMovimientosCuentaCorriente(long clienteId, long? ventaId = null);
         IEnumerable<ClienteCuentaCorrienteFacturaPendiente> GetFacturasPendientes(long clienteId);
 
         void RegistrarSaldoInicial(long clienteId, decimal monto);

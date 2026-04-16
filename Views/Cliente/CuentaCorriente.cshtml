@@ -134,6 +134,18 @@ else
         </div>
 
         <div class="p-5">
+            @if (Model.VentaIdFiltro.HasValue)
+            {
+                var etiquetaFiltro = string.IsNullOrWhiteSpace(Model.ComprobanteFiltro)
+                    ? $"Venta {Model.VentaIdFiltro.Value}"
+                    : Model.ComprobanteFiltro;
+                <div class="mb-4 flex flex-col gap-3 rounded-md border border-orange-200 bg-orange-50 p-4 text-sm text-orange-800 sm:flex-row sm:items-center sm:justify-between">
+                    <p>Mostrando movimientos relacionados con <span class="font-semibold">@etiquetaFiltro</span>.</p>
+                    <a asp-action="CuentaCorriente" asp-route-id="@Model.Cliente.Id" class="inline-flex items-center rounded-md border border-orange-200 bg-white px-3 py-2 text-xs font-medium text-[#FC651F] shadow-sm hover:bg-orange-100">
+                        Ver todos los movimientos
+                    </a>
+                </div>
+            }
             @if (!Model.Movimientos.Any())
             {
                 <div class="rounded-md border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">No hay movimientos registrados.</div>
@@ -215,13 +227,13 @@ else
                     var end = Math.Min(totalPages, currentPage + 2);
                     <div class="mt-4 flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 rounded-b-lg" aria-label="Paginación de movimientos">
                         <div class="flex flex-1 justify-between sm:hidden">
-                            <a asp-action="CuentaCorriente" asp-route-id="@Model.Cliente.Id" asp-route-page="@(currentPage - 1)" class="relative inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(currentPage <= 1 ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">Anterior</a>
-                            <a asp-action="CuentaCorriente" asp-route-id="@Model.Cliente.Id" asp-route-page="@(currentPage + 1)" class="relative ml-3 inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(currentPage >= totalPages ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">Siguiente</a>
+                            <a asp-action="CuentaCorriente" asp-route-id="@Model.Cliente.Id" asp-route-page="@(currentPage - 1)" asp-route-ventaId="@Model.VentaIdFiltro" class="relative inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(currentPage <= 1 ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">Anterior</a>
+                            <a asp-action="CuentaCorriente" asp-route-id="@Model.Cliente.Id" asp-route-page="@(currentPage + 1)" asp-route-ventaId="@Model.VentaIdFiltro" class="relative ml-3 inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(currentPage >= totalPages ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">Siguiente</a>
                         </div>
                         <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                             <p class="text-sm text-gray-700">Página <span class="font-medium">@currentPage</span> de <span class="font-medium">@totalPages</span></p>
                             <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                                <a asp-action="CuentaCorriente" asp-route-id="@Model.Cliente.Id" asp-route-page="@(currentPage - 1)" class="relative inline-flex items-center rounded-l-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(currentPage <= 1 ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
+                                <a asp-action="CuentaCorriente" asp-route-id="@Model.Cliente.Id" asp-route-page="@(currentPage - 1)" asp-route-ventaId="@Model.VentaIdFiltro" class="relative inline-flex items-center rounded-l-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(currentPage <= 1 ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
                                     <span class="sr-only">Anterior</span>
                                     <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                         <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
@@ -235,10 +247,10 @@ else
                                     }
                                     else
                                     {
-                                        <a asp-action="CuentaCorriente" asp-route-id="@Model.Cliente.Id" asp-route-page="@i" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 hover:text-[#FC651F] focus:z-20">@i</a>
+                                        <a asp-action="CuentaCorriente" asp-route-id="@Model.Cliente.Id" asp-route-page="@i" asp-route-ventaId="@Model.VentaIdFiltro" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 hover:text-[#FC651F] focus:z-20">@i</a>
                                     }
                                 }
-                                <a asp-action="CuentaCorriente" asp-route-id="@Model.Cliente.Id" asp-route-page="@(currentPage + 1)" class="relative inline-flex items-center rounded-r-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(currentPage >= totalPages ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
+                                <a asp-action="CuentaCorriente" asp-route-id="@Model.Cliente.Id" asp-route-page="@(currentPage + 1)" asp-route-ventaId="@Model.VentaIdFiltro" class="relative inline-flex items-center rounded-r-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(currentPage >= totalPages ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
                                     <span class="sr-only">Siguiente</span>
                                     <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                         <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />

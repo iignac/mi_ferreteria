@@ -15,5 +15,7 @@ namespace mi_ferreteria.ViewModels
         public int PageSize { get; set; } = 10;
         public int TotalMovimientos { get; set; }
         public int TotalPages { get; set; } = 1;
+        public long? VentaIdFiltro { get; set; }
+        public string? ComprobanteFiltro { get; set; }
     }
 }

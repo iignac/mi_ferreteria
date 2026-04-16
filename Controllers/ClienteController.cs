@@ -215,7 +215,7 @@ namespace mi_ferreteria.Controllers
         }
 
         // Muestra el estado completo de la cuenta corriente: movimientos, facturas pendientes, vencidas y saldo actual.
-        public IActionResult CuentaCorriente(long id, int page = 1)
+        public IActionResult CuentaCorriente(long id, int page = 1, long? ventaId = null)
         {
             var cliente = _repo.GetById(id);
             if (cliente == null) return NotFound();
@@ -227,13 +227,17 @@ namespace mi_ferreteria.Controllers
             var ahora = DateTimeOffset.UtcNow;
             var facturasVencidas = facturasPendientes.Where(f => f.FechaVencimiento < ahora).ToList();
 
-            var totalMovimientos = _repo.CountMovimientosCuentaCorriente(id);
+            var totalMovimientos = _repo.CountMovimientosCuentaCorriente(id, ventaId);
             var totalPages = totalMovimientos == 0 ? 1 : (int)Math.Ceiling(totalMovimientos / (double)pageSize);
             if (page > totalPages) page = totalPages;
 
             var movimientos = totalMovimientos > 0
-                ? _repo.GetMovimientosCuentaCorriente(id, page, pageSize).ToList()
+                ? _repo.GetMovimientosCuentaCorriente(id, page, pageSize, ventaId).ToList()
                 : new List<ClienteCuentaCorrienteMovimiento>();
+
+            var comprobanteFiltro = movimientos
+                .Select(m => string.IsNullOrWhiteSpace(m.Comprobante) ? null : m.Comprobante)
+                .FirstOrDefault(c => !string.IsNullOrWhiteSpace(c));
 
             var saldoActual = cliente.CuentaCorrienteHabilitada ? _repo.GetSaldoCuentaCorriente(id) : 0m;
             var saldoDisponible = cliente.CuentaCorrienteHabilitada ? cliente.LimiteCredito + saldoActual : cliente.LimiteCredito;
@@ -249,7 +253,9 @@ namespace mi_ferreteria.Controllers
                 Page = page,
                 PageSize = pageSize,
                 TotalMovimientos = totalMovimientos,
-                TotalPages = totalPages
+                TotalPages = totalPages,
+                VentaIdFiltro = ventaId,
+                ComprobanteFiltro = comprobanteFiltro
             };
             return View(vm);
         }
