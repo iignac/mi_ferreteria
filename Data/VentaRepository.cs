@@ -5,6 +5,7 @@ using Npgsql;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using mi_ferreteria.Models;
+using mi_ferreteria.ViewModels;
 
 namespace mi_ferreteria.Data
 {
@@ -803,6 +804,85 @@ namespace mi_ferreteria.Data
             }
         }
 
+        public int CountFacturasPorCliente(long clienteId, string? q = null)
+        {
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureSchema(conn);
+                var whereBusqueda = BuildFacturaClienteWhere(q);
+                using var cmd = new NpgsqlCommand($@"
+                    SELECT COUNT(1)
+                    FROM factura f
+                    JOIN venta v ON v.id = f.venta_id
+                    WHERE v.cliente_id = @clienteId{whereBusqueda}", conn);
+                cmd.Parameters.AddWithValue("@clienteId", clienteId);
+                AddFacturaClienteSearchParam(cmd, q);
+                var res = cmd.ExecuteScalar();
+                return res is long l ? (int)l : Convert.ToInt32(res);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al contar facturas del cliente {ClienteId}", clienteId);
+                throw;
+            }
+        }
+
+        public IEnumerable<ClienteFacturaItemViewModel> GetFacturasPorCliente(long clienteId, string? q, int page, int pageSize)
+        {
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
+
+            var list = new List<ClienteFacturaItemViewModel>();
+            try
+            {
+                using var conn = new NpgsqlConnection(_connectionString);
+                conn.Open();
+                EnsureSchema(conn);
+                var offset = (page - 1) * pageSize;
+                var whereBusqueda = BuildFacturaClienteWhere(q);
+                using var cmd = new NpgsqlCommand($@"
+                    SELECT f.id, f.venta_id, f.fecha_emision, f.tipo_comprobante, f.punto_venta, f.numero, f.total,
+                           v.tipo_pago, v.estado
+                    FROM factura f
+                    JOIN venta v ON v.id = f.venta_id
+                    WHERE v.cliente_id = @clienteId{whereBusqueda}
+                    ORDER BY f.fecha_emision DESC, f.id DESC
+                    LIMIT @limit OFFSET @offset", conn);
+                cmd.Parameters.AddWithValue("@clienteId", clienteId);
+                cmd.Parameters.AddWithValue("@limit", pageSize);
+                cmd.Parameters.AddWithValue("@offset", offset);
+                AddFacturaClienteSearchParam(cmd, q);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    var tipoComprobante = reader.GetString(3);
+                    var puntoVenta = reader.GetInt32(4);
+                    var numero = reader.GetInt64(5);
+                    list.Add(new ClienteFacturaItemViewModel
+                    {
+                        FacturaId = reader.GetInt64(0),
+                        VentaId = reader.GetInt64(1),
+                        FechaEmision = reader.GetFieldValue<DateTimeOffset>(2),
+                        TipoComprobante = tipoComprobante,
+                        PuntoVenta = puntoVenta,
+                        Numero = numero,
+                        Total = reader.GetDecimal(6),
+                        TipoPago = reader.GetString(7),
+                        Estado = reader.GetString(8),
+                        ComprobanteFormateado = $"{tipoComprobante} {puntoVenta:0000}-{numero:00000000}"
+                    });
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener facturas del cliente {ClienteId}", clienteId);
+                throw;
+            }
+        }
+
         public (Venta venta, List<VentaDetalle> detalles, Factura? factura)? ObtenerComprobante(long ventaId)
         {
             try
@@ -907,6 +987,33 @@ namespace mi_ferreteria.Data
             {
                 _logger.LogError(ex, "Error al obtener comprobante de venta {VentaId}", ventaId);
                 throw;
+            }
+        }
+
+        private static string BuildFacturaClienteWhere(string? q)
+        {
+            if (string.IsNullOrWhiteSpace(q))
+            {
+                return string.Empty;
+            }
+
+            return @"
+                    AND (
+                        LOWER(f.tipo_comprobante) LIKE LOWER(@q)
+                        OR CAST(f.numero AS TEXT) LIKE @q
+                        OR (
+                            f.tipo_comprobante || ' ' ||
+                            LPAD(CAST(f.punto_venta AS TEXT), 4, '0') || '-' ||
+                            LPAD(CAST(f.numero AS TEXT), 8, '0')
+                        ) ILIKE @q
+                    )";
+        }
+
+        private static void AddFacturaClienteSearchParam(NpgsqlCommand cmd, string? q)
+        {
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                cmd.Parameters.AddWithValue("@q", "%" + q.Trim() + "%");
             }
         }
     }

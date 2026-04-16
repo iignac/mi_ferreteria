@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using mi_ferreteria.Models;
+using mi_ferreteria.ViewModels;
 
 namespace mi_ferreteria.Data
 {
@@ -51,5 +53,9 @@ namespace mi_ferreteria.Data
         /// Página de ventas filtradas, ordenadas por fecha descendente.
         /// </summary>
         IEnumerable<Venta> GetFiltrado(int page, int pageSize, string? producto, string? clienteNombre, DateTime? fechaDesde, DateTime? fechaHasta, decimal? montoMin, decimal? montoMax, string? tipoCliente);
+
+        int CountFacturasPorCliente(long clienteId, string? q = null);
+
+        IEnumerable<ClienteFacturaItemViewModel> GetFacturasPorCliente(long clienteId, string? q, int page, int pageSize);
     }
 }

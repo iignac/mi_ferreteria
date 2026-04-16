@@ -17,15 +17,17 @@ namespace mi_ferreteria.Controllers
     public class ClienteController : BaseController
     {
         private readonly IClienteRepository _repo;
+        private readonly IVentaRepository _ventaRepo;
         private readonly ILogger<ClienteController> _logger;
         private static readonly Regex NombreSoloLetrasRegex = new Regex(ValidationConstants.NombreSoloLetrasPattern, RegexOptions.Compiled | RegexOptions.CultureInvariant);
         private static readonly Regex NumeroDocumentoSoloDigitosRegex = new Regex(@"^\d+$", RegexOptions.Compiled);
         private static readonly Regex MultipleSpacesRegex = new Regex(@"\s+", RegexOptions.Compiled);
 
-        public ClienteController(IClienteRepository repo, IAuditoriaRepository auditoriaRepo, ILogger<ClienteController> logger)
+        public ClienteController(IClienteRepository repo, IVentaRepository ventaRepo, IAuditoriaRepository auditoriaRepo, ILogger<ClienteController> logger)
             : base(auditoriaRepo)
         {
             _repo = repo;
+            _ventaRepo = ventaRepo;
             _logger = logger;
         }
 
@@ -175,6 +177,37 @@ namespace mi_ferreteria.Controllers
             ViewBag.SaldoActual = saldoActual;
             ViewBag.SaldoDisponible = saldoDisponible;
             return View(c);
+        }
+
+        // Muestra las facturas asociadas a un cliente, con bÃºsqueda por comprobante y paginaciÃ³n.
+        public IActionResult Facturas(long id, string? q = null, int page = 1)
+        {
+            var cliente = _repo.GetById(id);
+            if (cliente == null) return NotFound();
+
+            const int pageSize = 10;
+            if (page < 1) page = 1;
+
+            var totalFacturas = _ventaRepo.CountFacturasPorCliente(id, q);
+            var totalPages = totalFacturas == 0 ? 1 : (int)Math.Ceiling(totalFacturas / (double)pageSize);
+            if (page > totalPages) page = totalPages;
+
+            var facturas = totalFacturas > 0
+                ? _ventaRepo.GetFacturasPorCliente(id, q, page, pageSize).ToList()
+                : new List<ClienteFacturaItemViewModel>();
+
+            var vm = new ClienteFacturasViewModel
+            {
+                Cliente = cliente,
+                Facturas = facturas,
+                Query = q ?? string.Empty,
+                Page = page,
+                PageSize = pageSize,
+                TotalFacturas = totalFacturas,
+                TotalPages = totalPages
+            };
+
+            return View(vm);
         }
 
         // Muestra el estado completo de la cuenta corriente: movimientos, facturas pendientes, vencidas y saldo actual.

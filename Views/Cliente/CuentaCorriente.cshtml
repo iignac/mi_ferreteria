@@ -12,6 +12,7 @@
     </div>
     <div class="mt-4 sm:mt-0 flex flex-wrap gap-3">
         <a asp-action="Details" asp-route-id="@Model.Cliente.Id" class="btn-secondary">Volver al cliente</a>
+        <a asp-action="Facturas" asp-route-id="@Model.Cliente.Id" class="btn-secondary">Ver facturas</a>
         <a asp-action="Index" class="btn-secondary">Ver clientes</a>
     </div>
 </div>
