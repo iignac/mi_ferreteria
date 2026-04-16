@@ -14,5 +14,6 @@ namespace mi_ferreteria.ViewModels
         public string TipoPago { get; set; } = string.Empty;
         public string Estado { get; set; } = string.Empty;
         public string ComprobanteFormateado { get; set; } = string.Empty;
+        public decimal? SaldoPendiente { get; set; }
     }
 }

@@ -180,20 +180,22 @@ namespace mi_ferreteria.Controllers
         }
 
         // Muestra las facturas asociadas a un cliente, con bÃºsqueda por comprobante y paginaciÃ³n.
-        public IActionResult Facturas(long id, string? q = null, int page = 1)
+        public IActionResult Facturas(long id, string? q = null, string? desde = null, string? hasta = null, int page = 1)
         {
             var cliente = _repo.GetById(id);
             if (cliente == null) return NotFound();
 
             const int pageSize = 10;
             if (page < 1) page = 1;
+            DateTime? fechaDesde = DateTime.TryParse(desde, out var parsedDesde) ? parsedDesde.Date : (DateTime?)null;
+            DateTime? fechaHasta = DateTime.TryParse(hasta, out var parsedHasta) ? parsedHasta.Date : (DateTime?)null;
 
-            var totalFacturas = _ventaRepo.CountFacturasPorCliente(id, q);
+            var totalFacturas = _ventaRepo.CountFacturasPorCliente(id, q, fechaDesde, fechaHasta);
             var totalPages = totalFacturas == 0 ? 1 : (int)Math.Ceiling(totalFacturas / (double)pageSize);
             if (page > totalPages) page = totalPages;
 
             var facturas = totalFacturas > 0
-                ? _ventaRepo.GetFacturasPorCliente(id, q, page, pageSize).ToList()
+                ? _ventaRepo.GetFacturasPorCliente(id, q, fechaDesde, fechaHasta, page, pageSize).ToList()
                 : new List<ClienteFacturaItemViewModel>();
 
             var vm = new ClienteFacturasViewModel
@@ -201,6 +203,8 @@ namespace mi_ferreteria.Controllers
                 Cliente = cliente,
                 Facturas = facturas,
                 Query = q ?? string.Empty,
+                Desde = fechaDesde?.ToString("yyyy-MM-dd") ?? string.Empty,
+                Hasta = fechaHasta?.ToString("yyyy-MM-dd") ?? string.Empty,
                 Page = page,
                 PageSize = pageSize,
                 TotalFacturas = totalFacturas,

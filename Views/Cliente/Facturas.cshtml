@@ -4,6 +4,8 @@
     var currentPage = Model.Page;
     var totalPages = Model.TotalPages;
     var q = Model.Query ?? string.Empty;
+    var desde = Model.Desde ?? string.Empty;
+    var hasta = Model.Hasta ?? string.Empty;
     var start = System.Math.Max(1, currentPage - 2);
     var end = System.Math.Min(totalPages, currentPage + 2);
 }
@@ -23,14 +25,26 @@
 </div>
 
 <div class="mb-6 bg-white p-4 shadow-sm rounded-lg border border-gray-200">
-    <form method="get" asp-action="Facturas" class="flex items-center gap-2">
+    <form method="get" asp-action="Facturas" class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto_auto] md:items-end">
         <input type="hidden" name="id" value="@Model.Cliente.Id" />
         <input type="hidden" name="page" value="1" />
         <div class="relative flex-1">
+            <label class="mb-1 block text-sm font-medium text-gray-700">Comprobante</label>
             <input type="search" name="q" value="@q"
                    class="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-4 pr-10 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-[#FC651F] focus:outline-none focus:ring-1 focus:ring-[#FC651F]"
                    placeholder="Buscar por comprobante" />
         </div>
+        <div>
+            <label class="mb-1 block text-sm font-medium text-gray-700">Desde</label>
+            <input type="date" name="desde" value="@desde"
+                   class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-[#FC651F] focus:outline-none focus:ring-1 focus:ring-[#FC651F]" />
+        </div>
+        <div>
+            <label class="mb-1 block text-sm font-medium text-gray-700">Hasta</label>
+            <input type="date" name="hasta" value="@hasta"
+                   class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-[#FC651F] focus:outline-none focus:ring-1 focus:ring-[#FC651F]" />
+        </div>
+        <div class="flex items-center gap-2 md:self-end">
         <button type="submit"
                 class="group flex items-center justify-center rounded-lg bg-gray-900 p-2.5 text-white shadow-sm transition-colors duration-200 hover:bg-[#FC651F] focus:outline-none"
                 title="Buscar">
@@ -38,12 +52,13 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
             </svg>
         </button>
-        @if (!string.IsNullOrWhiteSpace(q))
+        @if (!string.IsNullOrWhiteSpace(q) || !string.IsNullOrWhiteSpace(desde) || !string.IsNullOrWhiteSpace(hasta))
         {
             <a asp-action="Facturas" asp-route-id="@Model.Cliente.Id" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900">
                 Limpiar
             </a>
         }
+        </div>
     </form>
 </div>
 
@@ -74,6 +89,7 @@ else
                                 <th scope="col" class="whitespace-nowrap px-3 py-3.5 font-semibold text-gray-900">Fecha emision</th>
                                 <th scope="col" class="whitespace-nowrap px-3 py-3.5 font-semibold text-gray-900">Comprobante</th>
                                 <th scope="col" class="whitespace-nowrap px-3 py-3.5 font-semibold text-gray-900 text-right">Total</th>
+                                <th scope="col" class="whitespace-nowrap px-3 py-3.5 font-semibold text-gray-900 text-right">Saldo pendiente</th>
                                 <th scope="col" class="whitespace-nowrap px-3 py-3.5 font-semibold text-gray-900">Tipo de pago</th>
                                 <th scope="col" class="whitespace-nowrap px-3 py-3.5 font-semibold text-gray-900">Estado</th>
                                 <th scope="col" class="whitespace-nowrap px-3 py-3.5 font-semibold text-gray-900 text-right">Acciones</th>
@@ -86,6 +102,20 @@ else
                                     <td class="whitespace-nowrap px-3 py-4 text-gray-600">@factura.FechaEmision.ToString("yyyy-MM-dd HH:mm")</td>
                                     <td class="whitespace-nowrap px-3 py-4 font-medium text-gray-900">@factura.ComprobanteFormateado</td>
                                     <td class="whitespace-nowrap px-3 py-4 font-semibold text-gray-900 text-right">$ @factura.Total.ToString("N2")</td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-right">
+                                        @if (factura.TipoPago != "CUENTA_CORRIENTE")
+                                        {
+                                            <span class="text-sm text-gray-400">-</span>
+                                        }
+                                        else if (!factura.SaldoPendiente.HasValue || factura.SaldoPendiente.Value <= 0)
+                                        {
+                                            <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Saldada</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-sm font-semibold text-red-600">$ @factura.SaldoPendiente.Value.ToString("N2")</span>
+                                        }
+                                    </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-gray-600">@factura.TipoPago</td>
                                     <td class="whitespace-nowrap px-3 py-4">
                                         @if (factura.Estado == "CONFIRMADA")
@@ -106,9 +136,17 @@ else
                                         }
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-right">
+                                        <div class="flex items-center justify-end gap-2">
                                         <a asp-controller="Venta" asp-action="Comprobante" asp-route-id="@factura.VentaId" target="_blank" class="inline-flex items-center rounded-md border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50">
                                             Ver comprobante
                                         </a>
+                                        @if (factura.TipoPago == "CUENTA_CORRIENTE")
+                                        {
+                                            <a asp-action="CuentaCorriente" asp-route-id="@Model.Cliente.Id" class="inline-flex items-center rounded-md border border-orange-200 px-3 py-1 text-xs font-medium text-[#FC651F] shadow-sm hover:bg-orange-50">
+                                                Ver cuenta corriente
+                                            </a>
+                                        }
+                                        </div>
                                     </td>
                                 </tr>
                             }
@@ -123,13 +161,13 @@ else
     {
         <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 mt-2 rounded-b-lg">
             <div class="flex flex-1 justify-between sm:hidden">
-                <a asp-action="Facturas" asp-route-id="@Model.Cliente.Id" asp-route-page="@(currentPage - 1)" asp-route-q="@q" class="relative inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(currentPage <= 1 ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">Anterior</a>
-                <a asp-action="Facturas" asp-route-id="@Model.Cliente.Id" asp-route-page="@(currentPage + 1)" asp-route-q="@q" class="relative ml-3 inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(currentPage >= totalPages ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">Siguiente</a>
+                <a asp-action="Facturas" asp-route-id="@Model.Cliente.Id" asp-route-page="@(currentPage - 1)" asp-route-q="@q" asp-route-desde="@desde" asp-route-hasta="@hasta" class="relative inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(currentPage <= 1 ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">Anterior</a>
+                <a asp-action="Facturas" asp-route-id="@Model.Cliente.Id" asp-route-page="@(currentPage + 1)" asp-route-q="@q" asp-route-desde="@desde" asp-route-hasta="@hasta" class="relative ml-3 inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition-colors @(currentPage >= totalPages ? "pointer-events-none opacity-40 border-gray-200 text-gray-400" : "border-[#FC651F] text-[#FC651F] hover:bg-orange-50")">Siguiente</a>
             </div>
             <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                 <p class="text-sm text-gray-700">Pagina <span class="font-medium">@currentPage</span> de <span class="font-medium">@totalPages</span></p>
                 <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                    <a asp-action="Facturas" asp-route-id="@Model.Cliente.Id" asp-route-page="@(currentPage - 1)" asp-route-q="@q" class="relative inline-flex items-center rounded-l-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(currentPage <= 1 ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
+                    <a asp-action="Facturas" asp-route-id="@Model.Cliente.Id" asp-route-page="@(currentPage - 1)" asp-route-q="@q" asp-route-desde="@desde" asp-route-hasta="@hasta" class="relative inline-flex items-center rounded-l-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(currentPage <= 1 ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
                         <span class="sr-only">Anterior</span>
                         <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                             <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
@@ -143,10 +181,10 @@ else
                         }
                         else
                         {
-                            <a asp-action="Facturas" asp-route-id="@Model.Cliente.Id" asp-route-page="@i" asp-route-q="@q" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 hover:text-[#FC651F] focus:z-20">@i</a>
+                            <a asp-action="Facturas" asp-route-id="@Model.Cliente.Id" asp-route-page="@i" asp-route-q="@q" asp-route-desde="@desde" asp-route-hasta="@hasta" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 hover:text-[#FC651F] focus:z-20">@i</a>
                         }
                     }
-                    <a asp-action="Facturas" asp-route-id="@Model.Cliente.Id" asp-route-page="@(currentPage + 1)" asp-route-q="@q" class="relative inline-flex items-center rounded-r-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(currentPage >= totalPages ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
+                    <a asp-action="Facturas" asp-route-id="@Model.Cliente.Id" asp-route-page="@(currentPage + 1)" asp-route-q="@q" asp-route-desde="@desde" asp-route-hasta="@hasta" class="relative inline-flex items-center rounded-r-md px-2 py-2 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-orange-50 focus:z-20 @(currentPage >= totalPages ? "pointer-events-none opacity-40" : "text-[#FC651F]")">
                         <span class="sr-only">Siguiente</span>
                         <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                             <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />

@@ -54,8 +54,8 @@ namespace mi_ferreteria.Data
         /// </summary>
         IEnumerable<Venta> GetFiltrado(int page, int pageSize, string? producto, string? clienteNombre, DateTime? fechaDesde, DateTime? fechaHasta, decimal? montoMin, decimal? montoMax, string? tipoCliente);
 
-        int CountFacturasPorCliente(long clienteId, string? q = null);
+        int CountFacturasPorCliente(long clienteId, string? q = null, DateTime? desde = null, DateTime? hasta = null);
 
-        IEnumerable<ClienteFacturaItemViewModel> GetFacturasPorCliente(long clienteId, string? q, int page, int pageSize);
+        IEnumerable<ClienteFacturaItemViewModel> GetFacturasPorCliente(long clienteId, string? q, DateTime? desde, DateTime? hasta, int page, int pageSize);
     }
 }

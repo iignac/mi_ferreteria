@@ -804,21 +804,21 @@ namespace mi_ferreteria.Data
             }
         }
 
-        public int CountFacturasPorCliente(long clienteId, string? q = null)
+        public int CountFacturasPorCliente(long clienteId, string? q = null, DateTime? desde = null, DateTime? hasta = null)
         {
             try
             {
                 using var conn = new NpgsqlConnection(_connectionString);
                 conn.Open();
                 EnsureSchema(conn);
-                var whereBusqueda = BuildFacturaClienteWhere(q);
+                var whereFiltros = BuildFacturaClienteWhere(q, desde, hasta);
                 using var cmd = new NpgsqlCommand($@"
                     SELECT COUNT(1)
                     FROM factura f
                     JOIN venta v ON v.id = f.venta_id
-                    WHERE v.cliente_id = @clienteId{whereBusqueda}", conn);
+                    WHERE v.cliente_id = @clienteId{whereFiltros}", conn);
                 cmd.Parameters.AddWithValue("@clienteId", clienteId);
-                AddFacturaClienteSearchParam(cmd, q);
+                AddFacturaClienteFilterParams(cmd, q, desde, hasta);
                 var res = cmd.ExecuteScalar();
                 return res is long l ? (int)l : Convert.ToInt32(res);
             }
@@ -829,7 +829,7 @@ namespace mi_ferreteria.Data
             }
         }
 
-        public IEnumerable<ClienteFacturaItemViewModel> GetFacturasPorCliente(long clienteId, string? q, int page, int pageSize)
+        public IEnumerable<ClienteFacturaItemViewModel> GetFacturasPorCliente(long clienteId, string? q, DateTime? desde, DateTime? hasta, int page, int pageSize)
         {
             if (page < 1) page = 1;
             if (pageSize < 1) pageSize = 10;
@@ -841,19 +841,40 @@ namespace mi_ferreteria.Data
                 conn.Open();
                 EnsureSchema(conn);
                 var offset = (page - 1) * pageSize;
-                var whereBusqueda = BuildFacturaClienteWhere(q);
+                var whereFiltros = BuildFacturaClienteWhere(q, desde, hasta);
                 using var cmd = new NpgsqlCommand($@"
                     SELECT f.id, f.venta_id, f.fecha_emision, f.tipo_comprobante, f.punto_venta, f.numero, f.total,
-                           v.tipo_pago, v.estado
+                           v.tipo_pago, v.estado,
+                           CASE
+                               WHEN v.tipo_pago <> 'CUENTA_CORRIENTE' THEN NULL
+                               WHEN cc.saldo_pendiente IS NULL THEN 0
+                               WHEN cc.saldo_pendiente < 0 THEN 0
+                               ELSE cc.saldo_pendiente
+                           END AS saldo_pendiente
                     FROM factura f
                     JOIN venta v ON v.id = f.venta_id
-                    WHERE v.cliente_id = @clienteId{whereBusqueda}
+                    LEFT JOIN (
+                        SELECT
+                            cliente_id,
+                            venta_id,
+                            SUM(
+                                CASE
+                                    WHEN tipo IN ('DEUDA', 'NOTA_DEBITO') THEN monto
+                                    WHEN tipo IN ('PAGO', 'NOTA_CREDITO') THEN -monto
+                                    ELSE 0
+                                END
+                            ) AS saldo_pendiente
+                        FROM cliente_cuenta_corriente_mov
+                        WHERE venta_id IS NOT NULL
+                        GROUP BY cliente_id, venta_id
+                    ) cc ON cc.cliente_id = v.cliente_id AND cc.venta_id = v.id
+                    WHERE v.cliente_id = @clienteId{whereFiltros}
                     ORDER BY f.fecha_emision DESC, f.id DESC
                     LIMIT @limit OFFSET @offset", conn);
                 cmd.Parameters.AddWithValue("@clienteId", clienteId);
                 cmd.Parameters.AddWithValue("@limit", pageSize);
                 cmd.Parameters.AddWithValue("@offset", offset);
-                AddFacturaClienteSearchParam(cmd, q);
+                AddFacturaClienteFilterParams(cmd, q, desde, hasta);
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
@@ -871,7 +892,8 @@ namespace mi_ferreteria.Data
                         Total = reader.GetDecimal(6),
                         TipoPago = reader.GetString(7),
                         Estado = reader.GetString(8),
-                        ComprobanteFormateado = $"{tipoComprobante} {puntoVenta:0000}-{numero:00000000}"
+                        ComprobanteFormateado = $"{tipoComprobante} {puntoVenta:0000}-{numero:00000000}",
+                        SaldoPendiente = reader.IsDBNull(9) ? null : reader.GetDecimal(9)
                     });
                 }
                 return list;
@@ -990,15 +1012,14 @@ namespace mi_ferreteria.Data
             }
         }
 
-        private static string BuildFacturaClienteWhere(string? q)
+        private static string BuildFacturaClienteWhere(string? q, DateTime? desde, DateTime? hasta)
         {
-            if (string.IsNullOrWhiteSpace(q))
-            {
-                return string.Empty;
-            }
+            var clauses = new List<string>();
 
-            return @"
-                    AND (
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                clauses.Add(@"
+                    (
                         LOWER(f.tipo_comprobante) LIKE LOWER(@q)
                         OR CAST(f.numero AS TEXT) LIKE @q
                         OR (
@@ -1006,14 +1027,35 @@ namespace mi_ferreteria.Data
                             LPAD(CAST(f.punto_venta AS TEXT), 4, '0') || '-' ||
                             LPAD(CAST(f.numero AS TEXT), 8, '0')
                         ) ILIKE @q
-                    )";
+                    )");
+            }
+
+            if (desde.HasValue)
+            {
+                clauses.Add("f.fecha_emision >= @desde");
+            }
+
+            if (hasta.HasValue)
+            {
+                clauses.Add("f.fecha_emision < @hasta");
+            }
+
+            return clauses.Count == 0 ? string.Empty : "\n                    AND " + string.Join("\n                    AND ", clauses);
         }
 
-        private static void AddFacturaClienteSearchParam(NpgsqlCommand cmd, string? q)
+        private static void AddFacturaClienteFilterParams(NpgsqlCommand cmd, string? q, DateTime? desde, DateTime? hasta)
         {
             if (!string.IsNullOrWhiteSpace(q))
             {
                 cmd.Parameters.AddWithValue("@q", "%" + q.Trim() + "%");
+            }
+            if (desde.HasValue)
+            {
+                cmd.Parameters.AddWithValue("@desde", desde.Value);
+            }
+            if (hasta.HasValue)
+            {
+                cmd.Parameters.AddWithValue("@hasta", hasta.Value.AddDays(1));
             }
         }
     }
